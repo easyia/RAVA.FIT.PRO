@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Slider } from '@/components/ui/slider';
 import {
     Utensils,
     Sparkles,
@@ -16,10 +16,12 @@ import {
     CheckCircle2,
     AlertCircle,
     Loader2,
-    ArrowRight,
-    SearchX,
     Dumbbell,
-    PieChart
+    PieChart,
+    Info,
+    Edit3,
+    Plus,
+    Trash2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -38,15 +40,23 @@ import {
 } from '@/utils/nutritionCalculations';
 import { supabase } from '@/lib/supabase';
 import { useNavigate } from 'react-router-dom';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const AINutritionAssistant = () => {
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [selectedStudentId, setSelectedStudentId] = useState<string>('');
     const [isGenerating, setIsGenerating] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
-    const [naf, setNaf] = useState(1.2);
+    const [naf, setNaf] = useState(1.55);
     const [targetKcal, setTargetKcal] = useState(0);
     const [generatedDiet, setGeneratedDiet] = useState<any>(null);
+    const [isEditingMacros, setIsEditingMacros] = useState(false);
+    const [customMacros, setCustomMacros] = useState({ p: 0, c: 0, f: 0 });
     const navigate = useNavigate();
 
     // Data Fetching
@@ -77,25 +87,23 @@ const AINutritionAssistant = () => {
 
     // TMB Calculations
     const calculations = useMemo(() => {
-        if (!anamnesis) return null;
-        const params = {
-            weight: anamnesis.weight_kg || 70,
-            height: anamnesis.height_cm || 170,
-            age: studentDetails.birth_date ? (new Date().getFullYear() - new Date(studentDetails.birth_date).getFullYear()) : 30,
-            sex: studentDetails.sex === 'masculino' ? 'male' : 'female' as any,
-            bodyFat: anamnesis.body_fat_percentage,
-            activityLevel: naf
-        };
+        if (!anamnesis || !studentDetails) return null;
+
+        const weight = anamnesis.weight_kg || 70;
+        const height = anamnesis.height_cm || 170;
+        const birthDate = studentDetails.birth_date ? new Date(studentDetails.birth_date) : null;
+        const age = birthDate ? (new Date().getFullYear() - birthDate.getFullYear()) : 30;
+        const sex = studentDetails.sex === 'masculino' ? 'male' : 'female';
+        const bodyFat = anamnesis.body_fat_percentage;
+
+        const params = { weight, height, age, sex: sex as 'male' | 'female', bodyFat, activityLevel: naf };
 
         const mifflin = calculateMifflin(params);
+        const tinsleyTotal = calculateTinsleyTotal(weight);
+        const tinsleyLBM = bodyFat ? calculateTinsleyLBM(weight, bodyFat) : 0;
         const get = mifflin * naf;
 
-        return {
-            mifflin,
-            tinsleyTotal: calculateTinsleyTotal(params.weight),
-            tinsleyLBM: anamnesis.body_fat_percentage ? calculateTinsleyLBM(params.weight, anamnesis.body_fat_percentage) : 0,
-            get
-        };
+        return { mifflin, tinsleyTotal, tinsleyLBM, get, weight, height, age, sex, bodyFat };
     }, [anamnesis, naf, studentDetails]);
 
     useEffect(() => {
@@ -106,7 +114,13 @@ const AINutritionAssistant = () => {
 
     const macros = useMemo(() => {
         if (!anamnesis || targetKcal === 0) return null;
-        return calculateMacros(targetKcal, anamnesis.weight_kg || 70, anamnesis.main_goal);
+        const calc = calculateMacros(targetKcal, anamnesis.weight_kg || 70, anamnesis.main_goal);
+        setCustomMacros({
+            p: Math.round(calc.protein.grams),
+            c: Math.round(calc.carbs.grams),
+            f: Math.round(calc.fats.grams)
+        });
+        return calc;
     }, [targetKcal, anamnesis]);
 
     const handleGenerateDiet = async () => {
@@ -123,9 +137,9 @@ const AINutritionAssistant = () => {
                     student_id: selectedStudentId,
                     target_calories: targetKcal,
                     macros: {
-                        p: Math.round(macros?.protein.grams || 0),
-                        c: Math.round(macros?.carbs.grams || 0),
-                        f: Math.round(macros?.fats.grams || 0)
+                        p: customMacros.p,
+                        c: customMacros.c,
+                        f: customMacros.f
                     }
                 }
             });
@@ -134,8 +148,11 @@ const AINutritionAssistant = () => {
             if (data.success) {
                 setGeneratedDiet(data.diet);
                 toast.success('Dieta gerada com 3 opções por refeição!');
+            } else {
+                throw new Error(data.error || 'Erro desconhecido');
             }
         } catch (error: any) {
+            console.error(error);
             toast.error('Erro ao gerar dieta: ' + error.message);
         } finally {
             setIsGenerating(false);
@@ -146,20 +163,17 @@ const AINutritionAssistant = () => {
         if (!generatedDiet || !selectedStudentId) return;
         setIsSaving(true);
         try {
-            // Save as a meal plan (flattening to Option 1 for default, 
-            // but we could extend schema. For now, saving as requested)
             const planToSave = {
                 title: generatedDiet.titulo,
                 goal: generatedDiet.objetivo,
                 meals: generatedDiet.refeicoes.map((m: any) => ({
                     name: m.nome,
                     time: m.horario,
-                    // By default saving option 1, in a real scenario we'd save all substitutions
                     foods: m.opcoes[0].itens.map((i: any) => ({
                         name: i.alimento,
                         quantity: i.quantidade,
                         unit: i.unidade,
-                        notes: `Alternativas: ${m.opcoes[1].itens[0].alimento} ou ${m.opcoes[2].itens[0].alimento}`
+                        notes: `Alt: ${m.opcoes[1]?.itens[0]?.alimento || '-'} / ${m.opcoes[2]?.itens[0]?.alimento || '-'}`
                     }))
                 }))
             };
@@ -174,246 +188,269 @@ const AINutritionAssistant = () => {
         }
     };
 
+    const nafDescriptions: Record<string, string> = {
+        "1.2": "Sedentário: Trabalho de escritório, pouca ou nenhuma atividade física.",
+        "1.375": "Leve: Exercícios leves 1-3 dias/semana.",
+        "1.55": "Moderado: Exercícios moderados 3-5 dias/semana.",
+        "1.725": "Intenso: Exercícios intensos 6-7 dias/semana.",
+        "1.9": "Atleta: Treinos muito intensos, 2x ao dia ou trabalho físico pesado."
+    };
+
     return (
-        <div className="min-h-screen bg-background">
-            <AppSidebar collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} />
+        <TooltipProvider>
+            <div className="min-h-screen bg-background">
+                <AppSidebar collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} />
 
-            <div className={cn("transition-all duration-300 min-h-screen", sidebarCollapsed ? "ml-16" : "ml-60")}>
-                <main className="p-8">
-                    <DashboardHeader title="Assistente de Nutrição IA" showSearch={false} />
+                <div className={cn("transition-all duration-300 min-h-screen", sidebarCollapsed ? "ml-16" : "ml-60")}>
+                    <main className="p-8">
+                        <DashboardHeader title="Assistente de Nutrição IA" showSearch={false} />
 
-                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 mt-8">
-                        {/* Config Sidebar */}
-                        <div className="lg:col-span-1 space-y-6">
-                            <Card className="border-border shadow-sm">
-                                <CardHeader>
-                                    <CardTitle className="text-lg flex items-center gap-2">
-                                        <Calculator className="w-5 h-5 text-primary" /> Parâmetros
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent className="space-y-4">
-                                    <div className="space-y-2">
-                                        <Label>Aluno</Label>
-                                        <Select value={selectedStudentId} onValueChange={setSelectedStudentId}>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Selecione..." />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {students.map(s => (
-                                                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mt-8">
+                            {/* Sidebar Config */}
+                            <div className="lg:col-span-4 space-y-6">
+                                {/* Student Selection */}
+                                <Card className="border-border shadow-sm">
+                                    <CardHeader className="pb-3">
+                                        <CardTitle className="text-base flex items-center gap-2">
+                                            <Utensils className="w-4 h-4 text-primary" /> Configuração da Dieta
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="space-y-5">
+                                        <div className="space-y-2">
+                                            <Label>Aluno</Label>
+                                            <Select value={selectedStudentId} onValueChange={setSelectedStudentId}>
+                                                <SelectTrigger className="h-11">
+                                                    <SelectValue placeholder="Selecione um aluno..." />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {students.map(s => (
+                                                        <SelectItem key={s.id} value={s.id}>
+                                                            <div className="flex items-center gap-2">
+                                                                <img src={s.avatar} className="w-5 h-5 rounded-full" />
+                                                                {s.name}
+                                                            </div>
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
 
-                                    {studentDetails && (
-                                        <div className={cn(
-                                            "p-4 rounded-lg border flex flex-col gap-2 transition-all",
-                                            hasTraining ? "bg-primary/5 border-primary/20" : "bg-status-error/5 border-status-error/20"
-                                        )}>
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Status Treino</span>
+                                        {studentDetails && (
+                                            <div className={cn(
+                                                "p-4 rounded-xl border flex flex-col gap-3 transition-all",
+                                                hasTraining ? "bg-primary/5 border-primary/20" : "bg-destructive/5 border-destructive/20"
+                                            )}>
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                                                        <Dumbbell className="w-3 h-3" /> Treino
+                                                    </span>
+                                                    {hasTraining ? (
+                                                        <Badge className="bg-primary text-white text-[10px]">Ativo</Badge>
+                                                    ) : (
+                                                        <Badge variant="destructive" className="text-[10px]">Pendente</Badge>
+                                                    )}
+                                                </div>
                                                 {hasTraining ? (
-                                                    <Badge className="bg-primary text-white">Pronto</Badge>
+                                                    <p className="text-sm font-medium">{trainingPrograms[0].title || 'Sem título'}</p>
                                                 ) : (
-                                                    <Badge variant="destructive">Pendente</Badge>
+                                                    <div className="space-y-2">
+                                                        <p className="text-xs text-destructive">Esse aluno não possui treino. Crie um primeiro.</p>
+                                                        <Button size="sm" variant="outline" onClick={() => navigate('/ia-assistant')}>
+                                                            Criar Treino com IA
+                                                        </Button>
+                                                    </div>
                                                 )}
                                             </div>
-                                            {!hasTraining && (
-                                                <p className="text-[10px] text-status-error leading-tight">
-                                                    * É obrigatório ter um protocolo de treino criado antes de gerar a dieta.
-                                                </p>
-                                            )}
-                                        </div>
-                                    )}
+                                        )}
+                                    </CardContent>
+                                </Card>
 
-                                    {calculations && (
-                                        <div className="space-y-4 pt-4 border-t border-border">
-                                            <div className="space-y-2">
-                                                <Label className="text-xs uppercase text-muted-foreground">NAF (Nível de Atividade)</Label>
-                                                <Select value={naf.toString()} onValueChange={(v) => setNaf(parseFloat(v))}>
-                                                    <SelectTrigger>
-                                                        <SelectValue />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="1.2">Sedentário (1.2)</SelectItem>
-                                                        <SelectItem value="1.375">Leve (1.375)</SelectItem>
-                                                        <SelectItem value="1.55">Moderado (1.55)</SelectItem>
-                                                        <SelectItem value="1.725">Intenso (1.725)</SelectItem>
-                                                        <SelectItem value="1.9">Atleta (1.9)</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
+                                {/* TMB Calculator */}
+                                {calculations && (
+                                    <Card className="border-border shadow-sm">
+                                        <CardHeader className="pb-3">
+                                            <div className="flex items-center justify-between">
+                                                <CardTitle className="text-base flex items-center gap-2">
+                                                    <Calculator className="w-4 h-4 text-primary" /> Cálculo Energético
+                                                </CardTitle>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <Info className="w-4 h-4 text-muted-foreground cursor-help" />
+                                                    </TooltipTrigger>
+                                                    <TooltipContent className="max-w-xs">
+                                                        <p className="text-xs"><strong>TMB</strong> = Taxa Metabólica Basal (calorias em repouso)<br /><strong>GET</strong> = Gasto Energético Total (TMB × NAF)</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </div>
+                                            <CardDescription className="text-xs">
+                                                Dados: {calculations.weight}kg, {calculations.height}cm, {calculations.age} anos, {calculations.sex === 'male' ? 'M' : 'F'}
+                                            </CardDescription>
+                                        </CardHeader>
+                                        <CardContent className="space-y-5">
+                                            {/* TMB Results */}
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div className="p-3 bg-muted/50 rounded-lg">
+                                                    <p className="text-[10px] text-muted-foreground uppercase font-bold">TMB (Mifflin)</p>
+                                                    <p className="text-lg font-bold">{Math.round(calculations.mifflin)} <span className="text-xs font-normal">kcal</span></p>
+                                                </div>
+                                                <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
+                                                    <p className="text-[10px] text-primary uppercase font-bold">GET Estimado</p>
+                                                    <p className="text-lg font-bold text-primary">{Math.round(calculations.get)} <span className="text-xs font-normal">kcal</span></p>
+                                                </div>
                                             </div>
 
-                                            <div className="space-y-2">
-                                                <Label className="text-xs uppercase text-muted-foreground">Meta Diária (Kcal)</Label>
-                                                <Input
-                                                    type="number"
-                                                    value={targetKcal}
-                                                    onChange={(e) => setTargetKcal(parseInt(e.target.value))}
-                                                    className="font-bold text-lg text-primary"
+                                            {/* NAF Slider */}
+                                            <div className="space-y-3">
+                                                <div className="flex justify-between items-center">
+                                                    <Label className="text-xs">NAF (Nível de Atividade Física)</Label>
+                                                    <Badge variant="secondary" className="font-mono">{naf}</Badge>
+                                                </div>
+                                                <Slider
+                                                    value={[naf]}
+                                                    onValueChange={(v) => setNaf(v[0])}
+                                                    min={1.2}
+                                                    max={1.9}
+                                                    step={0.175}
+                                                    className="cursor-pointer"
                                                 />
+                                                <p className="text-[10px] text-muted-foreground italic">
+                                                    {nafDescriptions[naf.toString()] || nafDescriptions["1.55"]}
+                                                </p>
                                             </div>
-                                        </div>
-                                    )}
 
+                                            {/* Target Calories */}
+                                            <div className="space-y-2 pt-3 border-t border-border">
+                                                <div className="flex justify-between items-center">
+                                                    <Label className="font-bold">Meta Calórica Diária</Label>
+                                                    <span className={cn(
+                                                        "text-xs font-bold",
+                                                        targetKcal > calculations.get ? "text-green-500" : targetKcal < calculations.get ? "text-orange-500" : "text-muted-foreground"
+                                                    )}>
+                                                        {targetKcal > calculations.get ? `+${targetKcal - Math.round(calculations.get)} superávit` :
+                                                            targetKcal < calculations.get ? `${targetKcal - Math.round(calculations.get)} déficit` : 'Manutenção'}
+                                                    </span>
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <Input
+                                                        type="number"
+                                                        value={targetKcal}
+                                                        onChange={(e) => setTargetKcal(parseInt(e.target.value) || 0)}
+                                                        className="font-bold text-lg h-12"
+                                                    />
+                                                    <Button variant="outline" size="icon" className="h-12 w-12 shrink-0" onClick={() => setTargetKcal(Math.round(calculations.get))}>
+                                                        <Calculator className="w-4 h-4" />
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                )}
+
+                                {/* Macros Editor */}
+                                {macros && (
+                                    <Card className="border-border shadow-sm">
+                                        <CardHeader className="pb-3">
+                                            <div className="flex justify-between items-center">
+                                                <CardTitle className="text-base">Macronutrientes</CardTitle>
+                                                <Button variant="ghost" size="sm" onClick={() => setIsEditingMacros(!isEditingMacros)}>
+                                                    <Edit3 className="w-3 h-3 mr-1" /> {isEditingMacros ? 'Fechar' : 'Editar'}
+                                                </Button>
+                                            </div>
+                                        </CardHeader>
+                                        <CardContent className="space-y-4">
+                                            <div className="grid grid-cols-3 gap-3">
+                                                <div className={cn("p-3 rounded-xl text-center transition-all", isEditingMacros ? "bg-red-500/10 ring-1 ring-red-500/30" : "bg-red-500/5")}>
+                                                    <p className="text-[10px] text-red-500 uppercase font-bold mb-1">Proteínas</p>
+                                                    {isEditingMacros ? (
+                                                        <Input type="number" value={customMacros.p} onChange={(e) => setCustomMacros({ ...customMacros, p: parseInt(e.target.value) || 0 })} className="h-8 text-center font-bold" />
+                                                    ) : (
+                                                        <p className="text-xl font-bold">{customMacros.p}g</p>
+                                                    )}
+                                                </div>
+                                                <div className={cn("p-3 rounded-xl text-center transition-all", isEditingMacros ? "bg-blue-500/10 ring-1 ring-blue-500/30" : "bg-blue-500/5")}>
+                                                    <p className="text-[10px] text-blue-500 uppercase font-bold mb-1">Carboidratos</p>
+                                                    {isEditingMacros ? (
+                                                        <Input type="number" value={customMacros.c} onChange={(e) => setCustomMacros({ ...customMacros, c: parseInt(e.target.value) || 0 })} className="h-8 text-center font-bold" />
+                                                    ) : (
+                                                        <p className="text-xl font-bold">{customMacros.c}g</p>
+                                                    )}
+                                                </div>
+                                                <div className={cn("p-3 rounded-xl text-center transition-all", isEditingMacros ? "bg-amber-500/10 ring-1 ring-amber-500/30" : "bg-amber-500/5")}>
+                                                    <p className="text-[10px] text-amber-500 uppercase font-bold mb-1">Gorduras</p>
+                                                    {isEditingMacros ? (
+                                                        <Input type="number" value={customMacros.f} onChange={(e) => setCustomMacros({ ...customMacros, f: parseInt(e.target.value) || 0 })} className="h-8 text-center font-bold" />
+                                                    ) : (
+                                                        <p className="text-xl font-bold">{customMacros.f}g</p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <p className="text-[10px] text-center text-muted-foreground">
+                                                Total: {(customMacros.p * 4) + (customMacros.c * 4) + (customMacros.f * 9)} kcal
+                                            </p>
+                                        </CardContent>
+                                    </Card>
+                                )}
+
+                                {/* Generate Button */}
+                                {calculations && (
                                     <Button
-                                        className="w-full gap-2 h-12 shadow-button"
+                                        className="w-full h-14 text-lg font-bold shadow-button gap-3"
                                         disabled={!hasTraining || isGenerating}
                                         onClick={handleGenerateDiet}
                                     >
-                                        {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                                        Gerar 3 Menus com IA
+                                        {isGenerating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
+                                        {isGenerating ? 'Gerando Cardápios...' : 'Gerar 3 Menus com IA'}
                                     </Button>
-                                </CardContent>
-                            </Card>
+                                )}
+                            </div>
 
-                            {calculations && (
-                                <Card className="bg-muted/30 border-dashed">
-                                    <CardHeader className="pb-2">
-                                        <CardTitle className="text-sm">Estimativas TMB</CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="text-xs space-y-2">
-                                        <div className="flex justify-between"><span>Mifflin-St Jeor:</span> <strong>{Math.round(calculations.mifflin)} kcal</strong></div>
-                                        <div className="flex justify-between"><span>Tinsley (Total):</span> <strong>{Math.round(calculations.tinsleyTotal)} kcal</strong></div>
-                                        {calculations.tinsleyLBM > 0 && <div className="flex justify-between"><span>Tinsley (LBM):</span> <strong>{Math.round(calculations.tinsleyLBM)} kcal</strong></div>}
-                                        <div className="flex justify-between pt-2 border-t border-border mt-2 font-bold text-primary">
-                                            <span>GET (Gasto Estimado):</span>
-                                            <span>{Math.round(calculations.get)} kcal</span>
+                            {/* Main Content Area */}
+                            <div className="lg:col-span-8">
+                                {!selectedStudentId ? (
+                                    <div className="h-[70vh] flex flex-col items-center justify-center border-2 border-dashed border-border rounded-2xl bg-muted/5">
+                                        <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-6">
+                                            <Utensils className="w-10 h-10 text-primary" />
                                         </div>
-                                    </CardContent>
-                                </Card>
-                            )}
-                        </div>
-
-                        {/* Main Interaction Area */}
-                        <div className="lg:col-span-3">
-                            {!selectedStudentId ? (
-                                <div className="h-[60vh] flex flex-col items-center justify-center border-2 border-dashed border-border rounded-2xl bg-muted/5">
-                                    <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                                        <Utensils className="w-8 h-8 text-primary" />
+                                        <h2 className="text-2xl font-bold mb-3">Assistente de Nutrição IA</h2>
+                                        <p className="text-muted-foreground text-center max-w-md">
+                                            Selecione um aluno na barra lateral para calcular as necessidades energéticas e gerar cardápios personalizados com 3 opções de substituição.
+                                        </p>
                                     </div>
-                                    <h2 className="text-xl font-semibold mb-2">Preparar Protocolo de Dieta</h2>
-                                    <p className="text-muted-foreground text-center max-w-sm">
-                                        Selecione um aluno para analisar as necessidades energéticas e gerar os cardápios personalizados.
-                                    </p>
-                                </div>
-                            ) : !generatedDiet ? (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <Card className="border-border">
-                                        <CardHeader>
-                                            <CardTitle className="text-lg">Análise de Macronutrientes</CardTitle>
-                                            <CardDescription>Distribuição sugerida para o objetivo</CardDescription>
-                                        </CardHeader>
-                                        <CardContent className="space-y-6">
-                                            {macros && (
-                                                <div className="space-y-6">
-                                                    <div className="grid grid-cols-3 gap-4">
-                                                        <div className="text-center p-4 bg-blue-500/5 rounded-xl border border-blue-500/10">
-                                                            <p className="text-[10px] uppercase font-bold text-blue-500 mb-1">Carboidratos</p>
-                                                            <p className="text-xl font-bold">{Math.round(macros.carbs.grams)}g</p>
-                                                            <p className="text-[10px] text-muted-foreground">{Math.round(macros.carbs.percentage)}%</p>
-                                                        </div>
-                                                        <div className="text-center p-4 bg-red-500/5 rounded-xl border border-red-500/10">
-                                                            <p className="text-[10px] uppercase font-bold text-red-500 mb-1">Proteínas</p>
-                                                            <p className="text-xl font-bold">{Math.round(macros.protein.grams)}g</p>
-                                                            <p className="text-[10px] text-muted-foreground">{Math.round(macros.protein.percentage)}%</p>
-                                                        </div>
-                                                        <div className="text-center p-4 bg-amber-500/5 rounded-xl border border-amber-500/10">
-                                                            <p className="text-[10px] uppercase font-bold text-amber-500 mb-1">Gorduras</p>
-                                                            <p className="text-xl font-bold">{Math.round(macros.fats.grams)}g</p>
-                                                            <p className="text-[10px] text-muted-foreground">{Math.round(macros.fats.percentage)}%</p>
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="p-4 bg-muted/30 rounded-lg flex items-center gap-4">
-                                                        <div className="flex-1 space-y-2">
-                                                            <div className="flex justify-between text-xs font-medium">
-                                                                <span>Déficit/Superávit Calórico</span>
-                                                                <span className={cn(
-                                                                    "font-bold",
-                                                                    (targetKcal - (calculations?.get || 0)) > 0 ? "text-status-success" : "text-status-error"
-                                                                )}>
-                                                                    {targetKcal - Math.round(calculations?.get || 0)} kcal
-                                                                </span>
-                                                            </div>
-                                                            <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
-                                                                <div
-                                                                    className="h-full bg-primary"
-                                                                    style={{ width: `${Math.min((targetKcal / 4000) * 100, 100)}%` }}
-                                                                />
-                                                            </div>
-                                                        </div>
-                                                        <PieChart className="w-8 h-8 text-primary/40" />
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </CardContent>
-                                    </Card>
-
-                                    <Card className="border-border">
-                                        <CardHeader>
-                                            <CardTitle className="text-lg">Protocolo de Treino Atual</CardTitle>
-                                            <CardDescription>Essencial para o timing nutricional</CardDescription>
-                                        </CardHeader>
-                                        <CardContent>
-                                            {hasTraining ? (
-                                                <div className="space-y-4">
-                                                    <div className="flex items-center gap-4 p-4 bg-primary/5 rounded-xl">
-                                                        <Dumbbell className="w-8 h-8 text-primary" />
-                                                        <div>
-                                                            <p className="text-sm font-bold">{trainingPrograms[0].title}</p>
-                                                            <p className="text-xs text-muted-foreground">{trainingPrograms[0].number_weeks} semanas • Frequência Alta</p>
-                                                        </div>
-                                                    </div>
-                                                    <div className="text-sm text-muted-foreground">
-                                                        <p>Refeições pré e pós-treino serão otimizadas para este protocolo de {trainingPrograms[0].training_sessions.length} divisões.</p>
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                <div className="p-8 text-center bg-status-error/5 border border-dashed border-status-error/20 rounded-xl space-y-4">
-                                                    <AlertCircle className="w-12 h-12 text-status-error mx-auto opacity-50" />
-                                                    <p className="text-sm font-medium">Nenhum treino ativo encontrado.</p>
-                                                    <Button variant="outline" size="sm" onClick={() => navigate('/ia-assistant')}>Criar Treino Agora</Button>
-                                                </div>
-                                            )}
-                                        </CardContent>
-                                    </Card>
-                                </div>
-                            ) : (
-                                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
-                                    {/* Excel-style Result Header */}
-                                    <div className="flex justify-between items-center bg-card p-6 rounded-2xl border-b-4 border-primary shadow-sm">
-                                        <div>
-                                            <h2 className="text-2xl font-bold">{generatedDiet.titulo}</h2>
-                                            <div className="flex gap-2 mt-2">
-                                                <Badge variant="secondary">{generatedDiet.objetivo}</Badge>
-                                                <Badge variant="outline">{targetKcal} kcal/dia</Badge>
-                                            </div>
-                                        </div>
-                                        <Button onClick={handleSaveDiet} disabled={isSaving}>
-                                            {isSaving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CheckCircle2 className="w-4 h-4 mr-2" />}
-                                            Finalizar Protocolo
-                                        </Button>
+                                ) : !generatedDiet ? (
+                                    <div className="h-[70vh] flex flex-col items-center justify-center border-2 border-dashed border-border rounded-2xl bg-gradient-to-b from-primary/5 to-transparent">
+                                        <PieChart className="w-16 h-16 text-primary/30 mb-6" />
+                                        <h3 className="text-xl font-semibold mb-2">Pronto para Gerar</h3>
+                                        <p className="text-muted-foreground text-center max-w-sm mb-6">
+                                            Ajuste os parâmetros de TMB e macros na barra lateral e clique em "Gerar 3 Menus com IA".
+                                        </p>
+                                        {!hasTraining && (
+                                            <Badge variant="destructive" className="animate-pulse">⚠️ Crie um treino antes</Badge>
+                                        )}
                                     </div>
-
-                                    {/* 3 Options Tabs */}
-                                    <Tabs defaultValue="ref-0" className="w-full">
-                                        <div className="flex items-center justify-between mb-4">
-                                            <span className="text-sm font-bold text-muted-foreground uppercase">Estrutura de Refeições</span>
-                                            <div className="flex gap-2 p-1 bg-muted rounded-lg">
-                                                <div className="px-3 py-1 bg-background text-[10px] font-bold rounded shadow-sm">OPÇÃO 1</div>
-                                                <div className="px-3 py-1 text-[10px] font-bold opacity-50">OPÇÃO 2</div>
-                                                <div className="px-3 py-1 text-[10px] font-bold opacity-50">OPÇÃO 3</div>
+                                ) : (
+                                    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                        {/* Header */}
+                                        <div className="flex justify-between items-center bg-card p-6 rounded-2xl border shadow-sm">
+                                            <div>
+                                                <h2 className="text-2xl font-bold">{generatedDiet.titulo}</h2>
+                                                <div className="flex gap-2 mt-2">
+                                                    <Badge variant="secondary">{generatedDiet.objetivo}</Badge>
+                                                    <Badge variant="outline">{targetKcal} kcal/dia</Badge>
+                                                </div>
                                             </div>
+                                            <Button onClick={handleSaveDiet} disabled={isSaving} size="lg">
+                                                {isSaving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CheckCircle2 className="w-4 h-4 mr-2" />}
+                                                Salvar Protocolo
+                                            </Button>
                                         </div>
 
-                                        <div className="grid grid-cols-1 gap-4">
-                                            {generatedDiet.refeicoes.map((meal: any, mIdx: number) => (
-                                                <Card key={mIdx} className="overflow-hidden border-border bg-card/50">
-                                                    <div className="bg-muted/40 px-6 py-3 flex justify-between items-center border-b border-border">
+                                        {/* Meals Grid */}
+                                        <div className="space-y-4">
+                                            {generatedDiet.refeicoes?.map((meal: any, mIdx: number) => (
+                                                <Card key={mIdx} className="overflow-hidden">
+                                                    <div className="bg-muted/30 px-6 py-4 flex justify-between items-center border-b">
                                                         <div className="flex items-center gap-4">
-                                                            <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold">
+                                                            <div className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center font-bold">
                                                                 {mIdx + 1}
                                                             </div>
                                                             <div>
@@ -423,27 +460,20 @@ const AINutritionAssistant = () => {
                                                         </div>
                                                     </div>
                                                     <CardContent className="p-0">
-                                                        <div className="grid grid-cols-1 lg:grid-cols-3 divide-x divide-border">
+                                                        <div className="grid grid-cols-1 lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x divide-border">
                                                             {[0, 1, 2].map(optIdx => (
                                                                 <div key={optIdx} className={cn(
-                                                                    "p-6 space-y-4",
-                                                                    optIdx === 0 ? "bg-primary/5" : "bg-transparent"
+                                                                    "p-5 space-y-3",
+                                                                    optIdx === 0 ? "bg-primary/5" : ""
                                                                 )}>
-                                                                    <div className="flex justify-between items-center mb-2">
-                                                                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Opção {optIdx + 1}</span>
-                                                                    </div>
-                                                                    <ul className="space-y-3">
-                                                                        {meal.opcoes[optIdx].itens.map((item: any, iIdx: number) => (
-                                                                            <li key={iIdx} className="flex justify-between items-start text-sm border-b border-border/20 pb-2 last:border-0">
-                                                                                <div className="flex-1">
-                                                                                    <p className="font-medium">{item.alimento}</p>
-                                                                                    <p className="text-[10px] text-muted-foreground">{item.quantidade}{item.unidade}</p>
-                                                                                </div>
-                                                                                <div className="text-right text-[10px] text-muted-foreground flex flex-col gap-0.5">
-                                                                                    <span>P: {item.prot}g</span>
-                                                                                    <span>C: {item.carb}g</span>
-                                                                                    <span>G: {item.gord}g</span>
-                                                                                </div>
+                                                                    <Badge variant={optIdx === 0 ? "default" : "outline"} className="mb-2">
+                                                                        Opção {optIdx + 1}
+                                                                    </Badge>
+                                                                    <ul className="space-y-2">
+                                                                        {meal.opcoes?.[optIdx]?.itens?.map((item: any, iIdx: number) => (
+                                                                            <li key={iIdx} className="flex justify-between text-sm">
+                                                                                <span>{item.alimento} <span className="text-muted-foreground text-xs">({item.quantidade}{item.unidade})</span></span>
+                                                                                <span className="text-xs text-muted-foreground">P:{item.prot}g C:{item.carb}g G:{item.gord}g</span>
                                                                             </li>
                                                                         ))}
                                                                     </ul>
@@ -454,34 +484,34 @@ const AINutritionAssistant = () => {
                                                 </Card>
                                             ))}
                                         </div>
-                                    </Tabs>
 
-                                    {/* Justification Footer */}
-                                    <Card className="border-dashed bg-muted/20">
-                                        <CardContent className="p-6">
-                                            <div className="flex gap-4">
-                                                <Sparkles className="w-10 h-10 text-primary opacity-50" />
-                                                <div className="space-y-2">
-                                                    <h4 className="font-bold">Estratégia Nutricional Apex</h4>
-                                                    <p className="text-sm text-muted-foreground leading-relaxed">
-                                                        {generatedDiet.justificativa}
-                                                    </p>
-                                                    <div className="flex gap-2 pt-2">
-                                                        {generatedDiet.suplementacao_sugerida.map((sup: string, sIdx: number) => (
-                                                            <Badge key={sIdx} variant="outline" className="bg-background">{sup}</Badge>
-                                                        ))}
+                                        {/* Justification */}
+                                        {generatedDiet.justificativa && (
+                                            <Card className="bg-muted/20 border-dashed">
+                                                <CardContent className="p-6 flex gap-4">
+                                                    <Sparkles className="w-8 h-8 text-primary shrink-0" />
+                                                    <div>
+                                                        <h4 className="font-bold mb-2">Estratégia Nutricional IA</h4>
+                                                        <p className="text-sm text-muted-foreground">{generatedDiet.justificativa}</p>
+                                                        {generatedDiet.suplementacao_sugerida?.length > 0 && (
+                                                            <div className="flex gap-2 mt-3">
+                                                                {generatedDiet.suplementacao_sugerida.map((sup: string, sIdx: number) => (
+                                                                    <Badge key={sIdx} variant="outline">{sup}</Badge>
+                                                                ))}
+                                                            </div>
+                                                        )}
                                                     </div>
-                                                </div>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                </div>
-                            )}
+                                                </CardContent>
+                                            </Card>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
                         </div>
-                    </div>
-                </main>
+                    </main>
+                </div>
             </div>
-        </div>
+        </TooltipProvider>
     );
 };
 
