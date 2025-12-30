@@ -53,7 +53,7 @@ const AINutritionAssistant = () => {
     const [isGenerating, setIsGenerating] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [naf, setNaf] = useState(1.55);
-    const [targetKcal, setTargetKcal] = useState(0);
+    const [calorieAdjustment, setCalorieAdjustment] = useState(0); // Positive = surplus, Negative = deficit
     const [generatedDiet, setGeneratedDiet] = useState<any>(null);
     const [isEditingMacros, setIsEditingMacros] = useState(false);
     const [customMacros, setCustomMacros] = useState({ p: 0, c: 0, f: 0 });
@@ -106,15 +106,17 @@ const AINutritionAssistant = () => {
         return { mifflin, tinsleyTotal, tinsleyLBM, get, weight, height, age, sex, bodyFat };
     }, [anamnesis, naf, studentDetails]);
 
-    useEffect(() => {
-        if (calculations && targetKcal === 0) {
-            setTargetKcal(Math.round(calculations.get));
-        }
-    }, [calculations]);
+    // Calculate final target based on GET + adjustment
+    const targetKcal = useMemo(() => {
+        if (!calculations) return 0;
+        return Math.round(calculations.get) + calorieAdjustment;
+    }, [calculations, calorieAdjustment]);
 
     const macros = useMemo(() => {
-        if (!anamnesis || targetKcal === 0) return null;
-        const calc = calculateMacros(targetKcal, anamnesis.weight_kg || 70, anamnesis.main_goal);
+        if (!anamnesis || !calculations) return null;
+        const finalKcal = Math.round(calculations.get) + calorieAdjustment;
+        if (finalKcal <= 0) return null;
+        const calc = calculateMacros(finalKcal, anamnesis.weight_kg || 70, anamnesis.main_goal);
         setCustomMacros({
             p: Math.round(calc.protein.grams),
             c: Math.round(calc.carbs.grams),
@@ -318,28 +320,62 @@ const AINutritionAssistant = () => {
                                                 </p>
                                             </div>
 
-                                            {/* Target Calories */}
-                                            <div className="space-y-2 pt-3 border-t border-border">
+                                            {/* Déficit/Superávit */}
+                                            <div className="space-y-3 pt-4 border-t border-border">
                                                 <div className="flex justify-between items-center">
-                                                    <Label className="font-bold">Meta Calórica Diária</Label>
-                                                    <span className={cn(
-                                                        "text-xs font-bold",
-                                                        targetKcal > calculations.get ? "text-green-500" : targetKcal < calculations.get ? "text-orange-500" : "text-muted-foreground"
-                                                    )}>
-                                                        {targetKcal > calculations.get ? `+${targetKcal - Math.round(calculations.get)} superávit` :
-                                                            targetKcal < calculations.get ? `${targetKcal - Math.round(calculations.get)} déficit` : 'Manutenção'}
-                                                    </span>
+                                                    <Label className="font-bold">Ajuste Calórico</Label>
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <Info className="w-3 h-3 text-muted-foreground cursor-help" />
+                                                        </TooltipTrigger>
+                                                        <TooltipContent className="max-w-xs">
+                                                            <p className="text-xs">Valores negativos = déficit (perda de peso). Valores positivos = superávit (ganho de massa).</p>
+                                                        </TooltipContent>
+                                                    </Tooltip>
                                                 </div>
-                                                <div className="flex gap-2">
+                                                <div className="grid grid-cols-3 gap-2">
+                                                    <Button
+                                                        variant={calorieAdjustment === -500 ? "default" : "outline"}
+                                                        size="sm"
+                                                        onClick={() => setCalorieAdjustment(-500)}
+                                                        className="text-xs"
+                                                    >
+                                                        -500 kcal
+                                                    </Button>
+                                                    <Button
+                                                        variant={calorieAdjustment === 0 ? "default" : "outline"}
+                                                        size="sm"
+                                                        onClick={() => setCalorieAdjustment(0)}
+                                                        className="text-xs"
+                                                    >
+                                                        Manutenção
+                                                    </Button>
+                                                    <Button
+                                                        variant={calorieAdjustment === 300 ? "default" : "outline"}
+                                                        size="sm"
+                                                        onClick={() => setCalorieAdjustment(300)}
+                                                        className="text-xs"
+                                                    >
+                                                        +300 kcal
+                                                    </Button>
+                                                </div>
+                                                <div className="flex gap-2 items-center">
                                                     <Input
                                                         type="number"
-                                                        value={targetKcal}
-                                                        onChange={(e) => setTargetKcal(parseInt(e.target.value) || 0)}
-                                                        className="font-bold text-lg h-12"
+                                                        value={calorieAdjustment}
+                                                        onChange={(e) => setCalorieAdjustment(parseInt(e.target.value) || 0)}
+                                                        className="font-bold text-center h-10"
+                                                        placeholder="Ex: -300 ou +500"
                                                     />
-                                                    <Button variant="outline" size="icon" className="h-12 w-12 shrink-0" onClick={() => setTargetKcal(Math.round(calculations.get))}>
-                                                        <Calculator className="w-4 h-4" />
-                                                    </Button>
+                                                    <span className="text-xs text-muted-foreground shrink-0">kcal</span>
+                                                </div>
+                                                <div className={cn(
+                                                    "p-3 rounded-lg text-center font-bold text-lg",
+                                                    calorieAdjustment > 0 ? "bg-green-500/10 text-green-500" :
+                                                        calorieAdjustment < 0 ? "bg-orange-500/10 text-orange-500" :
+                                                            "bg-muted text-muted-foreground"
+                                                )}>
+                                                    Meta: {targetKcal} kcal/dia
                                                 </div>
                                             </div>
                                         </CardContent>
