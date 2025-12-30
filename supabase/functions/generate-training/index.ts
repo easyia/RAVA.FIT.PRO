@@ -63,20 +63,21 @@ serve(async (req) => {
     }
 
     // 3. Build Prompt
-    const systemPrompt = `Você é um agente especialista em prescrição de treinos de musculação e condicionamento físico.
+    const systemPrompt = `Você é um agente especialista em prescrição de treinos de musculação e condicionamento físico de ALTO NÍVEL.
 PAPEL:
-- Assistir educadores físicos profissionais na criação de protocolos de treino personalizados
-- Baseado em evidências científicas e boas práticas da área
-- Considerar sempre limitações, lesões e objetivos individuais
-- Fornecer justificativas claras para cada decisão
+- Assistir educadores físicos profissionais na criação de protocolos de treino personalizados e seguros.
+- Baseado em evidências científicas e boas práticas da área (Periodização, Volume, Intensidade).
+- Considerar sempre limitações, lesões e objetivos individuais.
+- Fornecer justificativas claras para cada decisão, especialmente para exercícios de REABILITAÇÃO.
 
 DIRETRIZES DE PRESCRIÇÃO:
-1. SEMPRE considere as limitações físicas e lesões do aluno
-2. Adapte exercícios quando necessário (nunca prescreva algo perigoso)
-3. Volume e intensidade devem ser apropriados ao nível do aluno
-4. Progressão deve ser gradual e mensurável
-5. Inclua aquecimento e alongamento quando relevante
-6. Explique o PORQUÊ de cada escolha
+1. SEMPRE considere as limitações físicas e lesões do aluno.
+2. Se o aluno tiver lesões, inclua EXERCÍCIOS ESPECÍFICOS DE REABILITAÇÃO (ex: fortalecimento de manguito, exercícios de mobilidade específicos).
+3. Adapte exercícios quando necessário (nunca prescreva algo perigoso).
+4. Volume e intensidade devem ser apropriados ao nível do aluno.
+5. Se o aluno usa ERGOGÊNICOS, ajuste o volume/intensidade considerando a maior capacidade de recuperação.
+6. Forneça justificativas técnicas para cada exercício escolhido.
+7. Explique por que certos exercícios foram OMITIDOS ou ADAPTADOS devido a lesões.
 
 FORMATO DE RESPOSTA (JSON):
 {
@@ -103,33 +104,36 @@ FORMATO DE RESPOSTA (JSON):
     }
   ],
   "progressao": { "tipo": "string", "descricao": "string", "marcos": [{ "semana": number, "mudanca": "string" }] },
-  "justificativa": { "escolha_exercicios": "string", "volume_intensidade": "string", "periodizacao": "string", "adaptacoes": "string" },
+  "justificativa": { "escolha_exercicios": "string", "volume_intensidade": "string", "periodizacao": "string", "adaptacoes": "string", "reabilitacao": "string" },
   "proximos_passos": "string"
-}`;
+} (Responda APENAS o JSON)`;
 
     const userPrompt = `
-# SOLICITAÇÃO
-${body.prompt_users}
+# SOLICITAÇÃO DO TREINADOR
+"${body.prompt_users}"
 
 # DADOS DO ALUNO
 - Nome: ${student.full_name}
-- Idade: ${student.age || 'N/A'} (Data nasc: ${student.birth_date})
+- Idade: ${student.birth_date ? (new Date().getFullYear() - new Date(student.birth_date).getFullYear()) : 'N/A'}
 - Sexo: ${student.sex}
-- Nível: ${student.anamnesis?.[0]?.xp_level || "iniciante"}
-- Objetivo: ${student.anamnesis?.[0]?.main_goal}
-- Frequência: ${student.anamnesis?.[0]?.initial_training_frequency}x/semana
+- Nível: ${student.anamnesis?.[0]?.training_level || "iniciante"}
+- Uso de Ergogênicos: ${student.anamnesis?.[0]?.uses_ergogenics ? "Sim" : "Não"}
+- Objetivo Principal: ${student.anamnesis?.[0]?.main_goal}
+- Frequência: ${student.anamnesis?.[0]?.initial_training_frequency}x por semana
 
-## ANAMNESE
-### Lesões/Limitações
+## QUADRO CLÍNICO / ANAMNESE
+### Lesões/Limitações:
 ${student.anamnesis?.[0]?.injuries || "Nenhuma"}
 ${student.anamnesis?.[0]?.medical_conditions || "Nenhuma"}
-### Observações
-${student.anamnesis?.[0]?.motivation_barriers || "Nenhuma"}
+### Contraindicações:
+${student.anamnesis?.[0]?.contraindications || "Nenhuma"}
+### Avaliação de Força/Mobilidade:
+${student.anamnesis?.[0]?.strength_assessment || "N/A"} / ${student.anamnesis?.[0]?.mobility_assessment || "N/A"}
 
-# CONTEXTO
-${contextContent || "Nenhum arquivo"}
+# CONTEXTO ADICIONAL (Arquivos)
+${contextContent || "Nenhum arquivo adicional anexado."}
 
-# PARÂMETROS
+# PARÂMETROS TÉCNICOS
 ${JSON.stringify(body.parameters || {}, null, 2)}
     `;
 
@@ -151,7 +155,7 @@ ${JSON.stringify(body.parameters || {}, null, 2)}
 
     if (convError) throw convError;
 
-    // 5. Call OpenAI
+    // 5. Call OpenAI (Using gpt-4o-mini for 10x speed and excellent quality for this task)
     const startTime = Date.now();
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -160,7 +164,7 @@ ${JSON.stringify(body.parameters || {}, null, 2)}
         Authorization: `Bearer ${OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "gpt-4-turbo-preview",
+        model: "gpt-4o-mini",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },

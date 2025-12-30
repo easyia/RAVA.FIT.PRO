@@ -13,6 +13,7 @@ import ComparativeAnalysis from "./pages/ComparativeAnalysis";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import AITrainingAssistant from "./pages/AITrainingAssistant";
+import AINutritionAssistant from "./pages/AINutritionAssistant";
 import Onboarding from "./pages/Onboarding";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
@@ -35,6 +36,7 @@ const App = () => (
             <Route path="/cadastro/:id" element={<StudentRegistration />} />
             <Route path="/protocolos" element={<Protocols />} />
             <Route path="/ia-assistant" element={<AITrainingAssistant />} />
+            <Route path="/ia-diet-assistant" element={<AINutritionAssistant />} />
             <Route path="/analise-comparativa" element={<ComparativeAnalysis />} />
             <Route path="/relatorios" element={<Reports />} />
             <Route path="/configuracoes" element={<Settings />} />

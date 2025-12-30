@@ -52,7 +52,7 @@ export function StudentDetailsModal({ studentId, isOpen, onClose }: StudentDetai
                         <DialogHeader className="p-6 bg-muted/30 border-b border-border">
                             <div className="flex items-center gap-6">
                                 <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-primary/20 shadow-xl">
-                                    <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&h=150&fit=crop&crop=faces" alt="" className="w-full h-full object-cover" />
+                                    <img src={student.avatar_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&h=150&fit=crop&crop=faces"} alt="" className="w-full h-full object-cover" />
                                 </div>
                                 <div>
                                     <DialogTitle className="text-2xl font-bold text-foreground mb-1">{student.full_name}</DialogTitle>
@@ -114,6 +114,8 @@ export function StudentDetailsModal({ studentId, isOpen, onClose }: StudentDetai
                                                     <p><strong>Dieta:</strong> {student.anamnesis[0].diet_habits || 'N/A'}</p>
                                                     <p><strong>Sono:</strong> {student.anamnesis[0].sleep_pattern || 'N/A'}</p>
                                                     <p><strong>Estresse:</strong> {student.anamnesis[0].stress_level || 'N/A'}</p>
+                                                    <p><strong>Nível de Treino:</strong> {student.anamnesis[0].training_level || 'N/A'}</p>
+                                                    <p><strong>Uso de Ergogênicos:</strong> {student.anamnesis[0].uses_ergogenics ? 'Sim' : 'Não'}</p>
                                                 </AccordionContent>
                                             </AccordionItem>
                                             <AccordionItem value="goals" className="border border-border rounded-lg px-4 bg-sidebar/10">

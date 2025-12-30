@@ -142,7 +142,9 @@ export async function createStudent(rawFormData: any): Promise<void> {
       schedule_availability: Array.isArray(formData.available_days) ? formData.available_days.join(',') : formData.schedule_availability,
       par_q_result: formData.par_q_result,
       contraindications: formData.contraindications,
-      initial_training_frequency: formData.training_frequency
+      initial_training_frequency: formData.training_frequency,
+      training_level: formData.training_level,
+      uses_ergogenics: formData.uses_ergogenics === 'true'
     });
 
   if (anamnesisError) {
@@ -217,6 +219,7 @@ export async function saveTrainingProgram(studentId: string, program: any): Prom
     .insert({
       student_id: studentId,
       coach_id: userData.user.id,
+      title: program.title,
       number_weeks: program.weeks,
       start_date: program.startDate,
       status: 'active'
@@ -247,7 +250,7 @@ export async function saveTrainingProgram(studentId: string, program: any): Prom
         sets: ex.sets,
         reps_min: ex.reps_min,
         reps_max: ex.reps_max,
-        rest_time: ex.rest_time,
+        rest_time: ex.rest_time?.toString(),
         notes: ex.notes,
         execution_order: idx + 1
       }));
@@ -386,7 +389,9 @@ export async function updateStudent(studentId: string, rawData: any): Promise<vo
       schedule_availability: Array.isArray(data.available_days) ? data.available_days.join(',') : data.schedule_availability,
       par_q_result: data.par_q_result,
       contraindications: data.contraindications,
-      initial_training_frequency: data.training_frequency
+      initial_training_frequency: data.training_frequency,
+      training_level: data.training_level,
+      uses_ergogenics: data.uses_ergogenics === 'true'
     })
     .eq('student_id', studentId);
 

@@ -12,6 +12,7 @@ import {
   Dumbbell,
   Activity,
   Bot,
+  Utensils,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
@@ -29,7 +30,8 @@ const menuItems = [
   { icon: Calendar, label: "Calendário", path: "/calendario" },
   { icon: Activity, label: "Análise Comparativa", path: "/analise-comparativa" },
   { icon: FileText, label: "Protocolos", path: "/protocolos" },
-  { icon: Bot, label: "Assistente IA", path: "/ia-assistant" },
+  { icon: Bot, label: "IA Treino", path: "/ia-assistant" },
+  { icon: Utensils, label: "IA Dieta", path: "/ia-diet-assistant" },
   { icon: BarChart3, label: "Relatórios", path: "/relatorios" },
   { icon: Settings, label: "Configurações", path: "/configuracoes" },
 ];
