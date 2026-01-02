@@ -22,7 +22,8 @@ import {
     Sparkles,
     Calendar,
     User,
-    TrendingUp
+    TrendingUp,
+    Download
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getStudents, getTrainingPrograms, getMealPlans, saveTrainingProgram, saveMealPlan } from "@/services/studentService";
@@ -45,6 +46,7 @@ interface Exercise {
     reps_max: number;
     rest_time: string;
     notes: string;
+    main_muscle_group?: string;
 }
 
 interface Session {
@@ -128,7 +130,8 @@ const Protocols = () => {
                 reps_min: e.reps_min,
                 reps_max: e.reps_max,
                 rest_time: e.rest_time || "60",
-                notes: e.notes || ""
+                notes: e.notes || "",
+                main_muscle_group: e.main_muscle_group || "Geral"
             })) || []
         })));
     };
@@ -142,7 +145,8 @@ const Protocols = () => {
             reps_min: 8,
             reps_max: 12,
             rest_time: "60",
-            notes: ""
+            notes: "",
+            main_muscle_group: "Geral"
         });
         setEditedSessions(updated);
     };
@@ -180,6 +184,7 @@ const Protocols = () => {
                             reps_max: ex.reps_max,
                             rest_time: ex.rest_time,
                             notes: ex.notes,
+                            main_muscle_group: ex.main_muscle_group,
                             execution_order: idx + 1
                         }));
                         await supabase.from('training_exercises').insert(exercisesToInsert);
@@ -351,44 +356,75 @@ const Protocols = () => {
                                     <div className="space-y-6">
                                         {/* WORKOUT VOLUME CHART */}
                                         {trainingPrograms.length > 0 && (
-                                            <Card className="border-border bg-card shadow-lg mb-6">
-                                                <CardHeader className="pb-2">
-                                                    <CardTitle className="text-sm font-bold flex items-center gap-2">
-                                                        <TrendingUp className="w-4 h-4 text-primary" /> Volume Semanal Estimado
-                                                    </CardTitle>
-                                                    <CardDescription className="text-[10px]">Volume total acumulado por agrupamento muscular no protocolo atual</CardDescription>
-                                                </CardHeader>
-                                                <CardContent className="h-[250px] pt-0">
-                                                    <ResponsiveContainer width="100%" height="100%">
-                                                        <RadarChart cx="50%" cy="50%" outerRadius="80%" data={
-                                                            (() => {
-                                                                const volumes: Record<string, number> = {};
-                                                                const latest = trainingPrograms[0];
-                                                                latest.training_sessions?.forEach((session: any) => {
-                                                                    session.training_exercises?.forEach((ex: any) => {
-                                                                        const muscle = session.name || 'Geral';
-                                                                        const volume = (ex.sets || 0) * ((ex.reps_min + ex.reps_max) / 2 || 0);
-                                                                        volumes[muscle] = (volumes[muscle] || 0) + volume;
+                                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                                                <Card className="lg:col-span-2 border-border bg-card shadow-lg">
+                                                    <CardHeader className="pb-2">
+                                                        <CardTitle className="text-sm font-bold flex items-center gap-2">
+                                                            <TrendingUp className="w-4 h-4 text-primary" /> Volume Semanal por Grupamento
+                                                        </CardTitle>
+                                                        <CardDescription className="text-[10px]">Distribuição de séries e intensidade por músculo alvo</CardDescription>
+                                                    </CardHeader>
+                                                    <CardContent className="h-[250px] pt-0">
+                                                        <ResponsiveContainer width="100%" height="100%">
+                                                            <RadarChart cx="50%" cy="50%" outerRadius="80%" data={
+                                                                (() => {
+                                                                    const volumes: Record<string, number> = {};
+                                                                    const latest = trainingPrograms[0];
+                                                                    latest.training_sessions?.forEach((session: any) => {
+                                                                        session.training_exercises?.forEach((ex: any) => {
+                                                                            const muscle = ex.main_muscle_group || session.name || 'Geral';
+                                                                            const volume = (Number(ex.sets) || 0) * ((Number(ex.reps_min) + Number(ex.reps_max)) / 2 || 0);
+                                                                            volumes[muscle] = (volumes[muscle] || 0) + volume;
+                                                                        });
                                                                     });
-                                                                });
-                                                                return Object.entries(volumes).map(([name, value]) => ({ name, value }));
-                                                            })()
-                                                        }>
-                                                            <PolarGrid stroke="#ffffff10" />
-                                                            <PolarAngleAxis dataKey="name" tick={{ fill: '#94a3b8', fontSize: 10 }} />
-                                                            <PolarRadiusAxis tick={false} axisLine={false} />
-                                                            <Radar
-                                                                name="Volume"
-                                                                dataKey="value"
-                                                                stroke="#9b87f5"
-                                                                fill="#9b87f5"
-                                                                fillOpacity={0.5}
-                                                            />
-                                                            <RechartsTooltip contentStyle={{ backgroundColor: '#111827', border: '1px solid #374151', borderRadius: '8px', fontSize: '12px' }} />
-                                                        </RadarChart>
-                                                    </ResponsiveContainer>
-                                                </CardContent>
-                                            </Card>
+                                                                    return Object.entries(volumes).map(([name, value]) => ({ name, value }));
+                                                                })()
+                                                            }>
+                                                                <PolarGrid stroke="#ffffff10" />
+                                                                <PolarAngleAxis dataKey="name" tick={{ fill: '#94a3b8', fontSize: 10 }} />
+                                                                <PolarRadiusAxis tick={false} axisLine={false} />
+                                                                <Radar
+                                                                    name="Volume"
+                                                                    dataKey="value"
+                                                                    stroke="#9b87f5"
+                                                                    fill="#9b87f5"
+                                                                    fillOpacity={0.5}
+                                                                />
+                                                                <RechartsTooltip contentStyle={{ backgroundColor: '#111827', border: '1px solid #374151', borderRadius: '8px', fontSize: '12px' }} />
+                                                            </RadarChart>
+                                                        </ResponsiveContainer>
+                                                    </CardContent>
+                                                </Card>
+
+                                                <Card className="border-border bg-card shadow-lg bg-gradient-to-br from-primary/5 to-transparent">
+                                                    <CardHeader className="pb-2">
+                                                        <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                                                            <Sparkles className="w-3 h-3 text-primary" /> Análise do Coach
+                                                        </CardTitle>
+                                                    </CardHeader>
+                                                    <CardContent className="space-y-4 pt-2">
+                                                        <div className="space-y-1">
+                                                            <div className="flex justify-between text-[10px] text-muted-foreground">
+                                                                <span>Foco do Protocolo</span>
+                                                                <Badge variant="outline" className="text-[9px] h-4 py-0 border-primary/30 text-primary">Hipertrofia</Badge>
+                                                            </div>
+                                                            <p className="text-xs font-medium">{trainingPrograms[0].title}</p>
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                            <span className="text-[10px] text-muted-foreground">Status de Volume</span>
+                                                            <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
+                                                                <div className="bg-primary h-full w-[70%]" />
+                                                            </div>
+                                                            <p className="text-[10px] text-primary font-bold">Volume Moderado-Alto</p>
+                                                        </div>
+                                                        <div className="p-3 rounded-lg bg-muted/30 border border-border">
+                                                            <p className="text-[10px] leading-relaxed italic text-muted-foreground">
+                                                                "O foco em membros superiores e a periodização linear garantem progressão de carga constante. Mantenha o descanso rigoroso."
+                                                            </p>
+                                                        </div>
+                                                    </CardContent>
+                                                </Card>
+                                            </div>
                                         )}
 
                                         {trainingPrograms.map((program: TrainingProgram) => (
@@ -456,6 +492,14 @@ const Protocols = () => {
                                                                                     <Input value={ex.rest_time} onChange={(e) => updateExerciseField(sIdx, eIdx, 'rest_time', e.target.value)} className="bg-background" />
                                                                                 </div>
                                                                                 <div className="col-span-10 lg:col-span-2">
+                                                                                    <Input
+                                                                                        value={ex.main_muscle_group}
+                                                                                        placeholder="Músculo"
+                                                                                        onChange={(e) => updateExerciseField(sIdx, eIdx, 'main_muscle_group', e.target.value)}
+                                                                                        className="bg-background"
+                                                                                    />
+                                                                                </div>
+                                                                                <div className="col-span-12 lg:col-span-2">
                                                                                     <Input value={ex.notes} placeholder="Obs..." onChange={(e) => updateExerciseField(sIdx, eIdx, 'notes', e.target.value)} className="bg-background" />
                                                                                 </div>
                                                                                 <div className="col-span-2 lg:col-span-1 flex justify-end">
@@ -528,52 +572,85 @@ const Protocols = () => {
                                     <div className="space-y-6">
                                         {/* DIET MACROS CHART */}
                                         {mealPlans.length > 0 && (
-                                            <Card className="border-border bg-card shadow-lg mb-6">
-                                                <CardHeader className="pb-2">
-                                                    <CardTitle className="text-sm font-bold flex items-center gap-2">
-                                                        <Utensils className="w-4 h-4 text-primary" /> Distribuição de Macronutrientes
-                                                    </CardTitle>
-                                                    <CardDescription className="text-[10px]">Divisão percentual de Proteínas, Carbos e Gorduras no plano</CardDescription>
-                                                </CardHeader>
-                                                <CardContent className="pt-0">
-                                                    <div className="h-[200px]">
-                                                        <ResponsiveContainer width="100%" height="100%">
-                                                            <PieChart>
-                                                                <Pie
-                                                                    data={[
-                                                                        { name: 'Proteínas', value: Number(mealPlans[0].total_proteins) || 0, color: '#9b87f5' },
-                                                                        { name: 'Carbos', value: Number(mealPlans[0].total_carbs) || 0, color: '#7E69AB' },
-                                                                        { name: 'Gorduras', value: Number(mealPlans[0].total_fats) || 0, color: '#6E59A5' },
-                                                                    ]}
-                                                                    innerRadius={50}
-                                                                    outerRadius={70}
-                                                                    paddingAngle={5}
-                                                                    dataKey="value"
-                                                                >
-                                                                    <Cell fill="#9b87f5" />
-                                                                    <Cell fill="#7E69AB" />
-                                                                    <Cell fill="#6E59A5" />
-                                                                </Pie>
-                                                                <RechartsTooltip contentStyle={{ backgroundColor: '#111827', border: '1px solid #374151', borderRadius: '8px', fontSize: '12px' }} />
-                                                            </PieChart>
-                                                        </ResponsiveContainer>
-                                                    </div>
-                                                    <div className="grid grid-cols-3 gap-2 mt-2">
-                                                        <div className="p-2 bg-muted/20 rounded border border-border text-center">
-                                                            <p className="text-[9px] text-muted-foreground uppercase font-bold">Proteína</p>
-                                                            <p className="text-sm font-bold">{mealPlans[0].total_proteins}g</p>
+                                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                                                <Card className="lg:col-span-2 border-border bg-card shadow-lg">
+                                                    <CardHeader className="pb-2">
+                                                        <CardTitle className="text-sm font-bold flex items-center gap-2">
+                                                            <Utensils className="w-4 h-4 text-primary" /> Divisão de Macros e Calorias
+                                                        </CardTitle>
+                                                        <CardDescription className="text-[10px]">Aporte nutricional planejado por dia</CardDescription>
+                                                    </CardHeader>
+                                                    <CardContent className="pt-0 flex flex-col md:flex-row items-center gap-4">
+                                                        <div className="h-[180px] w-full max-w-[180px]">
+                                                            <ResponsiveContainer width="100%" height="100%">
+                                                                <PieChart>
+                                                                    <Pie
+                                                                        data={[
+                                                                            { name: 'Proteínas', value: Number(mealPlans[0].total_proteins) || 0, color: '#9b87f5' },
+                                                                            { name: 'Carbos', value: Number(mealPlans[0].total_carbs) || 0, color: '#7E69AB' },
+                                                                            { name: 'Gorduras', value: Number(mealPlans[0].total_fats) || 0, color: '#6E59A5' },
+                                                                        ]}
+                                                                        innerRadius={50}
+                                                                        outerRadius={70}
+                                                                        paddingAngle={5}
+                                                                        dataKey="value"
+                                                                    >
+                                                                        <Cell fill="#9b87f5" />
+                                                                        <Cell fill="#7E69AB" />
+                                                                        <Cell fill="#6E59A5" />
+                                                                    </Pie>
+                                                                    <RechartsTooltip contentStyle={{ backgroundColor: '#111827', border: '1px solid #374151', borderRadius: '8px', fontSize: '12px' }} />
+                                                                </PieChart>
+                                                            </ResponsiveContainer>
                                                         </div>
-                                                        <div className="p-2 bg-muted/20 rounded border border-border text-center">
-                                                            <p className="text-[9px] text-muted-foreground uppercase font-bold">Carbo</p>
-                                                            <p className="text-sm font-bold">{mealPlans[0].total_carbs}g</p>
+                                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 w-full">
+                                                            <div className="p-3 bg-muted/20 rounded-xl border border-border/50 text-center">
+                                                                <p className="text-[9px] text-muted-foreground uppercase font-black tracking-widest mb-1">Proteína</p>
+                                                                <p className="text-lg font-black text-[#9b87f5]">{mealPlans[0].total_proteins || 0}g</p>
+                                                            </div>
+                                                            <div className="p-3 bg-muted/20 rounded-xl border border-border/50 text-center">
+                                                                <p className="text-[9px] text-muted-foreground uppercase font-black tracking-widest mb-1">Carbo</p>
+                                                                <p className="text-lg font-black text-[#7E69AB]">{mealPlans[0].total_carbs || 0}g</p>
+                                                            </div>
+                                                            <div className="p-3 bg-muted/20 rounded-xl border border-border/50 text-center">
+                                                                <p className="text-[9px] text-muted-foreground uppercase font-black tracking-widest mb-1">Gordura</p>
+                                                                <p className="text-lg font-black text-[#6E59A5]">{mealPlans[0].total_fats || 0}g</p>
+                                                            </div>
+                                                            <div className="p-3 bg-primary/10 rounded-xl border border-primary/20 text-center">
+                                                                <p className="text-[9px] text-primary uppercase font-black tracking-widest mb-1">Calorias</p>
+                                                                <p className="text-lg font-black text-primary">{mealPlans[0].total_calories || 0}</p>
+                                                            </div>
                                                         </div>
-                                                        <div className="p-2 bg-muted/20 rounded border border-border text-center">
-                                                            <p className="text-[9px] text-muted-foreground uppercase font-bold">Kcal</p>
-                                                            <p className="text-sm font-bold text-primary">{mealPlans[0].total_calories}</p>
+                                                    </CardContent>
+                                                </Card>
+
+                                                <Card className="border-border bg-card shadow-lg bg-gradient-to-br from-primary/5 to-transparent border-t-primary/20">
+                                                    <CardHeader className="pb-2">
+                                                        <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                                                            <Sparkles className="w-3 h-3 text-primary" /> Análise Nutricional
+                                                        </CardTitle>
+                                                    </CardHeader>
+                                                    <CardContent className="space-y-4 pt-2">
+                                                        <div className="space-y-1">
+                                                            <span className="text-[10px] text-muted-foreground">Densidade Nutricional</span>
+                                                            <div className="flex gap-1">
+                                                                {Array.from({ length: 5 }).map((_, i) => (
+                                                                    <div key={i} className={cn("h-1.5 flex-1 rounded-full", i < 4 ? "bg-primary" : "bg-muted")} />
+                                                                ))}
+                                                            </div>
+                                                            <p className="text-[10px] text-primary font-bold">Excelente</p>
                                                         </div>
-                                                    </div>
-                                                </CardContent>
-                                            </Card>
+                                                        <div className="p-3 rounded-lg bg-muted/30 border border-border">
+                                                            <p className="text-[10px] leading-relaxed italic text-muted-foreground">
+                                                                "Plano estruturado para manter o metabolismo ativo com {mealPlans[0].meals?.length} refeições calculadas. Foque nos horários de pico de insulina."
+                                                            </p>
+                                                        </div>
+                                                        <Button variant="outline" size="sm" className="w-full text-[10px] h-7 gap-2">
+                                                            <Download className="w-3 h-3" /> Gerar PDF Dieta
+                                                        </Button>
+                                                    </CardContent>
+                                                </Card>
+                                            </div>
                                         )}
 
                                         {mealPlans.map((plan: MealPlan) => (

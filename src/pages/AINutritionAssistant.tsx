@@ -168,6 +168,10 @@ const AINutritionAssistant = () => {
             const planToSave = {
                 title: generatedDiet.titulo,
                 goal: generatedDiet.objetivo,
+                total_calories: targetKcal,
+                total_proteins: customMacros.p,
+                total_carbs: customMacros.c,
+                total_fats: customMacros.f,
                 meals: generatedDiet.refeicoes.map((m: any) => ({
                     name: m.nome,
                     time: m.horario,

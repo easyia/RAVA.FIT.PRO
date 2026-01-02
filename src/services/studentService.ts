@@ -256,6 +256,7 @@ export async function saveTrainingProgram(studentId: string, program: any): Prom
         reps_max: ex.reps_max,
         rest_time: ex.rest_time?.toString(),
         notes: ex.notes,
+        main_muscle_group: ex.main_muscle_group,
         execution_order: idx + 1
       }));
 
@@ -280,6 +281,10 @@ export async function saveMealPlan(studentId: string, plan: any): Promise<void> 
       coach_id: userData.user.id,
       title: plan.title,
       goal: plan.goal,
+      total_calories: plan.total_calories,
+      total_proteins: plan.total_proteins,
+      total_carbs: plan.total_carbs,
+      total_fats: plan.total_fats,
       status: 'active'
     })
     .select()

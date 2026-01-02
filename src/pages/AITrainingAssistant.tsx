@@ -150,7 +150,8 @@ const AITrainingAssistant = () => {
                         reps_min: e.repeticoes.includes('-') ? parseInt(e.repeticoes.split('-')[0]) : parseInt(e.repeticoes) || 0,
                         reps_max: e.repeticoes.includes('-') ? parseInt(e.repeticoes.split('-')[1]) : parseInt(e.repeticoes) || 0,
                         rest_time: e.descanso_segundos,
-                        notes: e.observacoes || (e.adaptacao_lesao ? 'Adaptado' : '')
+                        notes: e.observacoes || (e.adaptacao_lesao ? 'Adaptado' : ''),
+                        main_muscle_group: e.grupo_muscular || "Geral"
                     }))
                 }))
             };
