@@ -9,16 +9,40 @@ import { useQuery } from "@tanstack/react-query";
 import { getDashboardStats } from "@/services/studentService";
 import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-    BarChart, Bar, Cell, PieChart, Pie, Legend
+    BarChart, Bar, Cell, PieChart, Pie, Legend,
+    RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar
 } from 'recharts';
+import { getStudents, getMealPlans, getTrainingPrograms } from "@/services/studentService";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const Reports = () => {
+    const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
-    const { data: stats, isLoading } = useQuery({
+    const { data: stats, isLoading: isLoadingStats } = useQuery({
         queryKey: ["dashboardStats"],
         queryFn: getDashboardStats,
     });
+
+    const { data: students } = useQuery({
+        queryKey: ["students"],
+        queryFn: getStudents,
+    });
+
+    const { data: mealPlans, isLoading: isLoadingMeals } = useQuery({
+        queryKey: ["mealPlans", selectedStudentId],
+        queryFn: () => getMealPlans(selectedStudentId!),
+        enabled: !!selectedStudentId,
+    });
+
+    const { data: trainingPrograms, isLoading: isLoadingTraining } = useQuery({
+        queryKey: ["trainingPrograms", selectedStudentId],
+        queryFn: () => getTrainingPrograms(selectedStudentId!),
+        enabled: !!selectedStudentId,
+    });
+
+    const latestMealPlan = mealPlans?.[0];
+    const latestProgram = trainingPrograms?.[0];
 
     // Mock data for charts
     const growthData = [
@@ -49,9 +73,23 @@ const Reports = () => {
                     <DashboardHeader
                         title="Relatórios & Performance"
                         actions={
-                            <Button variant="outline" className="border-border">
-                                <Download className="w-4 h-4 mr-2" /> Exportar PDF
-                            </Button>
+                            <div className="flex items-center gap-4">
+                                <Select onValueChange={setSelectedStudentId} value={selectedStudentId || undefined}>
+                                    <SelectTrigger className="w-[250px] bg-card border-border">
+                                        <SelectValue placeholder="Selecionar aluno para relatório..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {students?.map(student => (
+                                            <SelectItem key={student.id} value={student.id}>
+                                                {student.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <Button variant="outline" className="border-border">
+                                    <Download className="w-4 h-4 mr-2" /> Exportar PDF
+                                </Button>
+                            </div>
                         }
                     />
 
@@ -95,57 +133,128 @@ const Reports = () => {
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-                        {/* Growth Chart */}
+                        {/* Diet / Macro Report */}
                         <Card className="border-border bg-card shadow-xl rounded-2xl">
                             <CardHeader>
-                                <CardTitle className="text-lg">Crescimento da Base de Alunos</CardTitle>
-                                <CardDescription>Quantidade de alunos matriculados nos últimos 6 meses</CardDescription>
+                                <CardTitle className="text-lg flex items-center gap-2">
+                                    <Utensils className="w-5 h-5 text-accent" /> Relatório de Dieta
+                                </CardTitle>
+                                <CardDescription>Consumo prescrito de macronutrientes do plano atual</CardDescription>
                             </CardHeader>
                             <CardContent className="h-[300px] w-full">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <AreaChart data={growthData}>
-                                        <defs>
-                                            <linearGradient id="colorStudents" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%" stopColor="#F59E0B" stopOpacity={0.3} />
-                                                <stop offset="95%" stopColor="#F59E0B" stopOpacity={0} />
-                                            </linearGradient>
-                                        </defs>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
-                                        <XAxis dataKey="name" stroke="#6B7280" fontSize={12} tickLine={false} axisLine={false} />
-                                        <YAxis stroke="#6B7280" fontSize={12} tickLine={false} axisLine={false} />
-                                        <Tooltip
-                                            contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }}
-                                            itemStyle={{ color: '#F59E0B' }}
-                                        />
-                                        <Area type="monotone" dataKey="students" stroke="#F59E0B" strokeWidth={3} fillOpacity={1} fill="url(#colorStudents)" />
-                                    </AreaChart>
-                                </ResponsiveContainer>
+                                {selectedStudentId ? (
+                                    latestMealPlan ? (
+                                        <div className="h-full flex flex-col md:flex-row items-center gap-6">
+                                            <div className="w-full md:w-1/2 h-full">
+                                                <ResponsiveContainer width="100%" height="100%">
+                                                    <PieChart>
+                                                        <Pie
+                                                            data={[
+                                                                { name: 'Proteína', value: Number(latestMealPlan.total_proteins) || 0, color: '#F59E0B' },
+                                                                { name: 'Carbo', value: Number(latestMealPlan.total_carbs) || 0, color: '#10B981' },
+                                                                { name: 'Gordura', value: Number(latestMealPlan.total_fats) || 0, color: '#3B82F6' },
+                                                            ]}
+                                                            innerRadius={60}
+                                                            outerRadius={80}
+                                                            paddingAngle={5}
+                                                            dataKey="value"
+                                                        >
+                                                            <Cell fill="#F59E0B" />
+                                                            <Cell fill="#10B981" />
+                                                            <Cell fill="#3B82F6" />
+                                                        </Pie>
+                                                        <Tooltip
+                                                            contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }}
+                                                        />
+                                                    </PieChart>
+                                                </ResponsiveContainer>
+                                            </div>
+                                            <div className="w-full md:w-1/2 space-y-4">
+                                                <div className="p-3 bg-muted/20 rounded-lg border border-border">
+                                                    <p className="text-sm text-muted-foreground uppercase text-xs font-bold tracking-wider">Calorias Totais</p>
+                                                    <h4 className="text-2xl font-bold text-primary">{latestMealPlan.total_calories} kcal</h4>
+                                                </div>
+                                                <div className="grid grid-cols-3 gap-2">
+                                                    <div className="text-center p-2 bg-sidebar/50 rounded border border-border">
+                                                        <p className="text-[10px] text-muted-foreground uppercase">Prot</p>
+                                                        <p className="font-bold text-sm">{latestMealPlan.total_proteins}g</p>
+                                                    </div>
+                                                    <div className="text-center p-2 bg-sidebar/50 rounded border border-border">
+                                                        <p className="text-[10px] text-muted-foreground uppercase">Carb</p>
+                                                        <p className="font-bold text-sm">{latestMealPlan.total_carbs}g</p>
+                                                    </div>
+                                                    <div className="text-center p-2 bg-sidebar/50 rounded border border-border">
+                                                        <p className="text-[10px] text-muted-foreground uppercase">Lip</p>
+                                                        <p className="font-bold text-sm">{latestMealPlan.total_fats}g</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="h-full flex flex-col items-center justify-center text-muted-foreground p-6 text-center">
+                                            <Utensils className="w-12 h-12 mb-4 opacity-20" />
+                                            <p className="font-semibold text-foreground">Sem Plano Alimentar</p>
+                                            <p className="text-sm max-w-[250px]">Este relatório é gerado automaticamente a partir da última dieta prescrita. Como não há prescrição ativa para este aluno, o relatório não pode ser processado.</p>
+                                        </div>
+                                    )
+                                ) : (
+                                    <div className="h-full flex items-center justify-center text-muted-foreground italic">Selecione um aluno para ver o relatório nutricional.</div>
+                                )}
                             </CardContent>
                         </Card>
 
-                        {/* Protocol Distribution */}
+                        {/* Training Volume Report */}
                         <Card className="border-border bg-card shadow-xl rounded-2xl">
                             <CardHeader>
-                                <CardTitle className="text-lg">Distribuição de Protocolos</CardTitle>
-                                <CardDescription>Comparativo entre treinos e planos alimentares criados</CardDescription>
+                                <CardTitle className="text-lg flex items-center gap-2">
+                                    <Dumbbell className="w-5 h-5 text-primary" /> Relatório de Treino
+                                </CardTitle>
+                                <CardDescription>Volume semanal total por agrupamento muscular</CardDescription>
                             </CardHeader>
-                            <CardContent className="h-[300px] w-full flex items-center justify-center">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={protocolData}>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
-                                        <XAxis dataKey="name" stroke="#6B7280" fontSize={12} tickLine={false} axisLine={false} />
-                                        <YAxis stroke="#6B7280" fontSize={12} tickLine={false} axisLine={false} />
-                                        <Tooltip
-                                            cursor={{ fill: 'rgba(255,255,255,0.05)' }}
-                                            contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }}
-                                        />
-                                        <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                                            {protocolData.map((entry, index) => (
-                                                <Cell key={`cell-${index}`} fill={entry.color} />
-                                            ))}
-                                        </Bar>
-                                    </BarChart>
-                                </ResponsiveContainer>
+                            <CardContent className="h-[300px] w-full">
+                                {selectedStudentId ? (
+                                    latestProgram ? (
+                                        <div className="h-full">
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <RadarChart cx="50%" cy="50%" outerRadius="80%" data={
+                                                    (() => {
+                                                        const volumes: Record<string, number> = {};
+                                                        latestProgram.training_sessions?.forEach((session: any) => {
+                                                            session.training_exercises?.forEach((ex: any) => {
+                                                                const muscle = ex.main_muscle_group || 'Outros';
+                                                                const volume = (ex.sets || 0) * (ex.reps_max || 0);
+                                                                volumes[muscle] = (volumes[muscle] || 0) + volume;
+                                                            });
+                                                        });
+                                                        return Object.entries(volumes).map(([name, value]) => ({ name, value }));
+                                                    })()
+                                                }>
+                                                    <PolarGrid stroke="#374151" />
+                                                    <PolarAngleAxis dataKey="name" tick={{ fill: '#9CA3AF', fontSize: 10 }} />
+                                                    <PolarRadiusAxis angle={30} domain={[0, 'auto']} tick={false} axisLine={false} />
+                                                    <Radar
+                                                        name="Volume"
+                                                        dataKey="value"
+                                                        stroke="#F59E0B"
+                                                        fill="#F59E0B"
+                                                        fillOpacity={0.5}
+                                                    />
+                                                    <Tooltip
+                                                        contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }}
+                                                    />
+                                                </RadarChart>
+                                            </ResponsiveContainer>
+                                        </div>
+                                    ) : (
+                                        <div className="h-full flex flex-col items-center justify-center text-muted-foreground p-6 text-center">
+                                            <Dumbbell className="w-12 h-12 mb-4 opacity-20" />
+                                            <p className="font-semibold text-foreground">Sem Protocolo de Treino</p>
+                                            <p className="text-sm max-w-[250px]">O volume semanal é calculado com base nas séries e repetições prescritas. Sem um protocolo ativo, não há dados para gerar este gráfico.</p>
+                                        </div>
+                                    )
+                                ) : (
+                                    <div className="h-full flex items-center justify-center text-muted-foreground italic">Selecione um aluno para ver o volume de treinamento.</div>
+                                )}
                             </CardContent>
                         </Card>
                     </div>

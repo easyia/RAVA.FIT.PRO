@@ -1,5 +1,7 @@
 export type StudentStatus = 'ativo' | 'inativo' | 'pendente' | 'aguardando';
 export type StudentGoal = 'hipertrofia' | 'emagrecimento' | 'condicionamento' | 'reabilitacao' | 'performance';
+export type StudentClassification = 'bronze' | 'silver' | 'gold';
+export type ServiceType = 'presencial' | 'online';
 
 export interface Student {
   id: string;
@@ -9,6 +11,8 @@ export interface Student {
   avatar?: string;
   goal: StudentGoal;
   status: StudentStatus;
+  classification: StudentClassification;
+  serviceType: ServiceType;
   progress: number;
   completedTasks: number;
   totalTasks: number;

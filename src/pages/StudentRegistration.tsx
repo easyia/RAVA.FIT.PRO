@@ -70,6 +70,8 @@ interface FormData {
   // New fields
   training_level: string;
   uses_ergogenics: string;
+  classification: string;
+  service_type: string;
 }
 
 const steps = [
@@ -144,6 +146,8 @@ const StudentRegistration = () => {
     contraindications: "",
     training_level: "",
     uses_ergogenics: "false",
+    classification: "bronze",
+    service_type: "online",
   });
   const [isUploading, setIsUploading] = useState(false);
 
@@ -199,6 +203,8 @@ const StudentRegistration = () => {
         training_level: studentToEdit.anamnesis?.[0]?.training_level || "",
         uses_ergogenics: studentToEdit.anamnesis?.[0]?.uses_ergogenics?.toString() || "false",
         avatar_url: studentToEdit.avatar_url || "",
+        classification: studentToEdit.classification || "bronze",
+        service_type: studentToEdit.service_type || "online",
       });
     }
   }, [studentToEdit]);
@@ -387,6 +393,31 @@ const StudentRegistration = () => {
                           <SelectItem value="casado">Casado(a)</SelectItem>
                           <SelectItem value="divorciado">Divorciado(a)</SelectItem>
                           <SelectItem value="viuvo">Viúvo(a)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="classification">Classificação (Plano)</Label>
+                      <Select onValueChange={(v) => updateFormData("classification", v)} value={formData.classification}>
+                        <SelectTrigger className="bg-sidebar">
+                          <SelectValue placeholder="Selecione..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="bronze">Bronze</SelectItem>
+                          <SelectItem value="silver">Prata</SelectItem>
+                          <SelectItem value="gold">Ouro</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="service_type">Tipo de Atendimento</Label>
+                      <Select onValueChange={(v) => updateFormData("service_type", v)} value={formData.service_type}>
+                        <SelectTrigger className="bg-sidebar">
+                          <SelectValue placeholder="Selecione..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="online">On-line</SelectItem>
+                          <SelectItem value="presencial">Presencial</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>

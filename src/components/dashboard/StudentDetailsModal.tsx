@@ -58,6 +58,8 @@ export function StudentDetailsModal({ studentId, isOpen, onClose }: StudentDetai
                                     <DialogTitle className="text-2xl font-bold text-foreground mb-1">{student.full_name}</DialogTitle>
                                     <div className="flex flex-wrap gap-3">
                                         <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20">{student.status === 'active' ? 'Ativo' : 'Inativo'}</Badge>
+                                        <Badge variant="outline" className="bg-accent/10 text-accent border-accent/20 uppercase text-[10px]">{student.classification || 'bronze'}</Badge>
+                                        <Badge variant="outline" className="bg-muted text-muted-foreground border-border uppercase text-[10px]">{student.service_type || 'online'}</Badge>
                                         <span className="text-sm text-muted-foreground flex items-center gap-1"><Mail className="w-3 h-3" /> {student.email}</span>
                                         <span className="text-sm text-muted-foreground flex items-center gap-1"><Phone className="w-3 h-3" /> {student.phone}</span>
                                     </div>

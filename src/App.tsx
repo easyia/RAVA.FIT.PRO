@@ -17,12 +17,14 @@ import AINutritionAssistant from "./pages/AINutritionAssistant";
 import Onboarding from "./pages/Onboarding";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import { UpdatesOnboarding } from "@/components/dashboard/UpdatesOnboarding";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
+      <UpdatesOnboarding />
       <Toaster />
       <Sonner />
       <BrowserRouter>

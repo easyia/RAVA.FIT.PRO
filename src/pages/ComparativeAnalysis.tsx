@@ -53,6 +53,7 @@ import {
 } from 'recharts';
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const ComparativeAnalysis = () => {
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -61,6 +62,8 @@ const ComparativeAnalysis = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [comparisonView, setComparisonView] = useState<"front" | "left" | "right" | "back">("front");
+    const [comparisonIndexA, setComparisonIndexA] = useState<number>(0); // Default to current
+    const [comparisonIndexB, setComparisonIndexB] = useState<number>(1); // Default to baseline
     const queryClient = useQueryClient();
 
     const [newAssessment, setNewAssessment] = useState({
@@ -361,58 +364,105 @@ const ComparativeAnalysis = () => {
                                 <TabsContent value="photos" className="space-y-8 animate-fade-in">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                         <Card className="border-border bg-card overflow-hidden">
-                                            <CardHeader className="flex flex-row items-center justify-between">
-                                                <div>
-                                                    <CardTitle>Comparações Visuais</CardTitle>
-                                                    <CardDescription>Baseline vs Última Avaliação</CardDescription>
+                                            <CardHeader className="flex flex-col space-y-4">
+                                                <div className="flex flex-row items-center justify-between w-full">
+                                                    <div>
+                                                        <CardTitle>Comparações Visuais (Simetógrafo)</CardTitle>
+                                                        <CardDescription>Analise a evolução postural entre períodos</CardDescription>
+                                                    </div>
+                                                    <div className="flex bg-muted p-1 rounded-lg gap-1">
+                                                        {(["front", "right", "left", "back"] as const).map(view => (
+                                                            <Button
+                                                                key={view}
+                                                                variant={comparisonView === view ? "secondary" : "ghost"}
+                                                                size="sm"
+                                                                className="h-8 text-[10px] px-2"
+                                                                onClick={() => setComparisonView(view)}
+                                                            >
+                                                                {view === 'front' ? 'FRENTE' : view === 'back' ? 'COSTAS' : view === 'left' ? 'LADO E' : 'LADO D'}
+                                                            </Button>
+                                                        ))}
+                                                    </div>
                                                 </div>
-                                                <div className="flex bg-muted p-1 rounded-lg gap-1">
-                                                    <Button
-                                                        variant={comparisonView === "front" ? "secondary" : "ghost"}
-                                                        size="sm"
-                                                        className="h-8 text-[10px] px-2"
-                                                        onClick={() => setComparisonView("front")}
-                                                    >FRENTE</Button>
-                                                    <Button
-                                                        variant={comparisonView === "right" ? "secondary" : "ghost"}
-                                                        size="sm"
-                                                        className="h-8 text-[10px] px-2"
-                                                        onClick={() => setComparisonView("right")}
-                                                    >LADO D</Button>
-                                                    <Button
-                                                        variant={comparisonView === "left" ? "secondary" : "ghost"}
-                                                        size="sm"
-                                                        className="h-8 text-[10px] px-2"
-                                                        onClick={() => setComparisonView("left")}
-                                                    >LADO E</Button>
-                                                    <Button
-                                                        variant={comparisonView === "back" ? "secondary" : "ghost"}
-                                                        size="sm"
-                                                        className="h-8 text-[10px] px-2"
-                                                        onClick={() => setComparisonView("back")}
-                                                    >COSTAS</Button>
+
+                                                <div className="flex items-center gap-4 bg-sidebar/50 p-2 rounded-xl border border-border">
+                                                    <Select
+                                                        value={comparisonIndexB.toString()}
+                                                        onValueChange={(v) => setComparisonIndexB(parseInt(v))}
+                                                    >
+                                                        <SelectTrigger className="h-9 bg-background border-none text-xs">
+                                                            <SelectValue placeholder="Anterior" />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            {assessments?.map((a, i) => (
+                                                                <SelectItem key={a.id} value={i.toString()}>
+                                                                    {format(new Date(a.assessment_date), "dd/MM/yyyy")}
+                                                                </SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <ArrowLeftRight className="w-4 h-4 text-primary shrink-0" />
+                                                    <Select
+                                                        value={comparisonIndexA.toString()}
+                                                        onValueChange={(v) => setComparisonIndexA(parseInt(v))}
+                                                    >
+                                                        <SelectTrigger className="h-9 bg-background border-none text-xs">
+                                                            <SelectValue placeholder="Posterior" />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            {assessments?.map((a, i) => (
+                                                                <SelectItem key={a.id} value={i.toString()}>
+                                                                    {format(new Date(a.assessment_date), "dd/MM/yyyy")}
+                                                                </SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
                                                 </div>
                                             </CardHeader>
                                             <CardContent className="space-y-6">
                                                 <div className="grid grid-cols-2 gap-4">
                                                     <div className="space-y-2">
-                                                        <p className="text-xs font-medium text-center text-muted-foreground uppercase tracking-widest">Baseline</p>
-                                                        <div className="aspect-[3/4] rounded-xl bg-sidebar border border-border flex items-center justify-center overflow-hidden">
-                                                            {assessments?.[assessments.length - 1]?.[`${comparisonView === 'front' ? 'front' : comparisonView === 'back' ? 'back' : comparisonView === 'left' ? 'left_side' : 'right_side'}_photo_url`] ? (
-                                                                <img src={assessments[assessments.length - 1][`${comparisonView === 'front' ? 'front' : comparisonView === 'back' ? 'back' : comparisonView === 'left' ? 'left_side' : 'right_side'}_photo_url`]} className="w-full h-full object-cover" />
+                                                        <p className="text-xs font-medium text-center text-muted-foreground uppercase tracking-widest flex items-center justify-center gap-2">
+                                                            PONTO A <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded">
+                                                                {assessments?.[comparisonIndexB] ? format(new Date(assessments[comparisonIndexB].assessment_date), "MM/yy") : "-"}
+                                                            </span>
+                                                        </p>
+                                                        <div className="aspect-[3/4] rounded-xl bg-sidebar border border-border flex items-center justify-center overflow-hidden relative group">
+                                                            <div className="absolute inset-0 border-[0.5px] border-primary/20 pointer-events-none opacity-50 z-10 grid grid-cols-4 grid-rows-6">
+                                                                {Array.from({ length: 24 }).map((_, i) => (
+                                                                    <div key={i} className="border-[0.2px] border-primary/10"></div>
+                                                                ))}
+                                                            </div>
+                                                            {assessments?.[comparisonIndexB]?.[`${comparisonView === 'front' ? 'front' : comparisonView === 'back' ? 'back' : comparisonView === 'left' ? 'left_side' : 'right_side'}_photo_url`] ? (
+                                                                <img src={assessments[comparisonIndexB][`${comparisonView === 'front' ? 'front' : comparisonView === 'back' ? 'back' : comparisonView === 'left' ? 'left_side' : 'right_side'}_photo_url`]} className="w-full h-full object-cover" />
                                                             ) : (
                                                                 <Camera className="w-8 h-8 text-tertiary" />
                                                             )}
+                                                            <div className="absolute bottom-2 left-2 z-20 bg-black/60 backdrop-blur-md text-[10px] text-white px-2 py-1 rounded-full border border-white/10 uppercase font-bold">
+                                                                {comparisonView}
+                                                            </div>
                                                         </div>
                                                     </div>
                                                     <div className="space-y-2">
-                                                        <p className="text-xs font-medium text-center text-primary uppercase tracking-widest">Atual</p>
-                                                        <div className="aspect-[3/4] rounded-xl bg-sidebar border border-primary/30 flex items-center justify-center overflow-hidden shadow-lg shadow-primary/5">
-                                                            {assessments?.[0]?.[`${comparisonView === 'front' ? 'front' : comparisonView === 'back' ? 'back' : comparisonView === 'left' ? 'left_side' : 'right_side'}_photo_url`] ? (
-                                                                <img src={assessments[0][`${comparisonView === 'front' ? 'front' : comparisonView === 'back' ? 'back' : comparisonView === 'left' ? 'left_side' : 'right_side'}_photo_url`]} className="w-full h-full object-cover" />
+                                                        <p className="text-xs font-medium text-center text-primary uppercase tracking-widest flex items-center justify-center gap-2">
+                                                            PONTO B <span className="text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded">
+                                                                {assessments?.[comparisonIndexA] ? format(new Date(assessments[comparisonIndexA].assessment_date), "MM/yy") : "-"}
+                                                            </span>
+                                                        </p>
+                                                        <div className="aspect-[3/4] rounded-xl bg-sidebar border border-primary/30 flex items-center justify-center overflow-hidden shadow-lg shadow-primary/5 relative group">
+                                                            <div className="absolute inset-0 border-[0.5px] border-primary/20 pointer-events-none opacity-50 z-10 grid grid-cols-4 grid-rows-6">
+                                                                {Array.from({ length: 24 }).map((_, i) => (
+                                                                    <div key={i} className="border-[0.2px] border-primary/10"></div>
+                                                                ))}
+                                                            </div>
+                                                            {assessments?.[comparisonIndexA]?.[`${comparisonView === 'front' ? 'front' : comparisonView === 'back' ? 'back' : comparisonView === 'left' ? 'left_side' : 'right_side'}_photo_url`] ? (
+                                                                <img src={assessments[comparisonIndexA][`${comparisonView === 'front' ? 'front' : comparisonView === 'back' ? 'back' : comparisonView === 'left' ? 'left_side' : 'right_side'}_photo_url`]} className="w-full h-full object-cover" />
                                                             ) : (
                                                                 <Camera className="w-8 h-8 text-tertiary" />
                                                             )}
+                                                            <div className="absolute bottom-2 left-2 z-20 bg-primary/80 backdrop-blur-md text-[10px] text-white px-2 py-1 rounded-full border border-white/10 uppercase font-bold">
+                                                                {comparisonView}
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>

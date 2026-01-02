@@ -25,6 +25,8 @@ export async function getStudents(): Promise<Student[]> {
     avatar: s.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&h=150&fit=crop&crop=faces',
     goal: (s.anamnesis?.[0]?.main_goal as any) || 'condicionamento',
     status: s.status === 'active' ? 'ativo' : s.status === 'inactive' ? 'inativo' : s.status === 'waiting' ? 'aguardando' : 'ativo',
+    classification: s.classification || 'bronze',
+    serviceType: s.service_type || 'online',
     progress: 0,
     completedTasks: 0,
     totalTasks: 0,
@@ -102,6 +104,8 @@ export async function createStudent(rawFormData: any): Promise<void> {
       emergency_contact: formData.emergency_contact,
       emergency_phone: formData.emergency_phone,
       avatar_url: formData.avatar_url,
+      classification: formData.classification || 'bronze',
+      service_type: formData.service_type || 'online',
       status: 'active'
     })
     .select()
@@ -347,7 +351,9 @@ export async function updateStudent(studentId: string, rawData: any): Promise<vo
       marital_status: data.marital_status,
       emergency_contact: data.emergency_contact,
       emergency_phone: data.emergency_phone,
-      avatar_url: data.avatar_url
+      avatar_url: data.avatar_url,
+      classification: data.classification,
+      service_type: data.service_type
     })
     .eq('id', studentId);
   
