@@ -21,7 +21,8 @@ import {
     X,
     Sparkles,
     Calendar,
-    User
+    User,
+    TrendingUp
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getStudents, getTrainingPrograms, getMealPlans, saveTrainingProgram, saveMealPlan } from "@/services/studentService";
@@ -30,6 +31,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
+import {
+    PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip,
+    RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar
+} from 'recharts';
 
 // Training Interfaces
 interface Exercise {
@@ -66,6 +71,10 @@ interface MealPlan {
     status: string;
     created_at: string;
     meals: any[];
+    total_proteins?: number;
+    total_carbs?: number;
+    total_fats?: number;
+    total_calories?: number;
 }
 
 const Protocols = () => {
@@ -158,15 +167,10 @@ const Protocols = () => {
         setIsSaving(true);
 
         try {
-            // Delete existing exercises and sessions, then recreate
-            // For simplicity, we'll update in place using raw SQL via supabase
             for (const session of editedSessions) {
-                // Update or delete exercises
                 if (session.id) {
-                    // Delete old exercises for this session
                     await supabase.from('training_exercises').delete().eq('training_session_id', session.id);
 
-                    // Insert new exercises
                     if (session.exercises.length > 0) {
                         const exercisesToInsert = session.exercises.map((ex, idx) => ({
                             training_session_id: session.id,
@@ -344,117 +348,161 @@ const Protocols = () => {
                                         </CardContent>
                                     </Card>
                                 ) : (
-                                    trainingPrograms.map((program: TrainingProgram) => (
-                                        <Card key={program.id} className="overflow-hidden">
-                                            <CardHeader className="bg-muted/30 border-b">
-                                                <div className="flex justify-between items-start">
-                                                    <div>
-                                                        <CardTitle className="text-xl">{program.title || 'Sem título'}</CardTitle>
-                                                        <CardDescription className="flex items-center gap-4 mt-2">
-                                                            <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {program.number_weeks} semanas</span>
-                                                            <Badge variant={program.status === 'active' ? 'default' : 'secondary'}>{program.status}</Badge>
-                                                        </CardDescription>
+                                    <div className="space-y-6">
+                                        {/* WORKOUT VOLUME CHART */}
+                                        {trainingPrograms.length > 0 && (
+                                            <Card className="border-border bg-card shadow-lg mb-6">
+                                                <CardHeader className="pb-2">
+                                                    <CardTitle className="text-sm font-bold flex items-center gap-2">
+                                                        <TrendingUp className="w-4 h-4 text-primary" /> Volume Semanal Estimado
+                                                    </CardTitle>
+                                                    <CardDescription className="text-[10px]">Volume total acumulado por agrupamento muscular no protocolo atual</CardDescription>
+                                                </CardHeader>
+                                                <CardContent className="h-[250px] pt-0">
+                                                    <ResponsiveContainer width="100%" height="100%">
+                                                        <RadarChart cx="50%" cy="50%" outerRadius="80%" data={
+                                                            (() => {
+                                                                const volumes: Record<string, number> = {};
+                                                                const latest = trainingPrograms[0];
+                                                                latest.training_sessions?.forEach((session: any) => {
+                                                                    session.training_exercises?.forEach((ex: any) => {
+                                                                        const muscle = session.name || 'Geral';
+                                                                        const volume = (ex.sets || 0) * ((ex.reps_min + ex.reps_max) / 2 || 0);
+                                                                        volumes[muscle] = (volumes[muscle] || 0) + volume;
+                                                                    });
+                                                                });
+                                                                return Object.entries(volumes).map(([name, value]) => ({ name, value }));
+                                                            })()
+                                                        }>
+                                                            <PolarGrid stroke="#ffffff10" />
+                                                            <PolarAngleAxis dataKey="name" tick={{ fill: '#94a3b8', fontSize: 10 }} />
+                                                            <PolarRadiusAxis tick={false} axisLine={false} />
+                                                            <Radar
+                                                                name="Volume"
+                                                                dataKey="value"
+                                                                stroke="#9b87f5"
+                                                                fill="#9b87f5"
+                                                                fillOpacity={0.5}
+                                                            />
+                                                            <RechartsTooltip contentStyle={{ backgroundColor: '#111827', border: '1px solid #374151', borderRadius: '8px', fontSize: '12px' }} />
+                                                        </RadarChart>
+                                                    </ResponsiveContainer>
+                                                </CardContent>
+                                            </Card>
+                                        )}
+
+                                        {trainingPrograms.map((program: TrainingProgram) => (
+                                            <Card key={program.id} className="overflow-hidden">
+                                                <CardHeader className="bg-muted/30 border-b">
+                                                    <div className="flex justify-between items-start">
+                                                        <div>
+                                                            <CardTitle className="text-xl">{program.title || 'Sem título'}</CardTitle>
+                                                            <CardDescription className="flex items-center gap-4 mt-2">
+                                                                <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {program.number_weeks} semanas</span>
+                                                                <Badge variant={program.status === 'active' ? 'default' : 'secondary'}>{program.status}</Badge>
+                                                            </CardDescription>
+                                                        </div>
+                                                        {editingTrainingId !== program.id ? (
+                                                            <Button variant="outline" size="sm" onClick={() => handleEditTraining(program)}>
+                                                                <Edit3 className="w-4 h-4 mr-2" /> Editar
+                                                            </Button>
+                                                        ) : (
+                                                            <div className="flex gap-2">
+                                                                <Button variant="ghost" size="sm" onClick={() => setEditingTrainingId(null)}>
+                                                                    <X className="w-4 h-4 mr-1" /> Cancelar
+                                                                </Button>
+                                                                <Button size="sm" onClick={handleSaveEditedTraining} disabled={isSaving}>
+                                                                    <Save className="w-4 h-4 mr-1" /> Salvar
+                                                                </Button>
+                                                            </div>
+                                                        )}
                                                     </div>
-                                                    {editingTrainingId !== program.id ? (
-                                                        <Button variant="outline" size="sm" onClick={() => handleEditTraining(program)}>
-                                                            <Edit3 className="w-4 h-4 mr-2" /> Editar
-                                                        </Button>
+                                                </CardHeader>
+                                                <CardContent className="p-0">
+                                                    {editingTrainingId === program.id ? (
+                                                        // EDIT MODE
+                                                        <div className="divide-y divide-border">
+                                                            {editedSessions.map((session, sIdx) => (
+                                                                <div key={session.id || sIdx} className="p-6">
+                                                                    <div className="flex items-center gap-4 mb-4">
+                                                                        <Badge variant="outline" className="text-lg font-bold px-3 py-1">{session.division}</Badge>
+                                                                        <span className="font-semibold">{session.name}</span>
+                                                                    </div>
+                                                                    <div className="space-y-3">
+                                                                        {session.exercises.map((ex, eIdx) => (
+                                                                            <div key={ex.id || eIdx} className="grid grid-cols-12 gap-3 items-center bg-muted/30 p-3 rounded-lg">
+                                                                                <div className="col-span-12 lg:col-span-4">
+                                                                                    <Input
+                                                                                        value={ex.name}
+                                                                                        onChange={(e) => updateExerciseField(sIdx, eIdx, 'name', e.target.value)}
+                                                                                        placeholder="Nome do exercício"
+                                                                                        className="bg-background"
+                                                                                    />
+                                                                                </div>
+                                                                                <div className="col-span-3 lg:col-span-1">
+                                                                                    <Label className="text-[10px]">Séries</Label>
+                                                                                    <Input type="number" value={ex.sets} onChange={(e) => updateExerciseField(sIdx, eIdx, 'sets', parseInt(e.target.value))} className="bg-background" />
+                                                                                </div>
+                                                                                <div className="col-span-3 lg:col-span-1">
+                                                                                    <Label className="text-[10px]">Min</Label>
+                                                                                    <Input type="number" value={ex.reps_min} onChange={(e) => updateExerciseField(sIdx, eIdx, 'reps_min', parseInt(e.target.value))} className="bg-background" />
+                                                                                </div>
+                                                                                <div className="col-span-3 lg:col-span-1">
+                                                                                    <Label className="text-[10px]">Max</Label>
+                                                                                    <Input type="number" value={ex.reps_max} onChange={(e) => updateExerciseField(sIdx, eIdx, 'reps_max', parseInt(e.target.value))} className="bg-background" />
+                                                                                </div>
+                                                                                <div className="col-span-3 lg:col-span-2">
+                                                                                    <Label className="text-[10px]">Descanso</Label>
+                                                                                    <Input value={ex.rest_time} onChange={(e) => updateExerciseField(sIdx, eIdx, 'rest_time', e.target.value)} className="bg-background" />
+                                                                                </div>
+                                                                                <div className="col-span-10 lg:col-span-2">
+                                                                                    <Input value={ex.notes} placeholder="Obs..." onChange={(e) => updateExerciseField(sIdx, eIdx, 'notes', e.target.value)} className="bg-background" />
+                                                                                </div>
+                                                                                <div className="col-span-2 lg:col-span-1 flex justify-end">
+                                                                                    <Button variant="ghost" size="icon" onClick={() => removeExerciseFromSession(sIdx, eIdx)} className="text-destructive hover:text-destructive">
+                                                                                        <Trash2 className="w-4 h-4" />
+                                                                                    </Button>
+                                                                                </div>
+                                                                            </div>
+                                                                        ))}
+                                                                        <Button variant="outline" size="sm" className="w-full border-dashed" onClick={() => addExerciseToSession(sIdx)}>
+                                                                            <Plus className="w-4 h-4 mr-2" /> Adicionar Exercício
+                                                                        </Button>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
                                                     ) : (
-                                                        <div className="flex gap-2">
-                                                            <Button variant="ghost" size="sm" onClick={() => setEditingTrainingId(null)}>
-                                                                <X className="w-4 h-4 mr-1" /> Cancelar
-                                                            </Button>
-                                                            <Button size="sm" onClick={handleSaveEditedTraining} disabled={isSaving}>
-                                                                <Save className="w-4 h-4 mr-1" /> Salvar
-                                                            </Button>
+                                                        // VIEW MODE
+                                                        <div className="divide-y divide-border">
+                                                            {program.training_sessions?.map((session: any) => (
+                                                                <div key={session.id} className="p-6">
+                                                                    <div className="flex items-center gap-4 mb-4">
+                                                                        <Badge variant="outline" className="text-lg font-bold px-3 py-1">{session.division}</Badge>
+                                                                        <span className="font-semibold">{session.name}</span>
+                                                                    </div>
+                                                                    <div className="space-y-2">
+                                                                        {session.training_exercises?.map((ex: any, eIdx: number) => (
+                                                                            <div key={ex.id} className="flex justify-between items-center py-2 px-3 bg-muted/20 rounded-lg">
+                                                                                <div className="flex items-center gap-3">
+                                                                                    <span className="text-xs text-muted-foreground w-6">{eIdx + 1}.</span>
+                                                                                    <span className="font-medium">{ex.name}</span>
+                                                                                </div>
+                                                                                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                                                                    <span>{ex.sets} × {ex.reps_min}-{ex.reps_max}</span>
+                                                                                    <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {ex.rest_time}s</span>
+                                                                                </div>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                </div>
+                                                            ))}
                                                         </div>
                                                     )}
-                                                </div>
-                                            </CardHeader>
-                                            <CardContent className="p-0">
-                                                {editingTrainingId === program.id ? (
-                                                    // EDIT MODE
-                                                    <div className="divide-y divide-border">
-                                                        {editedSessions.map((session, sIdx) => (
-                                                            <div key={session.id || sIdx} className="p-6">
-                                                                <div className="flex items-center gap-4 mb-4">
-                                                                    <Badge variant="outline" className="text-lg font-bold px-3 py-1">{session.division}</Badge>
-                                                                    <span className="font-semibold">{session.name}</span>
-                                                                </div>
-                                                                <div className="space-y-3">
-                                                                    {session.exercises.map((ex, eIdx) => (
-                                                                        <div key={ex.id || eIdx} className="grid grid-cols-12 gap-3 items-center bg-muted/30 p-3 rounded-lg">
-                                                                            <div className="col-span-12 lg:col-span-4">
-                                                                                <Input
-                                                                                    value={ex.name}
-                                                                                    onChange={(e) => updateExerciseField(sIdx, eIdx, 'name', e.target.value)}
-                                                                                    placeholder="Nome do exercício"
-                                                                                    className="bg-background"
-                                                                                />
-                                                                            </div>
-                                                                            <div className="col-span-3 lg:col-span-1">
-                                                                                <Label className="text-[10px]">Séries</Label>
-                                                                                <Input type="number" value={ex.sets} onChange={(e) => updateExerciseField(sIdx, eIdx, 'sets', parseInt(e.target.value))} className="bg-background" />
-                                                                            </div>
-                                                                            <div className="col-span-3 lg:col-span-1">
-                                                                                <Label className="text-[10px]">Min</Label>
-                                                                                <Input type="number" value={ex.reps_min} onChange={(e) => updateExerciseField(sIdx, eIdx, 'reps_min', parseInt(e.target.value))} className="bg-background" />
-                                                                            </div>
-                                                                            <div className="col-span-3 lg:col-span-1">
-                                                                                <Label className="text-[10px]">Max</Label>
-                                                                                <Input type="number" value={ex.reps_max} onChange={(e) => updateExerciseField(sIdx, eIdx, 'reps_max', parseInt(e.target.value))} className="bg-background" />
-                                                                            </div>
-                                                                            <div className="col-span-3 lg:col-span-2">
-                                                                                <Label className="text-[10px]">Descanso</Label>
-                                                                                <Input value={ex.rest_time} onChange={(e) => updateExerciseField(sIdx, eIdx, 'rest_time', e.target.value)} className="bg-background" />
-                                                                            </div>
-                                                                            <div className="col-span-10 lg:col-span-2">
-                                                                                <Input value={ex.notes} placeholder="Obs..." onChange={(e) => updateExerciseField(sIdx, eIdx, 'notes', e.target.value)} className="bg-background" />
-                                                                            </div>
-                                                                            <div className="col-span-2 lg:col-span-1 flex justify-end">
-                                                                                <Button variant="ghost" size="icon" onClick={() => removeExerciseFromSession(sIdx, eIdx)} className="text-destructive hover:text-destructive">
-                                                                                    <Trash2 className="w-4 h-4" />
-                                                                                </Button>
-                                                                            </div>
-                                                                        </div>
-                                                                    ))}
-                                                                    <Button variant="outline" size="sm" className="w-full border-dashed" onClick={() => addExerciseToSession(sIdx)}>
-                                                                        <Plus className="w-4 h-4 mr-2" /> Adicionar Exercício
-                                                                    </Button>
-                                                                </div>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                ) : (
-                                                    // VIEW MODE
-                                                    <div className="divide-y divide-border">
-                                                        {program.training_sessions?.map((session: any) => (
-                                                            <div key={session.id} className="p-6">
-                                                                <div className="flex items-center gap-4 mb-4">
-                                                                    <Badge variant="outline" className="text-lg font-bold px-3 py-1">{session.division}</Badge>
-                                                                    <span className="font-semibold">{session.name}</span>
-                                                                </div>
-                                                                <div className="space-y-2">
-                                                                    {session.training_exercises?.map((ex: any, eIdx: number) => (
-                                                                        <div key={ex.id} className="flex justify-between items-center py-2 px-3 bg-muted/20 rounded-lg">
-                                                                            <div className="flex items-center gap-3">
-                                                                                <span className="text-xs text-muted-foreground w-6">{eIdx + 1}.</span>
-                                                                                <span className="font-medium">{ex.name}</span>
-                                                                            </div>
-                                                                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                                                                <span>{ex.sets} × {ex.reps_min}-{ex.reps_max}</span>
-                                                                                <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {ex.rest_time}s</span>
-                                                                            </div>
-                                                                        </div>
-                                                                    ))}
-                                                                </div>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                            </CardContent>
-                                        </Card>
-                                    ))
+                                                </CardContent>
+                                            </Card>
+                                        ))}
+                                    </div>
                                 )}
                             </TabsContent>
 
@@ -477,106 +525,158 @@ const Protocols = () => {
                                         </CardContent>
                                     </Card>
                                 ) : (
-                                    mealPlans.map((plan: MealPlan) => (
-                                        <Card key={plan.id} className="overflow-hidden">
-                                            <CardHeader className="bg-muted/30 border-b">
-                                                <div className="flex justify-between items-start">
-                                                    <div>
-                                                        <CardTitle className="text-xl">{plan.title || 'Sem título'}</CardTitle>
-                                                        <CardDescription className="flex items-center gap-4 mt-2">
-                                                            <Badge variant="secondary">{plan.goal || 'Objetivo não definido'}</Badge>
-                                                            <Badge variant={plan.status === 'active' ? 'default' : 'outline'}>{plan.status}</Badge>
-                                                        </CardDescription>
+                                    <div className="space-y-6">
+                                        {/* DIET MACROS CHART */}
+                                        {mealPlans.length > 0 && (
+                                            <Card className="border-border bg-card shadow-lg mb-6">
+                                                <CardHeader className="pb-2">
+                                                    <CardTitle className="text-sm font-bold flex items-center gap-2">
+                                                        <Utensils className="w-4 h-4 text-primary" /> Distribuição de Macronutrientes
+                                                    </CardTitle>
+                                                    <CardDescription className="text-[10px]">Divisão percentual de Proteínas, Carbos e Gorduras no plano</CardDescription>
+                                                </CardHeader>
+                                                <CardContent className="pt-0">
+                                                    <div className="h-[200px]">
+                                                        <ResponsiveContainer width="100%" height="100%">
+                                                            <PieChart>
+                                                                <Pie
+                                                                    data={[
+                                                                        { name: 'Proteínas', value: Number(mealPlans[0].total_proteins) || 0, color: '#9b87f5' },
+                                                                        { name: 'Carbos', value: Number(mealPlans[0].total_carbs) || 0, color: '#7E69AB' },
+                                                                        { name: 'Gorduras', value: Number(mealPlans[0].total_fats) || 0, color: '#6E59A5' },
+                                                                    ]}
+                                                                    innerRadius={50}
+                                                                    outerRadius={70}
+                                                                    paddingAngle={5}
+                                                                    dataKey="value"
+                                                                >
+                                                                    <Cell fill="#9b87f5" />
+                                                                    <Cell fill="#7E69AB" />
+                                                                    <Cell fill="#6E59A5" />
+                                                                </Pie>
+                                                                <RechartsTooltip contentStyle={{ backgroundColor: '#111827', border: '1px solid #374151', borderRadius: '8px', fontSize: '12px' }} />
+                                                            </PieChart>
+                                                        </ResponsiveContainer>
                                                     </div>
-                                                    {editingDietId !== plan.id ? (
-                                                        <Button variant="outline" size="sm" onClick={() => handleEditDiet(plan)}>
-                                                            <Edit3 className="w-4 h-4 mr-2" /> Editar
-                                                        </Button>
+                                                    <div className="grid grid-cols-3 gap-2 mt-2">
+                                                        <div className="p-2 bg-muted/20 rounded border border-border text-center">
+                                                            <p className="text-[9px] text-muted-foreground uppercase font-bold">Proteína</p>
+                                                            <p className="text-sm font-bold">{mealPlans[0].total_proteins}g</p>
+                                                        </div>
+                                                        <div className="p-2 bg-muted/20 rounded border border-border text-center">
+                                                            <p className="text-[9px] text-muted-foreground uppercase font-bold">Carbo</p>
+                                                            <p className="text-sm font-bold">{mealPlans[0].total_carbs}g</p>
+                                                        </div>
+                                                        <div className="p-2 bg-muted/20 rounded border border-border text-center">
+                                                            <p className="text-[9px] text-muted-foreground uppercase font-bold">Kcal</p>
+                                                            <p className="text-sm font-bold text-primary">{mealPlans[0].total_calories}</p>
+                                                        </div>
+                                                    </div>
+                                                </CardContent>
+                                            </Card>
+                                        )}
+
+                                        {mealPlans.map((plan: MealPlan) => (
+                                            <Card key={plan.id} className="overflow-hidden">
+                                                <CardHeader className="bg-muted/30 border-b">
+                                                    <div className="flex justify-between items-start">
+                                                        <div>
+                                                            <CardTitle className="text-xl">{plan.title || 'Sem título'}</CardTitle>
+                                                            <CardDescription className="flex items-center gap-4 mt-2">
+                                                                <Badge variant="secondary">{plan.goal || 'Objetivo não definido'}</Badge>
+                                                                <Badge variant={plan.status === 'active' ? 'default' : 'outline'}>{plan.status}</Badge>
+                                                            </CardDescription>
+                                                        </div>
+                                                        {editingDietId !== plan.id ? (
+                                                            <Button variant="outline" size="sm" onClick={() => handleEditDiet(plan)}>
+                                                                <Edit3 className="w-4 h-4 mr-2" /> Editar
+                                                            </Button>
+                                                        ) : (
+                                                            <div className="flex gap-2">
+                                                                <Button variant="ghost" size="sm" onClick={() => setEditingDietId(null)}>
+                                                                    <X className="w-4 h-4 mr-1" /> Cancelar
+                                                                </Button>
+                                                                <Button size="sm" onClick={handleSaveEditedDiet} disabled={isSaving}>
+                                                                    <Save className="w-4 h-4 mr-1" /> Salvar
+                                                                </Button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </CardHeader>
+                                                <CardContent className="p-0">
+                                                    {editingDietId === plan.id ? (
+                                                        // EDIT MODE
+                                                        <div className="divide-y divide-border">
+                                                            {editedMeals.map((meal, mIdx) => (
+                                                                <div key={meal.id || mIdx} className="p-6">
+                                                                    <div className="flex items-center gap-4 mb-4">
+                                                                        <Badge className="bg-primary">{mIdx + 1}</Badge>
+                                                                        <span className="font-semibold">{meal.name}</span>
+                                                                        <span className="text-sm text-muted-foreground">{meal.time}</span>
+                                                                    </div>
+                                                                    <div className="space-y-3">
+                                                                        {meal.foods.map((food: any, fIdx: number) => (
+                                                                            <div key={food.id || fIdx} className="grid grid-cols-12 gap-3 items-center bg-muted/30 p-3 rounded-lg">
+                                                                                <div className="col-span-12 lg:col-span-5">
+                                                                                    <Input
+                                                                                        value={food.name}
+                                                                                        onChange={(e) => updateFoodField(mIdx, fIdx, 'name', e.target.value)}
+                                                                                        placeholder="Nome do alimento"
+                                                                                        className="bg-background"
+                                                                                    />
+                                                                                </div>
+                                                                                <div className="col-span-4 lg:col-span-2">
+                                                                                    <Input type="number" value={food.quantity} onChange={(e) => updateFoodField(mIdx, fIdx, 'quantity', e.target.value)} placeholder="Qtd" className="bg-background" />
+                                                                                </div>
+                                                                                <div className="col-span-4 lg:col-span-2">
+                                                                                    <Input value={food.unit} onChange={(e) => updateFoodField(mIdx, fIdx, 'unit', e.target.value)} placeholder="Unid" className="bg-background" />
+                                                                                </div>
+                                                                                <div className="col-span-2 lg:col-span-2">
+                                                                                    <Input value={food.notes} placeholder="Obs..." onChange={(e) => updateFoodField(mIdx, fIdx, 'notes', e.target.value)} className="bg-background" />
+                                                                                </div>
+                                                                                <div className="col-span-2 lg:col-span-1 flex justify-end">
+                                                                                    <Button variant="ghost" size="icon" onClick={() => removeFoodFromMeal(mIdx, fIdx)} className="text-destructive hover:text-destructive">
+                                                                                        <Trash2 className="w-4 h-4" />
+                                                                                    </Button>
+                                                                                </div>
+                                                                            </div>
+                                                                        ))}
+                                                                        <Button variant="outline" size="sm" className="w-full border-dashed" onClick={() => addFoodToMeal(mIdx)}>
+                                                                            <Plus className="w-4 h-4 mr-2" /> Adicionar Alimento
+                                                                        </Button>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
                                                     ) : (
-                                                        <div className="flex gap-2">
-                                                            <Button variant="ghost" size="sm" onClick={() => setEditingDietId(null)}>
-                                                                <X className="w-4 h-4 mr-1" /> Cancelar
-                                                            </Button>
-                                                            <Button size="sm" onClick={handleSaveEditedDiet} disabled={isSaving}>
-                                                                <Save className="w-4 h-4 mr-1" /> Salvar
-                                                            </Button>
+                                                        // VIEW MODE
+                                                        <div className="divide-y divide-border">
+                                                            {plan.meals?.map((meal: any, mIdx: number) => (
+                                                                <div key={meal.id} className="p-6">
+                                                                    <div className="flex items-center gap-4 mb-4">
+                                                                        <Badge className="bg-primary">{mIdx + 1}</Badge>
+                                                                        <span className="font-semibold">{meal.name}</span>
+                                                                        <span className="text-sm text-muted-foreground">{meal.meal_time}</span>
+                                                                    </div>
+                                                                    <div className="space-y-2">
+                                                                        {meal.meal_foods?.map((food: any, fIdx: number) => (
+                                                                            <div key={food.id} className="flex justify-between items-center py-2 px-3 bg-muted/20 rounded-lg">
+                                                                                <div className="flex items-center gap-3">
+                                                                                    <span className="text-xs text-muted-foreground w-6">{fIdx + 1}.</span>
+                                                                                    <span className="font-medium">{food.name}</span>
+                                                                                </div>
+                                                                                <span className="text-sm text-muted-foreground">{food.quantity} {food.unit}</span>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                </div>
+                                                            ))}
                                                         </div>
                                                     )}
-                                                </div>
-                                            </CardHeader>
-                                            <CardContent className="p-0">
-                                                {editingDietId === plan.id ? (
-                                                    // EDIT MODE
-                                                    <div className="divide-y divide-border">
-                                                        {editedMeals.map((meal, mIdx) => (
-                                                            <div key={meal.id || mIdx} className="p-6">
-                                                                <div className="flex items-center gap-4 mb-4">
-                                                                    <Badge className="bg-primary">{mIdx + 1}</Badge>
-                                                                    <span className="font-semibold">{meal.name}</span>
-                                                                    <span className="text-sm text-muted-foreground">{meal.time}</span>
-                                                                </div>
-                                                                <div className="space-y-3">
-                                                                    {meal.foods.map((food: any, fIdx: number) => (
-                                                                        <div key={food.id || fIdx} className="grid grid-cols-12 gap-3 items-center bg-muted/30 p-3 rounded-lg">
-                                                                            <div className="col-span-12 lg:col-span-5">
-                                                                                <Input
-                                                                                    value={food.name}
-                                                                                    onChange={(e) => updateFoodField(mIdx, fIdx, 'name', e.target.value)}
-                                                                                    placeholder="Nome do alimento"
-                                                                                    className="bg-background"
-                                                                                />
-                                                                            </div>
-                                                                            <div className="col-span-4 lg:col-span-2">
-                                                                                <Input type="number" value={food.quantity} onChange={(e) => updateFoodField(mIdx, fIdx, 'quantity', e.target.value)} placeholder="Qtd" className="bg-background" />
-                                                                            </div>
-                                                                            <div className="col-span-4 lg:col-span-2">
-                                                                                <Input value={food.unit} onChange={(e) => updateFoodField(mIdx, fIdx, 'unit', e.target.value)} placeholder="Unid" className="bg-background" />
-                                                                            </div>
-                                                                            <div className="col-span-2 lg:col-span-2">
-                                                                                <Input value={food.notes} placeholder="Obs..." onChange={(e) => updateFoodField(mIdx, fIdx, 'notes', e.target.value)} className="bg-background" />
-                                                                            </div>
-                                                                            <div className="col-span-2 lg:col-span-1 flex justify-end">
-                                                                                <Button variant="ghost" size="icon" onClick={() => removeFoodFromMeal(mIdx, fIdx)} className="text-destructive hover:text-destructive">
-                                                                                    <Trash2 className="w-4 h-4" />
-                                                                                </Button>
-                                                                            </div>
-                                                                        </div>
-                                                                    ))}
-                                                                    <Button variant="outline" size="sm" className="w-full border-dashed" onClick={() => addFoodToMeal(mIdx)}>
-                                                                        <Plus className="w-4 h-4 mr-2" /> Adicionar Alimento
-                                                                    </Button>
-                                                                </div>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                ) : (
-                                                    // VIEW MODE
-                                                    <div className="divide-y divide-border">
-                                                        {plan.meals?.map((meal: any, mIdx: number) => (
-                                                            <div key={meal.id} className="p-6">
-                                                                <div className="flex items-center gap-4 mb-4">
-                                                                    <Badge className="bg-primary">{mIdx + 1}</Badge>
-                                                                    <span className="font-semibold">{meal.name}</span>
-                                                                    <span className="text-sm text-muted-foreground">{meal.meal_time}</span>
-                                                                </div>
-                                                                <div className="space-y-2">
-                                                                    {meal.meal_foods?.map((food: any, fIdx: number) => (
-                                                                        <div key={food.id} className="flex justify-between items-center py-2 px-3 bg-muted/20 rounded-lg">
-                                                                            <div className="flex items-center gap-3">
-                                                                                <span className="text-xs text-muted-foreground w-6">{fIdx + 1}.</span>
-                                                                                <span className="font-medium">{food.name}</span>
-                                                                            </div>
-                                                                            <span className="text-sm text-muted-foreground">{food.quantity} {food.unit}</span>
-                                                                        </div>
-                                                                    ))}
-                                                                </div>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                            </CardContent>
-                                        </Card>
-                                    ))
+                                                </CardContent>
+                                            </Card>
+                                        ))}
+                                    </div>
                                 )}
                             </TabsContent>
                         </Tabs>
