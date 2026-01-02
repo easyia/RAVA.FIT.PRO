@@ -35,6 +35,11 @@ export function StudentCard({ student, onClick, onDelete, onEdit, onStatusChange
         student.status === 'aguardando' ? "badge-warning" :
           "bg-secondary text-muted-foreground";
 
+  const classificationColor =
+    student.classification === 'gold' ? "bg-status-warning text-white" :
+      student.classification === 'silver' ? "bg-slate-400 text-white" :
+        "bg-amber-700 text-white";
+
   const formatDate = (dateStr: string) => {
     if (!dateStr || dateStr === '-') return '-';
     const date = new Date(dateStr);
@@ -108,9 +113,15 @@ export function StudentCard({ student, onClick, onDelete, onEdit, onStatusChange
       </div>
 
       {/* Status badge */}
-      <div className="mb-4">
-        <span className={cn("text-xs font-medium px-2.5 py-1 rounded-full", statusColor)}>
+      <div className="mb-4 flex flex-wrap gap-2">
+        <span className={cn("text-[10px] uppercase font-bold px-2 py-0.5 rounded-full", statusColor)}>
           {statusLabels[student.status]}
+        </span>
+        <span className={cn("text-[10px] uppercase font-bold px-2 py-0.5 rounded-full shadow-sm", classificationColor)}>
+          {student.classification}
+        </span>
+        <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+          {student.serviceType}
         </span>
       </div>
 
