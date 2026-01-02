@@ -3,9 +3,11 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
-import { PrivateRoute } from "@/components/auth/PrivateRoute";
 import { Suspense, lazy } from "react";
 import { Loader2 } from "lucide-react";
+
+// Lazy load PrivateRoute to keep Auth out of the initial bundle
+const PrivateRoute = lazy(() => import("@/components/auth/PrivateRoute").then(m => ({ default: m.PrivateRoute })));
 
 // Lazy load all pages for better performance and bundle isolation
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -29,7 +31,8 @@ const queryClient = new QueryClient();
 // Helper component to manage global authenticated features
 const GlobalAuthFeatures = () => {
   const location = useLocation();
-  const isPublicPath = ["/landing", "/auth"].includes(location.pathname);
+  // Only run auth-dependent features on private routes
+  const isPublicPath = ["/", "/landing", "/auth", "/login"].includes(location.pathname);
 
   if (isPublicPath) return null;
 
@@ -55,11 +58,15 @@ const App = () => (
         <GlobalAuthFeatures />
         <Suspense fallback={<LoadingFallback />}>
           <Routes>
+            {/* Public Routes */}
+            <Route path="/" element={<LandingPage />} />
             <Route path="/landing" element={<LandingPage />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/login" element={<Auth />} />
 
+            {/* Protected App Routes */}
             <Route element={<PrivateRoute />}>
-              <Route path="/" element={<Dashboard />} />
+              <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/alunos" element={<StudentList />} />
               <Route path="/cadastro" element={<StudentRegistration />} />
               <Route path="/cadastro/:id" element={<StudentRegistration />} />
