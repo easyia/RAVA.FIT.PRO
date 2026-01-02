@@ -24,7 +24,7 @@ interface AppSidebarProps {
 }
 
 const menuItems = [
-  { icon: LayoutDashboard, label: "Dashboard", path: "/" },
+  { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
   { icon: Users, label: "Alunos", path: "/alunos" },
   { icon: ClipboardList, label: "Cadastros", path: "/cadastro" },
   { icon: Calendar, label: "Calendário", path: "/calendario" },

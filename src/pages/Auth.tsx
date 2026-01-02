@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,14 @@ const Auth = () => {
     const [fullName, setFullName] = useState("");
     const navigate = useNavigate();
 
+    useEffect(() => {
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            if (session) {
+                navigate("/dashboard");
+            }
+        });
+    }, [navigate]);
+
     const handleAuth = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
@@ -29,7 +37,7 @@ const Auth = () => {
                 if (error) throw error;
                 toast.success("Bem-vindo de volta!");
                 // Verificamos o perfil no Dashboard ou em um loader especializado
-                navigate("/");
+                navigate("/dashboard");
             } else {
                 const { error } = await supabase.auth.signUp({
                     email,
