@@ -16,6 +16,7 @@ import AITrainingAssistant from "./pages/AITrainingAssistant";
 import AINutritionAssistant from "./pages/AINutritionAssistant";
 import Onboarding from "./pages/Onboarding";
 import Auth from "./pages/Auth";
+import LandingPage from "./pages/LandingPage";
 import NotFound from "./pages/NotFound";
 import { UpdatesOnboarding } from "@/components/dashboard/UpdatesOnboarding";
 
@@ -29,6 +30,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
+          <Route path="/landing" element={<LandingPage />} />
           <Route path="/auth" element={<Auth />} />
 
           <Route element={<PrivateRoute />}>
