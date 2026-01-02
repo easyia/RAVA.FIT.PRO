@@ -30,10 +30,10 @@ const steps = [
         benefit: "Justifique seus diferentes níveis de serviço com clareza visual."
     },
     {
-        title: "Relatórios de Performance",
-        description: "Visualize a dieta e o volume de treino dos seus alunos de forma 100% automática.",
+        title: "Relatórios Visuais",
+        description: "Visualize a distribuição de macros e volume de treino diretamente na aba de Protocolos de cada aluno.",
         icon: <BarChart3 className="w-12 h-12 text-status-success" />,
-        location: "Menu Lateral → Relatórios",
+        location: "Protocolos → Selecionar Aluno → Aba Treinos/Dietas",
         benefit: "Dados reais extraídos diretamente das suas prescrições."
     },
     {

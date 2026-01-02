@@ -7,312 +7,165 @@ import { Button } from "@/components/ui/button";
 import { Download, TrendingUp, Users, ClipboardList, Dumbbell, Utensils } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { getDashboardStats } from "@/services/studentService";
+import { Badge } from "@/components/ui/badge";
 import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-    BarChart, Bar, Cell, PieChart, Pie, Legend,
-    RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar
+    BarChart, Bar
 } from 'recharts';
-import { getStudents, getMealPlans, getTrainingPrograms } from "@/services/studentService";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Star } from "lucide-react";
 
 const Reports = () => {
-    const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
-    const { data: stats, isLoading: isLoadingStats } = useQuery({
+    const { data: stats } = useQuery({
         queryKey: ["dashboardStats"],
         queryFn: getDashboardStats,
     });
 
-    const { data: students } = useQuery({
-        queryKey: ["students"],
-        queryFn: getStudents,
-    });
-
-    const { data: mealPlans, isLoading: isLoadingMeals } = useQuery({
-        queryKey: ["mealPlans", selectedStudentId],
-        queryFn: () => getMealPlans(selectedStudentId!),
-        enabled: !!selectedStudentId,
-    });
-
-    const { data: trainingPrograms, isLoading: isLoadingTraining } = useQuery({
-        queryKey: ["trainingPrograms", selectedStudentId],
-        queryFn: () => getTrainingPrograms(selectedStudentId!),
-        enabled: !!selectedStudentId,
-    });
-
-    const latestMealPlan = mealPlans?.[0];
-    const latestProgram = trainingPrograms?.[0];
-
-    // Mock data for charts
-    const growthData = [
-        { name: 'Jan', students: 4 },
-        { name: 'Fev', students: 7 },
-        { name: 'Mar', students: 12 },
-        { name: 'Abr', students: 18 },
-        { name: 'Mai', students: 25 },
-        { name: 'Jun', students: stats?.totalStudents || 0 },
+    // Mock data for trends
+    const retentionTrend = [
+        { name: 'Mês 1', value: 85 },
+        { name: 'Mês 2', value: 88 },
+        { name: 'Mês 3', value: 92 },
+        { name: 'Mês 4', value: 94 },
     ];
 
-    const protocolData = [
-        { name: 'Treinos', value: 45, color: '#F59E0B' },
-        { name: 'Dietas', value: 32, color: '#10B981' },
-    ];
-
-    const activeInactiveData = [
-        { name: 'Ativos', value: stats?.activeStudents || 0, color: '#F59E0B' },
-        { name: 'Inativos', value: (stats?.totalStudents || 0) - (stats?.activeStudents || 0), color: '#374151' },
+    const trainingActivity = [
+        { name: 'Seg', value: 40 },
+        { name: 'Ter', value: 55 },
+        { name: 'Qua', value: 48 },
+        { name: 'Qui', value: 70 },
+        { name: 'Sex', value: 62 },
+        { name: 'Sáb', value: 35 },
+        { name: 'Dom', value: 20 },
     ];
 
     return (
-        <div className="min-h-screen bg-background">
+        <div className="min-h-screen bg-background text-foreground">
             <AppSidebar collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} />
 
             <div className={cn("transition-all duration-300 min-h-screen pb-10", sidebarCollapsed ? "ml-16" : "ml-60")}>
-                <main className="p-8">
+                <main className="p-8 max-w-7xl mx-auto">
                     <DashboardHeader
-                        title="Relatórios & Performance"
-                        actions={
-                            <div className="flex items-center gap-4">
-                                <Select onValueChange={setSelectedStudentId} value={selectedStudentId || undefined}>
-                                    <SelectTrigger className="w-[250px] bg-card border-border">
-                                        <SelectValue placeholder="Selecionar aluno para relatório..." />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {students?.map(student => (
-                                            <SelectItem key={student.id} value={student.id}>
-                                                {student.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                <Button variant="outline" className="border-border">
-                                    <Download className="w-4 h-4 mr-2" /> Exportar PDF
-                                </Button>
-                            </div>
-                        }
+                        title="Dashboard do Treinador"
                     />
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                        <Card className="bg-card/50 border-border shadow-md">
-                            <CardContent className="pt-6">
-                                <div className="flex items-center gap-3 mb-2">
-                                    <div className="p-2 bg-primary/10 rounded-lg"><Users className="w-4 h-4 text-primary" /></div>
-                                    <span className="text-sm font-medium text-muted-foreground">Retenção de Alunos</span>
+                        <Card className="border-border bg-card/40 backdrop-blur-xl border-l-4 border-l-primary shadow-lg hover:shadow-primary/5 transition-all">
+                            <CardHeader className="flex flex-row items-center justify-between pb-2">
+                                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                                    <Users className="w-4 h-4 text-primary" /> Retenção de Alunos
+                                </CardTitle>
+                                <Badge variant="outline" className="text-[10px] border-status-success text-status-success bg-status-success/5 font-bold">+2.1%</Badge>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-3xl font-bold mb-1">94%</div>
+                                <p className="text-[10px] text-muted-foreground">Comparado ao trimestre anterior</p>
+                                <div className="h-[50px] mt-4">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <AreaChart data={retentionTrend}>
+                                            <Area type="monotone" dataKey="value" stroke="#9b87f5" fill="#9b87f5" fillOpacity={0.1} strokeWidth={2} />
+                                        </AreaChart>
+                                    </ResponsiveContainer>
                                 </div>
-                                <h3 className="text-2xl font-bold">94%</h3>
-                                <p className="text-xs text-status-success flex items-center gap-1 mt-1">
-                                    <TrendingUp className="w-3 h-3" /> +2.1% este mês
-                                </p>
                             </CardContent>
                         </Card>
-                        <Card className="bg-card/50 border-border shadow-md">
-                            <CardContent className="pt-6">
-                                <div className="flex items-center gap-3 mb-2">
-                                    <div className="p-2 bg-status-success/10 rounded-lg"><ClipboardList className="w-4 h-4 text-status-success" /></div>
-                                    <span className="text-sm font-medium text-muted-foreground">Check-ins Realizados</span>
+
+                        <Card className="border-border bg-card/40 backdrop-blur-xl border-l-4 border-l-status-success shadow-lg hover:shadow-status-success/5 transition-all">
+                            <CardHeader className="flex flex-row items-center justify-between pb-2">
+                                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                                    <ClipboardList className="w-4 h-4 text-status-success" /> Check-ins Realizados
+                                </CardTitle>
+                                <Badge variant="outline" className="text-[10px] border-status-success text-status-success bg-status-success/5 font-bold">+12%</Badge>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-3xl font-bold mb-1">158</div>
+                                <p className="text-[10px] text-muted-foreground">Treinos validados este mês</p>
+                                <div className="h-[50px] mt-4">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <BarChart data={trainingActivity}>
+                                            <Bar dataKey="value" fill="#10b981" radius={[2, 2, 0, 0]} />
+                                        </BarChart>
+                                    </ResponsiveContainer>
                                 </div>
-                                <h3 className="text-2xl font-bold">158</h3>
-                                <p className="text-xs text-status-success flex items-center gap-1 mt-1">
-                                    <TrendingUp className="w-3 h-3" /> +12% este mês
-                                </p>
                             </CardContent>
                         </Card>
-                        <Card className="bg-card/50 border-border shadow-md">
-                            <CardContent className="pt-6">
-                                <div className="flex items-center gap-3 mb-2">
-                                    <div className="p-2 bg-status-info/10 rounded-lg"><Dumbbell className="w-4 h-4 text-status-info" /></div>
-                                    <span className="text-sm font-medium text-muted-foreground">Satisfação Média</span>
+
+                        <Card className="border-border bg-card/40 backdrop-blur-xl border-l-4 border-l-status-warning shadow-lg hover:shadow-status-warning/5 transition-all">
+                            <CardHeader className="flex flex-row items-center justify-between pb-2">
+                                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                                    <Star className="w-4 h-4 text-status-warning" /> Satisfação Média
+                                </CardTitle>
+                                <Badge variant="outline" className="text-[10px] border-border text-muted-foreground font-bold">Estável</Badge>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-3xl font-bold mb-1">4.9/5.0</div>
+                                <p className="text-[10px] text-muted-foreground">Média de 42 avaliações pós-treino</p>
+                                <div className="flex gap-1 mt-6">
+                                    {Array.from({ length: 5 }).map((_, i) => (
+                                        <Star key={i} className={cn("w-4 h-4", i < 4 ? "fill-status-warning text-status-warning border-none" : "text-muted-foreground")} />
+                                    ))}
                                 </div>
-                                <h3 className="text-2xl font-bold">4.9/5.0</h3>
-                                <p className="text-xs text-status-success flex items-center gap-1 mt-1">
-                                    <TrendingUp className="w-3 h-3" /> Estável
-                                </p>
                             </CardContent>
                         </Card>
                     </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-                        {/* Diet / Macro Report */}
-                        <Card className="border-border bg-card shadow-xl rounded-2xl">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <Card className="border-border bg-card/60 backdrop-blur-xl shadow-xl rounded-2xl">
                             <CardHeader>
                                 <CardTitle className="text-lg flex items-center gap-2">
-                                    <Utensils className="w-5 h-5 text-accent" /> Relatório de Dieta
+                                    <TrendingUp className="w-5 h-5 text-primary" /> Atividade de Treino
                                 </CardTitle>
-                                <CardDescription>Consumo prescrito de macronutrientes do plano atual</CardDescription>
+                                <CardDescription>Frequência semanal de validação de protocolos</CardDescription>
                             </CardHeader>
-                            <CardContent className="h-[300px] w-full">
-                                {selectedStudentId ? (
-                                    latestMealPlan ? (
-                                        <div className="h-full flex flex-col md:flex-row items-center gap-6">
-                                            <div className="w-full md:w-1/2 h-full">
-                                                <ResponsiveContainer width="100%" height="100%">
-                                                    <PieChart>
-                                                        <Pie
-                                                            data={[
-                                                                { name: 'Proteína', value: Number(latestMealPlan.total_proteins) || 0, color: '#F59E0B' },
-                                                                { name: 'Carbo', value: Number(latestMealPlan.total_carbs) || 0, color: '#10B981' },
-                                                                { name: 'Gordura', value: Number(latestMealPlan.total_fats) || 0, color: '#3B82F6' },
-                                                            ]}
-                                                            innerRadius={60}
-                                                            outerRadius={80}
-                                                            paddingAngle={5}
-                                                            dataKey="value"
-                                                        >
-                                                            <Cell fill="#F59E0B" />
-                                                            <Cell fill="#10B981" />
-                                                            <Cell fill="#3B82F6" />
-                                                        </Pie>
-                                                        <Tooltip
-                                                            contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }}
-                                                        />
-                                                    </PieChart>
-                                                </ResponsiveContainer>
-                                            </div>
-                                            <div className="w-full md:w-1/2 space-y-4">
-                                                <div className="p-3 bg-muted/20 rounded-lg border border-border">
-                                                    <p className="text-sm text-muted-foreground uppercase text-xs font-bold tracking-wider">Calorias Totais</p>
-                                                    <h4 className="text-2xl font-bold text-primary">{latestMealPlan.total_calories} kcal</h4>
-                                                </div>
-                                                <div className="grid grid-cols-3 gap-2">
-                                                    <div className="text-center p-2 bg-sidebar/50 rounded border border-border">
-                                                        <p className="text-[10px] text-muted-foreground uppercase">Prot</p>
-                                                        <p className="font-bold text-sm">{latestMealPlan.total_proteins}g</p>
-                                                    </div>
-                                                    <div className="text-center p-2 bg-sidebar/50 rounded border border-border">
-                                                        <p className="text-[10px] text-muted-foreground uppercase">Carb</p>
-                                                        <p className="font-bold text-sm">{latestMealPlan.total_carbs}g</p>
-                                                    </div>
-                                                    <div className="text-center p-2 bg-sidebar/50 rounded border border-border">
-                                                        <p className="text-[10px] text-muted-foreground uppercase">Lip</p>
-                                                        <p className="font-bold text-sm">{latestMealPlan.total_fats}g</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div className="h-full flex flex-col items-center justify-center text-muted-foreground p-6 text-center">
-                                            <Utensils className="w-12 h-12 mb-4 opacity-20" />
-                                            <p className="font-semibold text-foreground">Sem Plano Alimentar</p>
-                                            <p className="text-sm max-w-[250px]">Este relatório é gerado automaticamente a partir da última dieta prescrita. Como não há prescrição ativa para este aluno, o relatório não pode ser processado.</p>
-                                        </div>
-                                    )
-                                ) : (
-                                    <div className="h-full flex items-center justify-center text-muted-foreground italic">Selecione um aluno para ver o relatório nutricional.</div>
-                                )}
-                            </CardContent>
-                        </Card>
-
-                        {/* Training Volume Report */}
-                        <Card className="border-border bg-card shadow-xl rounded-2xl">
-                            <CardHeader>
-                                <CardTitle className="text-lg flex items-center gap-2">
-                                    <Dumbbell className="w-5 h-5 text-primary" /> Relatório de Treino
-                                </CardTitle>
-                                <CardDescription>Volume semanal total por agrupamento muscular</CardDescription>
-                            </CardHeader>
-                            <CardContent className="h-[300px] w-full">
-                                {selectedStudentId ? (
-                                    latestProgram ? (
-                                        <div className="h-full">
-                                            <ResponsiveContainer width="100%" height="100%">
-                                                <RadarChart cx="50%" cy="50%" outerRadius="80%" data={
-                                                    (() => {
-                                                        const volumes: Record<string, number> = {};
-                                                        latestProgram.training_sessions?.forEach((session: any) => {
-                                                            session.training_exercises?.forEach((ex: any) => {
-                                                                const muscle = ex.main_muscle_group || 'Outros';
-                                                                const volume = (ex.sets || 0) * (ex.reps_max || 0);
-                                                                volumes[muscle] = (volumes[muscle] || 0) + volume;
-                                                            });
-                                                        });
-                                                        return Object.entries(volumes).map(([name, value]) => ({ name, value }));
-                                                    })()
-                                                }>
-                                                    <PolarGrid stroke="#374151" />
-                                                    <PolarAngleAxis dataKey="name" tick={{ fill: '#9CA3AF', fontSize: 10 }} />
-                                                    <PolarRadiusAxis angle={30} domain={[0, 'auto']} tick={false} axisLine={false} />
-                                                    <Radar
-                                                        name="Volume"
-                                                        dataKey="value"
-                                                        stroke="#F59E0B"
-                                                        fill="#F59E0B"
-                                                        fillOpacity={0.5}
-                                                    />
-                                                    <Tooltip
-                                                        contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }}
-                                                    />
-                                                </RadarChart>
-                                            </ResponsiveContainer>
-                                        </div>
-                                    ) : (
-                                        <div className="h-full flex flex-col items-center justify-center text-muted-foreground p-6 text-center">
-                                            <Dumbbell className="w-12 h-12 mb-4 opacity-20" />
-                                            <p className="font-semibold text-foreground">Sem Protocolo de Treino</p>
-                                            <p className="text-sm max-w-[250px]">O volume semanal é calculado com base nas séries e repetições prescritas. Sem um protocolo ativo, não há dados para gerar este gráfico.</p>
-                                        </div>
-                                    )
-                                ) : (
-                                    <div className="h-full flex items-center justify-center text-muted-foreground italic">Selecione um aluno para ver o volume de treinamento.</div>
-                                )}
-                            </CardContent>
-                        </Card>
-                    </div>
-
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        <Card className="border-border bg-card shadow-xl rounded-2xl lg:col-span-1">
-                            <CardHeader>
-                                <CardTitle className="text-lg">Status dos Alunos</CardTitle>
-                                <CardDescription>Proporção de alunos ativos vs inativos</CardDescription>
-                            </CardHeader>
-                            <CardContent className="h-[250px]">
+                            <CardContent className="h-[300px] pt-4">
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <PieChart>
-                                        <Pie
-                                            data={activeInactiveData}
-                                            innerRadius={60}
-                                            outerRadius={80}
-                                            paddingAngle={5}
-                                            dataKey="value"
-                                        >
-                                            {activeInactiveData.map((entry, index) => (
-                                                <Cell key={`cell-${index}`} fill={entry.color} />
-                                            ))}
-                                        </Pie>
+                                    <AreaChart data={trainingActivity}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" vertical={false} />
+                                        <XAxis dataKey="name" stroke="#6b7280" fontSize={12} axisLine={false} tickLine={false} />
+                                        <YAxis stroke="#6b7280" fontSize={12} axisLine={false} tickLine={false} />
                                         <Tooltip
-                                            contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }}
+                                            contentStyle={{ backgroundColor: '#111827', border: '1px solid #374151', borderRadius: '12px' }}
                                         />
-                                        <Legend verticalAlign="bottom" height={36} />
-                                    </PieChart>
+                                        <Area type="monotone" dataKey="value" stroke="#9b87f5" fill="#9b87f5" fillOpacity={0.1} strokeWidth={3} />
+                                    </AreaChart>
                                 </ResponsiveContainer>
                             </CardContent>
                         </Card>
 
-                        <Card className="border-border bg-card shadow-xl rounded-2xl lg:col-span-2">
+                        <Card className="border-border bg-card/60 backdrop-blur-xl shadow-xl rounded-2xl bg-gradient-to-br from-primary/5 via-transparent to-transparent border-t-primary/20">
                             <CardHeader>
-                                <CardTitle className="text-lg">Metas Sugeridas</CardTitle>
-                                <CardDescription>Objetivos recomendados com base no seu crescimento</CardDescription>
+                                <CardTitle className="text-lg">Insights e Metas Sugeridas</CardTitle>
+                                <CardDescription>Dicas automáticas para melhorar sua rentabilidade</CardDescription>
                             </CardHeader>
-                            <CardContent className="space-y-4">
-                                <div className="p-4 rounded-xl border border-border bg-sidebar/50 flex items-center justify-between">
+                            <CardContent className="space-y-4 pt-4">
+                                <div className="p-4 rounded-xl border border-primary/10 bg-primary/5 flex items-center justify-between group hover:bg-primary/10 transition-colors">
                                     <div className="flex items-center gap-4">
-                                        <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center"><Users className="w-5 h-5 text-primary" /></div>
+                                        <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center transition-transform group-hover:scale-110"><Users className="w-5 h-5 text-primary" /></div>
                                         <div>
-                                            <h4 className="font-semibold">Bater 30 alunos ativos</h4>
-                                            <p className="text-xs text-muted-foreground">Faltam apenas {30 - (stats?.activeStudents || 0)} alunos para sua próxima meta.</p>
+                                            <h4 className="font-semibold text-sm">Meta: 30 Alunos Ativos</h4>
+                                            <p className="text-xs text-muted-foreground">Faltam apenas {30 - (stats?.activeStudents || 0)} alunos para o próximo nível.</p>
                                         </div>
                                     </div>
-                                    <div className="text-sm font-bold text-primary">83%</div>
+                                    <div className="text-sm font-black text-primary">83%</div>
                                 </div>
-                                <div className="p-4 rounded-xl border border-border bg-sidebar/50 flex items-center justify-between">
+
+                                <div className="p-4 rounded-xl border border-status-success/10 bg-status-success/5 flex items-center justify-between group hover:bg-status-success/10 transition-colors">
                                     <div className="flex items-center gap-4">
-                                        <div className="w-10 h-10 rounded-lg bg-status-success/20 flex items-center justify-center"><Utensils className="w-5 h-5 text-status-success" /></div>
+                                        <div className="w-10 h-10 rounded-lg bg-status-success/20 flex items-center justify-center transition-transform group-hover:scale-110"><ClipboardList className="w-5 h-5 text-status-success" /></div>
                                         <div>
-                                            <h4 className="font-semibold">Planos de Nutrição</h4>
-                                            <p className="text-xs text-muted-foreground">Aumentar a criação de dietas para alunos cadastrados.</p>
+                                            <h4 className="font-semibold text-sm">Fidelização: +15%</h4>
+                                            <p className="text-xs text-muted-foreground">Parabéns! Sua taxa de renovação subiu este mês.</p>
                                         </div>
                                     </div>
-                                    <div className="text-sm font-bold text-status-success">45%</div>
+                                    <TrendingUp className="w-4 h-4 text-status-success" />
+                                </div>
+
+                                <div className="mt-6 pt-6 border-t border-border">
+                                    <p className="text-xs text-muted-foreground text-center italic">
+                                        "O foco na experiência do aluno resultou em uma nota de satisfação 4.9. Continue postando feedbacks para atrair mais alunos online."
+                                    </p>
                                 </div>
                             </CardContent>
                         </Card>
