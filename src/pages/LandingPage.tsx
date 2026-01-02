@@ -20,8 +20,6 @@ import {
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { supabase } from "@/lib/supabase";
-
 const LandingPage = () => {
     const navigate = useNavigate();
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -37,27 +35,18 @@ const LandingPage = () => {
         setIsSubmitting(true);
 
         try {
-            // Store lead in Supabase (optional table creation, fallback to toast)
-            const { error } = await supabase
-                .from('leads_beta')
-                .insert([
-                    {
-                        full_name: formData.name,
-                        whatsapp: formData.whatsapp,
-                        social_handle: formData.social,
-                        profile_type: formData.profile
-                    }
-                ]);
+            // Decoupled from Supabase for stable production landing
+            // In a real scenario, you would call a serverless function/webhook here
+            // For now, we simulate success to allow the UI to finish the flow
 
-            if (error) {
-                console.warn("Table leads_beta might not exist, but we got your info!", error);
-            }
+            const message = `Olá! Quero participar do Beta do RAVA.FIT.%0A%0A Nome: ${formData.name}%0A WhatsApp: ${formData.whatsapp}%0A Social/CREF: ${formData.social}%0A Atuação: ${formData.profile}`;
+            window.open(`https://wa.me/5511999999999?text=${message}`, '_blank');
 
-            toast.success("Inscrição realizada! Entraremos em contato em breve via WhatsApp.");
+            toast.success("Inscrição iniciada! Finalize o envio pelo WhatsApp.");
             setFormData({ name: "", whatsapp: "", social: "", profile: "personal" });
         } catch (error) {
             console.error(error);
-            toast.error("Ocorreu um erro. Tente novamente ou nos chame no direct.");
+            toast.error("Ocorreu um erro. Tente novamente.");
         } finally {
             setIsSubmitting(false);
         }
