@@ -1,4 +1,4 @@
-export type ActivityType = 'message' | 'workout' | 'assessment' | 'payment';
+export type ActivityType = 'message' | 'workout' | 'assessment' | 'payment' | 'anamnesis';
 
 export interface Activity {
   id: string;

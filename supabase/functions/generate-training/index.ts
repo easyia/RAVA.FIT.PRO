@@ -47,7 +47,35 @@ serve(async (req) => {
 
     if (studentError) throw new Error("Student not found");
 
-    // 2. Fetch Context Files
+    // 2. Fetch Latest Meal Plan (Synchronization)
+    const { data: latestDiet } = await supabase
+      .from("meal_plans")
+      .select("*, meals(*, meal_foods(*))")
+      .eq("student_id", body.student_id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    // 2.5 Fetch Latest Postural Analysis (AI Vision Feedback Loop)
+    const { data: posturalData } = await supabase
+      .from("physical_assessments")
+      .select("postural_deviations, ai_analysis_summary")
+      .eq("student_id", body.student_id)
+      .not("postural_deviations", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    // 2.6 Fetch Last Weekly Feedback (Check-in Loop)
+    const { data: lastFeedback } = await supabase
+      .from("weekly_feedbacks")
+      .select("*")
+      .eq("student_id", body.student_id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    // 3. Fetch Context Files
     let contextContent = "";
     if (body.context_file_ids && body.context_file_ids.length > 0) {
       const { data: files } = await supabase
@@ -62,23 +90,32 @@ serve(async (req) => {
       }
     }
 
-    // 3. Build Prompt
-    const systemPrompt = `Você é um agente especialista em prescrição de treinos de musculação e condicionamento físico de ALTO NÍVEL.
-PAPEL:
-- Assistir educadores físicos profissionais na criação de protocolos de treino personalizados e seguros.
-- Baseado em evidências científicas e boas práticas da área (Periodização, Volume, Intensidade).
-- Considerar sempre limitações, lesões e objetivos individuais.
-- Fornecer justificativas claras para cada decisão, especialmente para exercícios de REABILITAÇÃO.
+    // 4. Build Prompt PhD Sênior
+    const systemPrompt = `Você é um PhD Sênior com mais de 30 anos de experiência internacional em Biomecânica de Alta Performance e Fisiologia do Exercício. Seu objetivo é gerar protocolos de elite que maximizem a tensão mecânica preservando a integridade articular.
 
-DIRETRIZES DE PRESCRIÇÃO:
-1. SEMPRE considere as limitações físicas e lesões do aluno.
-2. Se o aluno tiver lesões, inclua EXERCÍCIOS ESPECÍFICOS DE REABILITAÇÃO (ex: fortalecimento de manguito, exercícios de mobilidade específicos).
-3. Adapte exercícios quando necessário (nunca prescreva algo perigoso).
-4. Volume e intensidade devem ser apropriados ao nível do aluno.
-5. Se o aluno usa ERGOGÊNICOS, ajuste o volume/intensidade considerando a maior capacidade de recuperação.
-6. Forneça justificativas técnicas para cada exercício escolhido.
-7. Explique por que certos exercícios foram OMITIDOS ou ADAPTADOS devido a lesões.
+────────────────────────
+[REGRAS DE SINCRONIA E INTELIGÊNCIA]
 
+1. SINCRONIA NUTRICIONAL (CROSS-DATA):
+- Analise os dados da dieta ativa do aluno (se fornecida).
+- REGRA DE DÉFICIT: Se o aluno estiver em déficit calórico severo (ex: objetivo de Emagrecimento/Cutting), você DEVE reduzir o volume total de séries e priorizar a manutenção da INTENSIDADE (carga) para preservar massa magra.
+
+2. GESTÃO DE DOR E LESÃO:
+- Verifique a 'pain_scale'. Se > 3, identifique a articulação/exercício afetado.
+- AÇÃO: Gere automaticamente uma JUSTIFICATIVA de "Zona de Exclusão de Torque" para essa articulação, alterando o exercício ou reduzindo o ROM.
+
+3. ESPECIFICIDADE DE ESPORTE:
+- Se 'main_sport' for de alto impacto (Futebol, Corrida), reduza o volume de membros inferiores para evitar sobrecarga excessiva.
+
+4. CAPACIDADE RECUPERATIVA (HORMONAL):
+- Ajuste Volume/Intensidade/Proteína se 'hormones' (TRT, Anticoncepcional) estiverem presentes. Hormonizados suportam volume 20-30% maior.
+
+5. CHECK-IN SEMANAL (DELOAD AUTOMÁTICO):
+- Verifique os dados de Feedback Semanal.
+- REGRA DELOAD: Se 'fatigue_level' > 8 E 'sleep_quality' < 5, você DEVE gerar uma "Semana de Deload" (Volume/Intensidade reduzidos em 40%). Indique isso no título.
+- Se 'has_pain' = true e 'pain_intensity' > 5, EVITE exercícios na região indicada.
+
+────────────────────────
 FORMATO DE RESPOSTA (JSON):
 {
   "programa_treino": {
@@ -88,10 +125,10 @@ FORMATO DE RESPOSTA (JSON):
     "duracao_semanas": number,
     "frequencia_semanal": number,
     "tipo_divisao": "string",
-    "observacoes_gerais": "string"
+    "observacoes_gerais": "string (Inclua Racional PhD e Sincronia Dieta-Treino)"
   },
   "adaptacoes_lesoes": [
-    { "lesao": "string", "exercicios_evitados": ["string"], "substituicoes": ["string"], "cuidados": "string" }
+    { "lesao": "string", "exercicios_evitados": ["string"], "substituicoes": ["string"], "cuidados": "string", "racional_dor": "string (Se pain_scale > 3)" }
   ],
   "treinos": [
     {
@@ -99,42 +136,44 @@ FORMATO DE RESPOSTA (JSON):
       "dia_semana_sugerido": "string",
       "foco": "string",
       "exercicios": [
-        { "nome": "string", "grupo_muscular": "string", "series": number, "repeticoes": "string", "descanso_segundos": number, "tecnica": "string", "observacoes": "string", "adaptacao_lesao": boolean }
+        { "nome": "string", "grupo_muscular": "string", "series": number, "repeticoes": "string", "descanso_segundos": number, "tecnica": "string", "observacoes": "string (Setup biomecânico)", "adaptacao_lesao": boolean }
       ]
     }
   ],
-  "progressao": { "tipo": "string", "descricao": "string", "marcos": [{ "semana": number, "mudanca": "string" }] },
-  "justificativa": { "escolha_exercicios": "string", "volume_intensidade": "string", "periodizacao": "string", "adaptacoes": "string", "reabilitacao": "string" },
-  "proximos_passos": "string"
+  "justificativa": { "escolha_exercicios": "string", "volume_intensidade": "string", "sincronia_nutricional": "string" }
 } (Responda APENAS o JSON)`;
 
     const userPrompt = `
 # SOLICITAÇÃO DO TREINADOR
 "${body.prompt_users}"
 
-# DADOS DO ALUNO
+# DADOS DO ALUNO (ANAMNESE INTEGRADA)
 - Nome: ${student.full_name}
-- Idade: ${student.birth_date ? (new Date().getFullYear() - new Date(student.birth_date).getFullYear()) : 'N/A'}
-- Sexo: ${student.sex}
-- Nível: ${student.anamnesis?.[0]?.training_level || "iniciante"}
-- Uso de Ergogênicos: ${student.anamnesis?.[0]?.uses_ergogenics ? "Sim" : "Não"}
+- Sexo: ${student.sex} | Idade: ${student.birth_date ? (new Date().getFullYear() - new Date(student.birth_date).getFullYear()) : 'N/A'}
+- Esporte Principal: ${student.anamnesis?.[0]?.main_sport || "Nenhum"} (${student.anamnesis?.[0]?.sport_level})
+- Escala de Dor Diária: ${student.anamnesis?.[0]?.daily_pain_scale || 0}/10
+- Lesões/Dores: ${student.anamnesis?.[0]?.injuries || "Nenhuma"}
+- Uso de Hormônios: ${student.anamnesis?.[0]?.use_hormones || "Não relatado"}
 - Objetivo Principal: ${student.anamnesis?.[0]?.main_goal}
-- Frequência: ${student.anamnesis?.[0]?.initial_training_frequency}x por semana
 
-## QUADRO CLÍNICO / ANAMNESE
-### Lesões/Limitações:
-${student.anamnesis?.[0]?.injuries || "Nenhuma"}
-${student.anamnesis?.[0]?.medical_conditions || "Nenhuma"}
-### Contraindicações:
-${student.anamnesis?.[0]?.contraindications || "Nenhuma"}
-### Avaliação de Força/Mobilidade:
-${student.anamnesis?.[0]?.strength_assessment || "N/A"} / ${student.anamnesis?.[0]?.mobility_assessment || "N/A"}
+# CONTEXTO NUTRICIONAL (Sincronia Ativa)
+${latestDiet ? JSON.stringify(latestDiet) : "Nenhuma dieta ativa registrada ainda."}
+
+# ANÁLISE POSTURAL (IA Vision PhD)
+${posturalData ? `
+Desvios Detectados: ${JSON.stringify(posturalData.postural_deviations)}
+AÇÃO OBRIGATÓRIA: Adapte exercícios que possam agravar estes desvios. Priorize corretivos e mobilidade.
+` : "Nenhuma análise postural registrada ainda."}
+
+# FEEDBACK SEMANAL (Último Check-in)
+${lastFeedback ? `
+- Cansaço: ${lastFeedback.fatigue_level}/10 | Sono: ${lastFeedback.sleep_quality}/10
+- Dor: ${lastFeedback.has_pain ? `Sim (${lastFeedback.pain_location}, nível ${lastFeedback.pain_intensity}/10)` : "Não"}
+- Observação Aluno: "${lastFeedback.load_perception}"
+` : "Nenhum check-in recente."}
 
 # CONTEXTO ADICIONAL (Arquivos)
 ${contextContent || "Nenhum arquivo adicional anexado."}
-
-# PARÂMETROS TÉCNICOS
-${JSON.stringify(body.parameters || {}, null, 2)}
     `;
 
     // 4. Create Conversation Record

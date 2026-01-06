@@ -5,7 +5,7 @@ import { StudentCard } from "@/components/dashboard/StudentCard";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Plus, Users, SearchX } from "lucide-react";
+import { Plus, Users, SearchX, Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { getStudents, deleteStudent, updateStudentStatus } from "@/services/studentService";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -13,22 +13,43 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { StudentDetailsModal } from "@/components/dashboard/StudentDetailsModal";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/useAuth";
+import { getPlans, createSubscription, Plan } from "@/services/financeService";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription
+} from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 
-type FilterStatus = 'todos' | 'ativo' | 'inativo' | 'aguardando';
+type FilterStatus = 'todos' | 'ativo' | 'inativo' | 'excluido' | 'pendente';
 
 const filterTabs: { value: FilterStatus; label: string }[] = [
   { value: 'todos', label: 'Todos' },
   { value: 'ativo', label: 'Ativos' },
+  { value: 'pendente', label: 'Pendentes' },
   { value: 'inativo', label: 'Inativos' },
-  { value: 'aguardando', label: 'Aguardando' },
+  { value: 'excluido', label: 'Excluídos' },
 ];
 
 const StudentList = () => {
+  const { user } = useAuth();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [activeFilter, setActiveFilter] = useState<FilterStatus>('todos');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Activation Flow States
+  const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
+  const [activationStudentId, setActivationStudentId] = useState<string | null>(null);
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const [selectedPlanId, setSelectedPlanId] = useState<string>('');
+  const [isActivating, setIsActivating] = useState(false);
 
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -44,10 +65,10 @@ const StudentList = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm("Tem certeza que deseja eliminar este usuário? Esta ação não pode ser desfeita.")) {
+    if (window.confirm("Tem certeza que deseja mover este aluno para a lixeira?")) {
       try {
-        await deleteStudent(id);
-        toast.success("Aluno removido com sucesso!");
+        await updateStudentStatus(id, 'deleted');
+        toast.success("Aluno movido para excluídos!");
         queryClient.invalidateQueries({ queryKey: ["students"] });
       } catch (error) {
         toast.error("Erro ao remover aluno.");
@@ -56,13 +77,60 @@ const StudentList = () => {
   };
 
   const handleStatusChange = async (id: string, status: string) => {
+    if (status === 'ativo') {
+      try {
+        const availablePlans = await getPlans(user?.id!);
+        if (availablePlans && availablePlans.length > 0) {
+          setPlans(availablePlans);
+          setActivationStudentId(id);
+          if (availablePlans.length > 0) setSelectedPlanId(availablePlans[0].id);
+          setIsPlanModalOpen(true);
+          return;
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
     try {
-      const dbStatus = status === 'ativo' ? 'active' : status === 'inativo' ? 'inactive' : 'waiting';
+      const statusMap: Record<string, string> = {
+        'ativo': 'active',
+        'inativo': 'inactive',
+        'pendente': 'pending_approval',
+        'excluido': 'deleted'
+      };
+      const dbStatus = statusMap[status] || status;
       await updateStudentStatus(id, dbStatus);
       toast.success("Status atualizado!");
       queryClient.invalidateQueries({ queryKey: ["students"] });
     } catch (error) {
       toast.error("Erro ao atualizar status.");
+    }
+  };
+
+  const handleConfirmActivation = async () => {
+    if (!activationStudentId || !selectedPlanId) return;
+    setIsActivating(true);
+    try {
+      await createSubscription({
+        student_id: activationStudentId,
+        plan_id: selectedPlanId,
+        start_date: new Date().toISOString(),
+        payment_day: new Date().getDate(),
+        auto_renew: true
+      });
+
+      await updateStudentStatus(activationStudentId, 'active');
+
+      toast.success("Aluno ativado e plano vinculado!");
+      setIsPlanModalOpen(false);
+      setActivationStudentId(null);
+      setSelectedPlanId('');
+      queryClient.invalidateQueries({ queryKey: ["students"] });
+    } catch (error) {
+      toast.error("Erro ao ativar aluno.");
+    } finally {
+      setIsActivating(false);
     }
   };
 
@@ -153,14 +221,32 @@ const StudentList = () => {
           ) : (
             <EmptyState
               icon={searchQuery ? SearchX : Users}
-              title={searchQuery ? "Nenhum resultado encontrado" : "Sua lista de alunos está vazia"}
+              title={
+                searchQuery
+                  ? "Nenhum resultado encontrado"
+                  : activeFilter !== 'todos'
+                    ? "Nenhum aluno encontrado"
+                    : "Sua lista de alunos está vazia"
+              }
               description={
                 searchQuery
                   ? `Não encontramos nenhum aluno correspondente a "${searchQuery}". Tente outros termos.`
-                  : "Comece cadastrando seus alunos para gerenciar treinos, evoluções e protocolos."
+                  : activeFilter !== 'todos'
+                    ? `Não há alunos na categoria "${filterTabs.find(t => t.value === activeFilter)?.label}" no momento.`
+                    : "Comece cadastrando seus alunos para gerenciar treinos, evoluções e protocolos."
               }
-              actionText={searchQuery ? "Limpar Busca" : "Cadastrar Novo Aluno"}
-              onAction={() => searchQuery ? setSearchQuery('') : navigate("/cadastro")}
+              actionText={
+                searchQuery
+                  ? "Limpar Busca"
+                  : activeFilter !== 'todos'
+                    ? "Limpar Filtro"
+                    : "Cadastrar Novo Aluno"
+              }
+              onAction={() => {
+                if (searchQuery) setSearchQuery('');
+                else if (activeFilter !== 'todos') setActiveFilter('todos');
+                else navigate("/cadastro");
+              }}
             />
           )}
 
@@ -168,7 +254,43 @@ const StudentList = () => {
             studentId={selectedStudentId}
             isOpen={isModalOpen}
             onClose={() => setIsModalOpen(false)}
+            onStatusChange={handleStatusChange}
           />
+
+          <Dialog open={isPlanModalOpen} onOpenChange={setIsPlanModalOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Ativar Aluno</DialogTitle>
+                <DialogDescription>
+                  Escolha o plano financeiro para ativar este aluno.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="py-4 space-y-4">
+                <div className="space-y-2">
+                  <Label>Plano</Label>
+                  <Select value={selectedPlanId} onValueChange={setSelectedPlanId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um plano..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {plans.map((plan) => (
+                        <SelectItem key={plan.id} value={plan.id}>
+                          {plan.name} - R$ {plan.price.toFixed(2)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsPlanModalOpen(false)}>Pular</Button>
+                <Button onClick={handleConfirmActivation} disabled={isActivating}>
+                  {isActivating && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  Confirmar
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </main>
       </div>
     </div>

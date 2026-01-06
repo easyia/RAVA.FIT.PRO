@@ -52,6 +52,12 @@ export function UpdatesOnboarding() {
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
+        // Não exibir para alunos - modal é exclusivo para Coaches
+        const role = user?.user_metadata?.role;
+        if (role === 'student') {
+            return;
+        }
+
         if (user && !user.user_metadata?.has_seen_update_onboarding_v1) {
             setOpen(true);
         }

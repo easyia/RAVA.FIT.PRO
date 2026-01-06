@@ -1,0 +1,31 @@
+-- Migration: Add professional perimetry and skinfold metrics to physical_assessments
+-- Created: 2026-01-03
+
+ALTER TABLE physical_assessments
+ADD COLUMN IF NOT EXISTS neck numeric,
+ADD COLUMN IF NOT EXISTS shoulder numeric,
+ADD COLUMN IF NOT EXISTS chest numeric,
+ADD COLUMN IF NOT EXISTS waist numeric,
+ADD COLUMN IF NOT EXISTS abdomen numeric,
+ADD COLUMN IF NOT EXISTS hip numeric,
+ADD COLUMN IF NOT EXISTS arm_right_relaxed numeric,
+ADD COLUMN IF NOT EXISTS arm_left_relaxed numeric,
+ADD COLUMN IF NOT EXISTS arm_right_contracted numeric,
+ADD COLUMN IF NOT EXISTS arm_left_contracted numeric,
+ADD COLUMN IF NOT EXISTS thigh_right_proximal numeric,
+ADD COLUMN IF NOT EXISTS thigh_left_proximal numeric,
+ADD COLUMN IF NOT EXISTS thigh_right_medial numeric,
+ADD COLUMN IF NOT EXISTS thigh_left_medial numeric,
+ADD COLUMN IF NOT EXISTS thigh_right_distal numeric,
+ADD COLUMN IF NOT EXISTS thigh_left_distal numeric,
+ADD COLUMN IF NOT EXISTS calf_right numeric,
+ADD COLUMN IF NOT EXISTS calf_left numeric,
+ADD COLUMN IF NOT EXISTS chest_fold numeric,
+ADD COLUMN IF NOT EXISTS midaxillary_fold numeric,
+ADD COLUMN IF NOT EXISTS triceps_fold numeric,
+ADD COLUMN IF NOT EXISTS subscapular_fold numeric,
+ADD COLUMN IF NOT EXISTS abdominal_fold numeric,
+ADD COLUMN IF NOT EXISTS suprailiac_fold numeric,
+ADD COLUMN IF NOT EXISTS thigh_fold numeric,
+ADD COLUMN IF NOT EXISTS mobility_notes text,
+ADD COLUMN IF NOT EXISTS rm_notes text;

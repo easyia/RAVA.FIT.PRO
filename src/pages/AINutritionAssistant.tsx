@@ -39,7 +39,7 @@ import {
     calculateMacros
 } from '@/utils/nutritionCalculations';
 import { supabase } from '@/lib/supabase';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
     Tooltip,
     TooltipContent,
@@ -57,13 +57,32 @@ const AINutritionAssistant = () => {
     const [generatedDiet, setGeneratedDiet] = useState<any>(null);
     const [isEditingMacros, setIsEditingMacros] = useState(false);
     const [customMacros, setCustomMacros] = useState({ p: 0, c: 0, f: 0 });
+    const [studentSearch, setStudentSearch] = useState('');
     const navigate = useNavigate();
+    const location = useLocation();
+
+    // Sync from Training Assistant
+    useEffect(() => {
+        if (location.state?.studentId) {
+            setSelectedStudentId(location.state.studentId);
+        }
+        if (location.state?.workoutSync) {
+            toast.info("Contexto do treino recebido! A IA sincronizará a dieta com o planejamento de treino.", {
+                icon: <Dumbbell className="w-4 h-4 text-primary" />,
+                duration: 5000
+            });
+        }
+    }, [location.state]);
 
     // Data Fetching
     const { data: students = [] } = useQuery({
         queryKey: ['students'],
         queryFn: getStudents,
     });
+
+    const filteredStudents = useMemo(() => {
+        return students.filter(s => s.name.toLowerCase().includes(studentSearch.toLowerCase()));
+    }, [students, studentSearch]);
 
     const { data: studentDetails } = useQuery({
         queryKey: ['studentDetails', selectedStudentId],
@@ -172,16 +191,18 @@ const AINutritionAssistant = () => {
                 total_proteins: customMacros.p,
                 total_carbs: customMacros.c,
                 total_fats: customMacros.f,
-                meals: generatedDiet.refeicoes.map((m: any) => ({
-                    name: m.nome,
-                    time: m.horario,
-                    foods: m.opcoes[0].itens.map((i: any) => ({
-                        name: i.alimento,
-                        quantity: i.quantidade,
-                        unit: i.unidade,
-                        notes: `Alt: ${m.opcoes[1]?.itens[0]?.alimento || '-'} / ${m.opcoes[2]?.itens[0]?.alimento || '-'}`
+                meals: generatedDiet.refeicoes.flatMap((m: any) =>
+                    m.opcoes.map((opt: any, optIdx: number) => ({
+                        name: m.nome,
+                        time: m.horario,
+                        type: `Opção ${optIdx + 1}`,
+                        foods: opt.itens.map((i: any) => ({
+                            name: i.alimento,
+                            quantity: i.quantidade,
+                            unit: i.unidade
+                        }))
                     }))
-                }))
+                )
             };
 
             await saveMealPlan(selectedStudentId, planToSave);
@@ -224,21 +245,35 @@ const AINutritionAssistant = () => {
                                     <CardContent className="space-y-5">
                                         <div className="space-y-2">
                                             <Label>Aluno</Label>
-                                            <Select value={selectedStudentId} onValueChange={setSelectedStudentId}>
-                                                <SelectTrigger className="h-11">
-                                                    <SelectValue placeholder="Selecione um aluno..." />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {students.map(s => (
-                                                        <SelectItem key={s.id} value={s.id}>
-                                                            <div className="flex items-center gap-2">
-                                                                <img src={s.avatar} className="w-5 h-5 rounded-full" />
-                                                                {s.name}
+                                            <div className="relative">
+                                                <Input
+                                                    placeholder="🔍 Pesquisar pelo nome..."
+                                                    value={studentSearch}
+                                                    onChange={(e) => setStudentSearch(e.target.value)}
+                                                    className="mb-2 h-9 text-xs border-dashed"
+                                                />
+                                                <Select value={selectedStudentId} onValueChange={setSelectedStudentId}>
+                                                    <SelectTrigger className="h-11">
+                                                        <SelectValue placeholder={studentSearch ? `Resultados para "${studentSearch}"` : "Selecione um aluno..."} />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {filteredStudents.length > 0 ? (
+                                                            filteredStudents.map(s => (
+                                                                <SelectItem key={s.id} value={s.id}>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <img src={s.avatar} className="w-5 h-5 rounded-full" />
+                                                                        {s.name}
+                                                                    </div>
+                                                                </SelectItem>
+                                                            ))
+                                                        ) : (
+                                                            <div className="p-4 text-center text-xs text-muted-foreground">
+                                                                Nenhum aluno encontrado
                                                             </div>
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
+                                                        )}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
                                         </div>
 
                                         {studentDetails && (
@@ -525,25 +560,38 @@ const AINutritionAssistant = () => {
                                             ))}
                                         </div>
 
-                                        {/* Justification */}
-                                        {generatedDiet.justificativa && (
-                                            <Card className="bg-muted/20 border-dashed">
-                                                <CardContent className="p-6 flex gap-4">
-                                                    <Sparkles className="w-8 h-8 text-primary shrink-0" />
-                                                    <div>
-                                                        <h4 className="font-bold mb-2">Estratégia Nutricional IA</h4>
-                                                        <p className="text-sm text-muted-foreground">{generatedDiet.justificativa}</p>
-                                                        {generatedDiet.suplementacao_sugerida?.length > 0 && (
-                                                            <div className="flex gap-2 mt-3">
-                                                                {generatedDiet.suplementacao_sugerida.map((sup: string, sIdx: number) => (
-                                                                    <Badge key={sIdx} variant="outline">{sup}</Badge>
-                                                                ))}
+                                        {/* Justification & Supplements */}
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                                            {generatedDiet.justificativa_bioenergetica && (
+                                                <Card className="bg-muted/30 border-dashed">
+                                                    <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2">
+                                                        <Sparkles className="w-4 h-4 text-primary" /> Bioenergética PhD
+                                                    </CardTitle></CardHeader>
+                                                    <CardContent>
+                                                        <p className="text-sm text-muted-foreground leading-relaxed">{generatedDiet.justificativa_bioenergetica}</p>
+                                                    </CardContent>
+                                                </Card>
+                                            )}
+
+                                            {generatedDiet.suplementacao_estrategica?.length > 0 && (
+                                                <Card className="border-primary/20 bg-primary/5">
+                                                    <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2 text-primary">
+                                                        <Calculator className="w-4 h-4" /> Suplementação Elite
+                                                    </CardTitle></CardHeader>
+                                                    <CardContent className="space-y-3">
+                                                        {generatedDiet.suplementacao_estrategica.map((sup: any, sIdx: number) => (
+                                                            <div key={sIdx} className="p-2 bg-background/50 rounded-lg border border-primary/10">
+                                                                <div className="flex justify-between items-center mb-1">
+                                                                    <span className="font-bold text-xs">{sup.suplemento}</span>
+                                                                    <Badge variant="outline" className="text-[10px]">{sup.dose} - {sup.horario}</Badge>
+                                                                </div>
+                                                                <p className="text-[10px] text-muted-foreground italic">{sup.justificativa_phd}</p>
                                                             </div>
-                                                        )}
-                                                    </div>
-                                                </CardContent>
-                                            </Card>
-                                        )}
+                                                        ))}
+                                                    </CardContent>
+                                                </Card>
+                                            )}
+                                        </div>
                                     </div>
                                 )}
                             </div>

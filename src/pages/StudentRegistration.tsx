@@ -22,6 +22,8 @@ interface FormData {
   phone: string;
   birth_date: string;
   sex: string;
+  cpf: string;
+  rg: string;
   profession: string;
   marital_status: string;
   emergency_contact: string;
@@ -70,15 +72,11 @@ interface FormData {
   // New fields
   training_level: string;
   uses_ergogenics: string;
+  uses_ergogenics_details: string;
   classification: string;
   service_type: string;
 }
 
-const steps = [
-  { id: 1, name: "Dados Pessoais" },
-  { id: 2, name: "Objetivos" },
-  { id: 3, name: "Anamnese" },
-];
 
 const goals = [
   { value: "hipertrofia", label: "Hipertrofia" },
@@ -103,13 +101,14 @@ const StudentRegistration = () => {
   const { id } = useParams();
   const queryClient = useQueryClient();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<FormData>({
     full_name: "",
     email: "",
     phone: "",
     birth_date: "",
     sex: "",
+    cpf: "",
+    rg: "",
     profession: "",
     marital_status: "",
     emergency_contact: "",
@@ -146,6 +145,7 @@ const StudentRegistration = () => {
     contraindications: "",
     training_level: "",
     uses_ergogenics: "false",
+    uses_ergogenics_details: "",
     classification: "bronze",
     service_type: "online",
   });
@@ -165,6 +165,8 @@ const StudentRegistration = () => {
         phone: studentToEdit.phone || "",
         birth_date: studentToEdit.birth_date || "",
         sex: studentToEdit.sex || "",
+        cpf: studentToEdit.cpf || "",
+        rg: studentToEdit.rg || "",
         profession: studentToEdit.profession || "",
         marital_status: studentToEdit.marital_status || "",
         emergency_contact: studentToEdit.emergency_contact || "",
@@ -202,6 +204,7 @@ const StudentRegistration = () => {
         contraindications: studentToEdit.anamnesis?.[0]?.contraindications || "",
         training_level: studentToEdit.anamnesis?.[0]?.training_level || "",
         uses_ergogenics: studentToEdit.anamnesis?.[0]?.uses_ergogenics?.toString() || "false",
+        uses_ergogenics_details: studentToEdit.anamnesis?.[0]?.uses_ergogenics_details || "",
         avatar_url: studentToEdit.avatar_url || "",
         classification: studentToEdit.classification || "bronze",
         service_type: studentToEdit.service_type || "online",
@@ -211,13 +214,19 @@ const StudentRegistration = () => {
 
   const mutation = useMutation({
     mutationFn: (data: any) => id ? updateStudent(id, data) : createStudent(data),
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast.success(id ? "Cadastro atualizado!" : "Cadastro realizado com sucesso!", {
-        description: id ? "As alterações foram salvas." : "O aluno e sua ficha de anamnese foram processados.",
+        description: id ? "As alterações foram salvas." : "O aluno foi cadastrado. Agora, realize a primeira avaliação física.",
       });
       queryClient.invalidateQueries({ queryKey: ["students"] });
       queryClient.invalidateQueries({ queryKey: ["student", id] });
-      navigate("/alunos");
+
+      if (id) {
+        navigate("/alunos");
+      } else {
+        // Redireciona para a avaliação física inicial
+        navigate(`/analise-comparativa?studentId=${data.id}&new=true`);
+      }
     },
     onError: (error) => {
       console.error("Erro completo ao salvar cadastro:", error);
@@ -255,26 +264,9 @@ const StudentRegistration = () => {
     }
   };
 
-  const handleNext = () => {
-    if (currentStep < 3) {
-      setCurrentStep(currentStep + 1);
-      window.scrollTo(0, 0);
-    } else {
-      if (formData.primary_goal === "") {
-        toast.error("Por favor, selecione um objetivo principal.");
-        return;
-      }
-      mutation.mutate(formData as any);
-    }
-  };
 
   const handleBack = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
-      window.scrollTo(0, 0);
-    } else {
-      navigate(-1);
-    }
+    navigate(-1);
   };
 
   return (
@@ -294,367 +286,361 @@ const StudentRegistration = () => {
             <p className="text-muted-foreground">{id ? "Atualize os dados e a anamnese do seu aluno." : "Cadastre o perfil completo e a ficha de anamnese do seu cliente."}</p>
           </div>
 
-          <div className="bg-sidebar rounded-xl border border-border p-4 mb-8">
-            <div className="flex items-center justify-between">
-              {steps.map((step, index) => (
-                <div key={step.id} className="flex items-center flex-1">
-                  <div className="flex items-center gap-3">
-                    <div className={cn(
-                      "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors",
-                      currentStep > step.id ? "bg-accent text-accent-foreground" : currentStep === step.id ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"
-                    )}>
-                      {currentStep > step.id ? <Check className="w-4 h-4" /> : step.id}
-                    </div>
-                    <span className={cn("text-sm font-medium hidden sm:inline", currentStep >= step.id ? "text-foreground" : "text-muted-foreground")}>
-                      {step.name}
-                    </span>
-                  </div>
-                  {index < steps.length - 1 && (
-                    <div className={cn("flex-1 h-0.5 mx-4", currentStep > step.id ? "bg-accent" : "bg-border")} />
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-
           <div className="card-elevated p-8">
-            {currentStep === 1 && (
-              <div className="space-y-8 animate-fade-in">
-                <section>
-                  <div className="flex items-center gap-2 mb-6 border-b pb-2">
+            <Accordion type="multiple" defaultValue={["identification"]} className="w-full space-y-4">
+              {/* --- IDENTIFICAÇÃO --- */}
+              <AccordionItem value="identification" className="border rounded-xl bg-sidebar/30 px-4">
+                <AccordionTrigger className="hover:no-underline py-6">
+                  <div className="flex items-center gap-3">
                     <Info className="w-5 h-5 text-primary" />
-                    <h3 className="text-lg font-semibold">Identificação</h3>
+                    <span className="text-lg font-semibold">Dados Pessoais & Identificação</span>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="md:col-span-2 flex flex-col items-center justify-center p-6 border-2 border-dashed border-border rounded-xl bg-sidebar/30 gap-4">
-                      {formData.avatar_url ? (
-                        <div className="relative group">
-                          <img src={formData.avatar_url} className="w-24 h-24 rounded-full border-2 border-primary object-cover" />
-                          <button onClick={() => updateFormData("avatar_url", "")} className="absolute -top-1 -right-1 bg-destructive text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <X className="w-3 h-3" />
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="w-24 h-24 rounded-full bg-secondary flex items-center justify-center">
-                          {isUploading ? <Loader2 className="w-8 h-8 animate-spin text-primary" /> : <Upload className="w-8 h-8 text-muted-foreground" />}
-                        </div>
-                      )}
-
-                      <div className="text-center">
-                        <Label htmlFor="avatar-upload" className="cursor-pointer bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors inline-flex items-center gap-2">
-                          <Upload className="w-4 h-4" /> {id ? "Trocar Foto" : "Adicionar Foto"}
-                        </Label>
+                </AccordionTrigger>
+                <AccordionContent className="pb-8 space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    {/* Photo Upload Container (3x4 aspect ratio) */}
+                    <div className="flex flex-col items-center gap-4">
+                      <div className="relative group w-32 h-44 rounded-xl overflow-hidden border-2 border-dashed border-border flex items-center justify-center bg-background/50 hover:border-primary/50 transition-colors">
+                        {formData.avatar_url ? (
+                          <>
+                            <img src={formData.avatar_url} className="w-full h-full object-cover" />
+                            <button onClick={() => updateFormData("avatar_url", "")} className="absolute top-2 right-2 bg-destructive/90 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <X className="w-3 h-3" />
+                            </button>
+                          </>
+                        ) : (
+                          <div className="flex flex-col items-center gap-2">
+                            {isUploading ? <Loader2 className="w-8 h-8 animate-spin text-primary" /> : <Upload className="w-6 h-6 text-muted-foreground" />}
+                            <span className="text-[10px] text-muted-foreground text-center px-2">Clique para adicionar foto 3x4</span>
+                          </div>
+                        )}
+                        <Label htmlFor="avatar-upload" className="absolute inset-0 cursor-pointer" />
                         <Input id="avatar-upload" type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
-                        <p className="text-xs text-muted-foreground mt-2">JPG, PNG ou WebP. Máx 2MB.</p>
+                      </div>
+                      <div className="text-[10px] text-muted-foreground text-center">
+                        <p>JPG ou PNG. Máx 2MB.</p>
                       </div>
                     </div>
 
-                    <div className="md:col-span-2">
-                      <Label htmlFor="full_name">Nome Completo *</Label>
-                      <Input id="full_name" value={formData.full_name} onChange={(e) => updateFormData("full_name", e.target.value)} placeholder="Ex: João Silva" className="bg-sidebar" />
-                    </div>
-                    <div>
-                      <Label htmlFor="email">E-mail *</Label>
-                      <Input id="email" type="email" value={formData.email} onChange={(e) => updateFormData("email", e.target.value)} placeholder="joao@email.com" className="bg-sidebar" />
-                    </div>
-                    <div>
-                      <Label htmlFor="phone">Telefone *</Label>
-                      <Input id="phone" value={formData.phone} onChange={(e) => updateFormData("phone", e.target.value)} placeholder="(00) 00000-0000" className="bg-sidebar" />
-                    </div>
-                    <div>
-                      <Label htmlFor="birth_date">Data de Nascimento</Label>
-                      <Input id="birth_date" type="date" value={formData.birth_date} onChange={(e) => updateFormData("birth_date", e.target.value)} className="bg-sidebar uppercase" />
-                    </div>
-                    <div>
-                      <Label htmlFor="sex">Sexo</Label>
-                      <Select onValueChange={(v) => updateFormData("sex", v)} defaultValue={formData.sex}>
-                        <SelectTrigger className="bg-sidebar">
-                          <SelectValue placeholder="Selecione..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="masculino">Masculino</SelectItem>
-                          <SelectItem value="feminino">Feminino</SelectItem>
-                          <SelectItem value="outro">Outro</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label htmlFor="profession">Profissão</Label>
-                      <Input id="profession" value={formData.profession} onChange={(e) => updateFormData("profession", e.target.value)} placeholder="Ex: Engenheiro" className="bg-sidebar" />
-                    </div>
-                    <div>
-                      <Label htmlFor="marital_status">Estado Civil</Label>
-                      <Select onValueChange={(v) => updateFormData("marital_status", v)} defaultValue={formData.marital_status}>
-                        <SelectTrigger className="bg-sidebar">
-                          <SelectValue placeholder="Selecione..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="solteiro">Solteiro(a)</SelectItem>
-                          <SelectItem value="casado">Casado(a)</SelectItem>
-                          <SelectItem value="divorciado">Divorciado(a)</SelectItem>
-                          <SelectItem value="viuvo">Viúvo(a)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label htmlFor="classification">Classificação (Plano)</Label>
-                      <Select onValueChange={(v) => updateFormData("classification", v)} value={formData.classification}>
-                        <SelectTrigger className="bg-sidebar">
-                          <SelectValue placeholder="Selecione..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="bronze">Bronze</SelectItem>
-                          <SelectItem value="silver">Prata</SelectItem>
-                          <SelectItem value="gold">Ouro</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label htmlFor="service_type">Tipo de Atendimento</Label>
-                      <Select onValueChange={(v) => updateFormData("service_type", v)} value={formData.service_type}>
-                        <SelectTrigger className="bg-sidebar">
-                          <SelectValue placeholder="Selecione..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="online">On-line</SelectItem>
-                          <SelectItem value="presencial">Presencial</SelectItem>
-                        </SelectContent>
-                      </Select>
+                    <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="sm:col-span-2">
+                        <Label htmlFor="full_name">Nome Completo *</Label>
+                        <Input id="full_name" value={formData.full_name} onChange={(e) => updateFormData("full_name", e.target.value)} placeholder="Ex: João Silva" className="bg-background/50" />
+                      </div>
+                      <div>
+                        <Label htmlFor="email">E-mail *</Label>
+                        <Input id="email" type="email" value={formData.email} onChange={(e) => updateFormData("email", e.target.value)} placeholder="joao@email.com" className="bg-background/50" />
+                      </div>
+                      <div>
+                        <Label htmlFor="phone">Telefone *</Label>
+                        <Input id="phone" value={formData.phone} onChange={(e) => updateFormData("phone", e.target.value)} placeholder="(00) 00000-0000" className="bg-background/50" />
+                      </div>
+                      <div>
+                        <Label htmlFor="birth_date">Data de Nascimento</Label>
+                        <Input id="birth_date" type="date" value={formData.birth_date} onChange={(e) => updateFormData("birth_date", e.target.value)} className="bg-background/50 uppercase" />
+                      </div>
+                      <div>
+                        <Label htmlFor="sex">Sexo</Label>
+                        <Select onValueChange={(v) => updateFormData("sex", v)} value={formData.sex}>
+                          <SelectTrigger className="bg-background/50">
+                            <SelectValue placeholder="Selecione..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="masculino">Masculino</SelectItem>
+                            <SelectItem value="feminino">Feminino</SelectItem>
+                            <SelectItem value="outro">Outro</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="cpf">CPF</Label>
+                        <Input id="cpf" value={formData.cpf} onChange={(e) => updateFormData("cpf", e.target.value)} placeholder="000.000.000-00" className="bg-background/50" />
+                      </div>
+                      <div>
+                        <Label htmlFor="rg">RG</Label>
+                        <Input id="rg" value={formData.rg} onChange={(e) => updateFormData("rg", e.target.value)} placeholder="00.000.000-0" className="bg-background/50" />
+                      </div>
+                      <div className="sm:col-span-2">
+                        <Label htmlFor="profession">Profissão</Label>
+                        <Input id="profession" value={formData.profession} onChange={(e) => updateFormData("profession", e.target.value)} placeholder="Ex: Engenheiro (passo muito tempo sentado)" className="bg-background/50" />
+                      </div>
+                      <div>
+                        <Label htmlFor="marital_status">Estado Civil</Label>
+                        <Select onValueChange={(v) => updateFormData("marital_status", v)} value={formData.marital_status}>
+                          <SelectTrigger className="bg-background/50">
+                            <SelectValue placeholder="Selecione..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="solteiro">Solteiro(a)</SelectItem>
+                            <SelectItem value="casado">Casado(a)</SelectItem>
+                            <SelectItem value="divorciado">Divorciado(a)</SelectItem>
+                            <SelectItem value="viuvo">Viúvo(a)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="classification">Classificação (Plano)</Label>
+                        <Select onValueChange={(v) => updateFormData("classification", v)} value={formData.classification}>
+                          <SelectTrigger className="bg-background/50">
+                            <SelectValue placeholder="Selecione..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="bronze">Bronze</SelectItem>
+                            <SelectItem value="silver">Prata</SelectItem>
+                            <SelectItem value="gold">Ouro</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="service_type">Atendimento</Label>
+                        <Select onValueChange={(v) => updateFormData("service_type", v)} value={formData.service_type}>
+                          <SelectTrigger className="bg-background/50">
+                            <SelectValue placeholder="Selecione..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="online">On-line</SelectItem>
+                            <SelectItem value="presencial">Presencial</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
                   </div>
-                </section>
+                </AccordionContent>
+              </AccordionItem>
 
-                <section>
-                  <div className="flex items-center gap-2 mb-6 border-b pb-2">
+              {/* --- EMERGÊNCIA --- */}
+              <AccordionItem value="emergency" className="border rounded-xl bg-sidebar/30 px-4">
+                <AccordionTrigger className="hover:no-underline py-4">
+                  <div className="flex items-center gap-3">
                     <Heart className="w-5 h-5 text-status-error" />
-                    <h3 className="text-lg font-semibold">Emergência</h3>
+                    <span className="text-lg font-semibold">Contato de Emergência</span>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                </AccordionTrigger>
+                <AccordionContent className="pb-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="emergency_contact">Contato de Emergência</Label>
-                      <Input id="emergency_contact" value={formData.emergency_contact} onChange={(e) => updateFormData("emergency_contact", e.target.value)} placeholder="Nome do familiar" className="bg-sidebar" />
+                      <Label htmlFor="emergency_contact">Nome do Contato</Label>
+                      <Input id="emergency_contact" value={formData.emergency_contact} onChange={(e) => updateFormData("emergency_contact", e.target.value)} placeholder="Nome do familiar ou amigo" className="bg-background/50" />
                     </div>
                     <div>
                       <Label htmlFor="emergency_phone">Telefone de Emergência</Label>
-                      <Input id="emergency_phone" value={formData.emergency_phone} onChange={(e) => updateFormData("emergency_phone", e.target.value)} placeholder="(00) 00000-0000" className="bg-sidebar" />
+                      <Input id="emergency_phone" value={formData.emergency_phone} onChange={(e) => updateFormData("emergency_phone", e.target.value)} placeholder="(00) 00000-0000" className="bg-background/50" />
                     </div>
                   </div>
-                </section>
-              </div>
-            )}
+                </AccordionContent>
+              </AccordionItem>
 
-            {currentStep === 2 && (
-              <div className="space-y-8 animate-fade-in">
-                <section>
-                  <div className="flex items-center gap-2 mb-6 border-b pb-2">
+              {/* --- OBJETIVOS & FOCO --- */}
+              <AccordionItem value="goals_training" className="border rounded-xl bg-sidebar/30 px-4">
+                <AccordionTrigger className="hover:no-underline py-4">
+                  <div className="flex items-center gap-3">
                     <Target className="w-5 h-5 text-status-warning" />
-                    <h3 className="text-lg font-semibold">Foco do Treinamento</h3>
+                    <span className="text-lg font-semibold">Objetivos & Frequência</span>
                   </div>
+                </AccordionTrigger>
+                <AccordionContent className="pb-8 space-y-6">
                   <div className="space-y-6">
                     <div>
                       <Label className="text-sm mb-3 block">Objetivo Principal *</Label>
                       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
                         {goals.map((goal) => (
-                          <button key={goal.value} onClick={() => updateFormData("primary_goal", goal.value)} className={cn("px-4 py-3 rounded-lg border text-xs font-medium transition-all", formData.primary_goal === goal.value ? "border-primary bg-sidebar-accent text-primary shadow-sm" : "border-border bg-sidebar text-muted-foreground hover:border-primary/50")}>
+                          <button key={goal.value} onClick={() => updateFormData("primary_goal", goal.value)} className={cn("px-2 py-3 rounded-lg border text-[11px] font-bold uppercase tracking-wider transition-all", formData.primary_goal === goal.value ? "border-primary bg-primary/10 text-primary shadow-sm" : "border-border bg-background/40 text-muted-foreground hover:border-primary/50")}>
                             {goal.label}
                           </button>
                         ))}
                       </div>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                       <div>
                         <Label htmlFor="target_weight">Meta de Peso (kg)</Label>
-                        <Input id="target_weight" type="number" value={formData.target_weight} onChange={(e) => updateFormData("target_weight", e.target.value)} placeholder="Ex: 75.5" className="bg-sidebar" />
+                        <Input id="target_weight" type="number" value={formData.target_weight} onChange={(e) => updateFormData("target_weight", e.target.value)} placeholder="Ex: 75.5" className="bg-background/50" />
                       </div>
                       <div>
                         <Label htmlFor="goal_deadline">Prazo Desejado</Label>
-                        <Input id="goal_deadline" type="date" value={formData.goal_deadline} onChange={(e) => updateFormData("goal_deadline", e.target.value)} className="bg-sidebar" />
+                        <Input id="goal_deadline" type="date" value={formData.goal_deadline} onChange={(e) => updateFormData("goal_deadline", e.target.value)} className="bg-background/50" />
+                      </div>
+                      <div>
+                        <Label htmlFor="training_frequency">Frequência Semanal</Label>
+                        <Select onValueChange={(v) => updateFormData("training_frequency", v)} value={formData.training_frequency}>
+                          <SelectTrigger className="bg-background/50">
+                            <SelectValue placeholder="Selecione..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {frequencies.map((f) => (
+                              <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                      <div className="space-y-4">
+                        <Label className="text-sm block">Dias Disponíveis</Label>
+                        <div className="flex flex-wrap gap-2">
+                          {weekDays.map((day) => (
+                            <button key={day} onClick={() => toggleDay(day)} className={cn("w-10 h-10 rounded-lg border text-xs font-medium transition-all", formData.available_days.includes(day) ? "border-primary bg-primary/10 text-primary" : "border-border bg-background/40 text-muted-foreground hover:border-primary/50")}>
+                              {day}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor="secondary_goal">Objetivo Secundário</Label>
+                        <Input id="secondary_goal" value={formData.secondary_goal} onChange={(e) => updateFormData("secondary_goal", e.target.value)} placeholder="Ex: Melhorar cardio" className="bg-background/50" />
                       </div>
                     </div>
                   </div>
-                </section>
+                </AccordionContent>
+              </AccordionItem>
 
-                <section>
-                  <div className="flex items-center gap-2 mb-6 border-b pb-2">
-                    <Activity className="w-5 h-5 text-status-success" />
-                    <h3 className="text-lg font-semibold">Disponibilidade</h3>
+              {/* --- ANAMNESE SECÇÃO EXISTENTE --- */}
+              <AccordionItem value="health" className="border rounded-xl bg-sidebar/30 px-4">
+                <AccordionTrigger className="hover:no-underline py-4">
+                  <div className="flex items-center gap-3">
+                    <Heart className="w-5 h-5 text-status-error" />
+                    <span className="text-lg font-semibold">Ficha de Saúde</span>
                   </div>
-                  <div className="space-y-6">
-                    <div>
-                      <Label className="text-sm mb-3 block">Frequência de Treino</Label>
-                      <div className="flex flex-wrap gap-2">
-                        {frequencies.map((f) => (
-                          <button key={f.value} onClick={() => updateFormData("training_frequency", f.value)} className={cn("px-4 py-2 rounded-lg border text-sm font-medium transition-all", formData.training_frequency === f.value ? "border-primary bg-sidebar-accent text-primary" : "border-border bg-sidebar text-muted-foreground hover:border-primary/50")}>
-                            {f.label}
-                          </button>
-                        ))}
+                </AccordionTrigger>
+                <AccordionContent className="pb-6 pt-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Condições Médicas</Label>
+                      <Textarea value={formData.medical_conditions} onChange={(e) => updateFormData("medical_conditions", e.target.value)} placeholder="Hipertensão, Diabetes..." className="bg-background/50 min-h-[80px]" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Cirurgias Pregressas</Label>
+                      <Textarea value={formData.surgeries} onChange={(e) => updateFormData("surgeries", e.target.value)} placeholder="Cirurgias relevantes..." className="bg-background/50 min-h-[80px]" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Medicamentos em Uso</Label>
+                      <Textarea value={formData.medications} onChange={(e) => updateFormData("medications", e.target.value)} placeholder="Nome e dosagem..." className="bg-background/50 min-h-[80px]" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Lesões Atuais/Passadas</Label>
+                      <Textarea value={formData.injuries} onChange={(e) => updateFormData("injuries", e.target.value)} placeholder="Hérnias, entorses..." className="bg-background/50 min-h-[80px]" />
+                    </div>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="habits" className="border rounded-xl bg-sidebar/30 px-4">
+                <AccordionTrigger className="hover:no-underline py-4">
+                  <div className="flex items-center gap-3">
+                    <Activity className="w-5 h-5 text-primary" />
+                    <span className="text-lg font-semibold">Hábitos & Estilo de Vida</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="pb-6 pt-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Hábito Alimentar</Label>
+                      <Textarea value={formData.diet_habits} onChange={(e) => updateFormData("diet_habits", e.target.value)} placeholder="Rotina alimentar..." className="bg-background/50 min-h-[80px]" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Nível de Estresse</Label>
+                      <Select onValueChange={(v) => updateFormData("stress_level", v)} value={formData.stress_level}>
+                        <SelectTrigger className="bg-background/50">
+                          <SelectValue placeholder="Selecione..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="baixo">Baixo</SelectItem>
+                          <SelectItem value="moderado">Moderado</SelectItem>
+                          <SelectItem value="alto">Alto</SelectItem>
+                          <SelectItem value="extremo">Extremo</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Nível de Treinamento</Label>
+                      <Select onValueChange={(v) => updateFormData("training_level", v)} value={formData.training_level}>
+                        <SelectTrigger className="bg-background/50">
+                          <SelectValue placeholder="Selecione..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="iniciante">Iniciante (0-6 meses)</SelectItem>
+                          <SelectItem value="intermediario">Intermediário (6m-2 anos)</SelectItem>
+                          <SelectItem value="avancado">Avançado (+2 anos)</SelectItem>
+                          <SelectItem value="atleta">Atleta</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Uso de Ergogênicos?</Label>
+                      <Select onValueChange={(v) => updateFormData("uses_ergogenics", v)} value={formData.uses_ergogenics}>
+                        <SelectTrigger className="bg-background/50">
+                          <SelectValue placeholder="Selecione..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="false">Não</SelectItem>
+                          <SelectItem value="true">Sim</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {formData.uses_ergogenics === "true" && (
+                      <div className="space-y-2 md:col-span-2">
+                        <Label>Quais?</Label>
+                        <Textarea
+                          value={formData.uses_ergogenics_details}
+                          onChange={(e) => updateFormData("uses_ergogenics_details", e.target.value)}
+                          placeholder="Descreva o uso..."
+                          className="bg-background/50 min-h-[80px]"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="physical" className="border rounded-xl bg-sidebar/30 px-4">
+                <AccordionTrigger className="hover:no-underline py-4">
+                  <div className="flex items-center gap-3">
+                    <ShieldCheck className="w-5 h-5 text-status-success" />
+                    <span className="text-lg font-semibold">Avaliação & Risco</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="pb-6 pt-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Peso Atual (kg)</Label>
+                        <Input type="number" value={formData.weight_kg} onChange={(e) => updateFormData("weight_kg", e.target.value)} className="bg-background/50" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Altura (cm)</Label>
+                        <Input type="number" value={formData.height_cm} onChange={(e) => updateFormData("height_cm", e.target.value)} className="bg-background/50" />
                       </div>
                     </div>
-                    <div>
-                      <Label className="text-sm mb-3 block">Dias da Semana</Label>
-                      <div className="flex flex-wrap gap-2">
-                        {weekDays.map((day) => (
-                          <button key={day} onClick={() => toggleDay(day)} className={cn("w-12 h-10 rounded-lg border text-xs font-medium transition-all", formData.available_days.includes(day) ? "border-primary bg-sidebar-accent text-primary" : "border-border bg-sidebar text-muted-foreground hover:border-primary/50")}>
-                            {day}
-                          </button>
-                        ))}
-                      </div>
+                    <div className="space-y-2">
+                      <Label>PAR-Q (Resultados)</Label>
+                      <Input value={formData.par_q_result} onChange={(e) => updateFormData("par_q_result", e.target.value)} placeholder="Resumo do prontuário" className="bg-background/50" />
+                    </div>
+                    <div className="md:col-span-2 space-y-2">
+                      <Label>Contraindicações</Label>
+                      <Textarea value={formData.contraindications} onChange={(e) => updateFormData("contraindications", e.target.value)} placeholder="Restrições médicas..." className="bg-background/50 min-h-[80px]" />
                     </div>
                   </div>
-                </section>
-              </div>
-            )}
-
-            {currentStep === 3 && (
-              <div className="space-y-6 animate-fade-in">
-                <Accordion type="single" collapsible className="w-full space-y-4">
-                  <AccordionItem value="health" className="border rounded-xl bg-sidebar/50 px-4">
-                    <AccordionTrigger className="hover:no-underline">
-                      <div className="flex items-center gap-3">
-                        <Heart className="w-5 h-5 text-status-error" />
-                        <span>Histórico de Saúde</span>
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent className="pt-4 space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label>Condições Médicas</Label>
-                          <Textarea value={formData.medical_conditions} onChange={(e) => updateFormData("medical_conditions", e.target.value)} placeholder="Hipertensão, Diabetes..." className="bg-sidebar min-h-[80px]" />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Cirurgias Pregressas</Label>
-                          <Textarea value={formData.surgeries} onChange={(e) => updateFormData("surgeries", e.target.value)} placeholder="Qualquer cirurgia relevante..." className="bg-sidebar min-h-[80px]" />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Medicamentos em Uso</Label>
-                          <Textarea value={formData.medications} onChange={(e) => updateFormData("medications", e.target.value)} placeholder="Nome e dosagem se possível..." className="bg-sidebar min-h-[80px]" />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Lesões Atuais/Passadas</Label>
-                          <Textarea value={formData.injuries} onChange={(e) => updateFormData("injuries", e.target.value)} placeholder="Hérnias, ROM, entorses..." className="bg-sidebar min-h-[80px]" />
-                        </div>
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-
-                  <AccordionItem value="habits" className="border rounded-xl bg-sidebar/50 px-4">
-                    <AccordionTrigger className="hover:no-underline">
-                      <div className="flex items-center gap-3">
-                        <Activity className="w-5 h-5 text-primary" />
-                        <span>Hábitos de Vida</span>
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent className="pt-4 space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label>Hábito Alimentar</Label>
-                          <Textarea value={formData.diet_habits} onChange={(e) => updateFormData("diet_habits", e.target.value)} placeholder="Frequência, restrições..." className="bg-sidebar min-h-[80px]" />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Padrão de Sono</Label>
-                          <Input value={formData.sleep_pattern} onChange={(e) => updateFormData("sleep_pattern", e.target.value)} placeholder="Horas por noite, qualidade..." className="bg-sidebar" />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Nível de Estresse</Label>
-                          <Select onValueChange={(v) => updateFormData("stress_level", v)}>
-                            <SelectTrigger className="bg-sidebar">
-                              <SelectValue placeholder="Selecione o nível" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="baixo">Baixo</SelectItem>
-                              <SelectItem value="moderado">Moderado</SelectItem>
-                              <SelectItem value="alto">Alto</SelectItem>
-                              <SelectItem value="extremo">Extremo</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Tabagismo / Etilismo</Label>
-                          <Input value={formData.alcohol_use} onChange={(e) => updateFormData("alcohol_use", e.target.value)} placeholder="Frequência..." className="bg-sidebar" />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Nível de Treinamento</Label>
-                          <Select onValueChange={(v) => updateFormData("training_level", v)} defaultValue={formData.training_level}>
-                            <SelectTrigger className="bg-sidebar">
-                              <SelectValue placeholder="Selecione..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="iniciante">Iniciante (0-6 meses)</SelectItem>
-                              <SelectItem value="intermediario">Intermediário (6m-2 anos)</SelectItem>
-                              <SelectItem value="avancado">Avançado (+2 anos)</SelectItem>
-                              <SelectItem value="atleta">Atleta</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Uso de Ergogênicos?</Label>
-                          <Select onValueChange={(v) => updateFormData("uses_ergogenics", v)} defaultValue={formData.uses_ergogenics}>
-                            <SelectTrigger className="bg-sidebar">
-                              <SelectValue placeholder="Selecione..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="false">Não</SelectItem>
-                              <SelectItem value="true">Sim</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-
-                  <AccordionItem value="physical" className="border rounded-xl bg-sidebar/50 px-4">
-                    <AccordionTrigger className="hover:no-underline">
-                      <div className="flex items-center gap-3">
-                        <ShieldCheck className="w-5 h-5 text-status-success" />
-                        <span>Avaliação Física & Risco</span>
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent className="pt-4 space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <Label>Peso (kg)</Label>
-                          <Input type="number" value={formData.weight_kg} onChange={(e) => updateFormData("weight_kg", e.target.value)} className="bg-sidebar" />
-                        </div>
-                        <div>
-                          <Label>Altura (cm)</Label>
-                          <Input type="number" value={formData.height_cm} onChange={(e) => updateFormData("height_cm", e.target.value)} className="bg-sidebar" />
-                        </div>
-                        <div className="md:col-span-2 space-y-2">
-                          <Label>Limitações Físicas / Contraindicações</Label>
-                          <Textarea value={formData.contraindications} onChange={(e) => updateFormData("contraindications", e.target.value)} placeholder="Restrições médicas específicas..." className="bg-sidebar min-h-[80px]" />
-                        </div>
-                        <div className="md:col-span-2 space-y-2">
-                          <Label>PAR-Q (Resultados Importantes)</Label>
-                          <Input value={formData.par_q_result} onChange={(e) => updateFormData("par_q_result", e.target.value)} placeholder="Resumo do questionário de prontidão física" className="bg-sidebar" />
-                        </div>
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                </Accordion>
-              </div>
-            )}
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
 
             <div className="flex items-center justify-between mt-12 pt-6 border-t border-border">
-              <Button variant="secondary" onClick={handleBack} className="h-11 px-6">
+              <Button variant="ghost" onClick={handleBack} className="h-11 px-6 hover:bg-sidebar">
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Voltar
               </Button>
 
-              <Button onClick={handleNext} disabled={mutation.isPending} className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-button h-11 px-8 min-w-[160px]">
+              <Button onClick={() => mutation.mutate(formData as any)} disabled={mutation.isPending} className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg h-12 px-10 min-w-[200px] font-bold">
                 {mutation.isPending ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Finalizando...
-                  </>
-                ) : currentStep === 3 ? (
-                  <>
-                    <Check className="w-4 h-4 mr-2" />
-                    Concluir Ficha
+                    Salvando...
                   </>
                 ) : (
                   <>
-                    Próximo
-                    <ArrowRight className="w-4 h-4 ml-2" />
+                    <Check className="w-5 h-5 mr-2" />
+                    {id ? "Salvar Alterações" : "Concluir Cadastro"}
                   </>
                 )}
               </Button>
@@ -669,4 +655,3 @@ const StudentRegistration = () => {
 export default StudentRegistration;
 
 // Force refresh
-

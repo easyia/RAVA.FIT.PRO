@@ -30,9 +30,9 @@ export function StudentCard({ student, onClick, onDelete, onEdit, onStatusChange
         "bg-status-error";
 
   const statusColor =
-    student.status === 'ativo' ? "badge-success" :
-      student.status === 'pendente' ? "badge-warning" :
-        student.status === 'aguardando' ? "badge-warning" :
+    student.status === 'ativo' || student.status === 'active' ? "badge-success" :
+      student.status === 'pendente' || student.status === 'pending_approval' ? "badge-warning" :
+        student.status === 'excluido' || student.status === 'deleted' ? "bg-destructive/20 text-destructive border border-destructive/20" :
           "bg-secondary text-muted-foreground";
 
   const classificationColor =
@@ -94,9 +94,17 @@ export function StudentCard({ student, onClick, onDelete, onEdit, onStatusChange
               </DropdownMenuSubTrigger>
               <DropdownMenuPortal>
                 <DropdownMenuSubContent className="bg-card border-border">
+                  {student.status === 'pendente' || student.status === 'pending_approval' ? (
+                    <DropdownMenuItem
+                      onClick={(e) => { e.stopPropagation(); onStatusChange?.(student.id, 'ativo'); }}
+                      className="cursor-pointer font-bold text-primary"
+                    >
+                      Aprovar Cadastro
+                    </DropdownMenuItem>
+                  ) : null}
                   <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onStatusChange?.(student.id, 'ativo'); }} className="cursor-pointer">Ativo</DropdownMenuItem>
                   <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onStatusChange?.(student.id, 'inativo'); }} className="cursor-pointer">Inativo</DropdownMenuItem>
-                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onStatusChange?.(student.id, 'aguardando'); }} className="cursor-pointer">Aguardando</DropdownMenuItem>
+                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onStatusChange?.(student.id, 'excluido'); }} className="cursor-pointer">Excluído</DropdownMenuItem>
                 </DropdownMenuSubContent>
               </DropdownMenuPortal>
             </DropdownMenuSub>
@@ -106,7 +114,7 @@ export function StudentCard({ student, onClick, onDelete, onEdit, onStatusChange
               onClick={(e) => { e.stopPropagation(); onDelete?.(student.id); }}
               className="gap-2 cursor-pointer text-status-error focus:text-status-error focus:bg-status-error/10"
             >
-              <Trash2 className="w-4 h-4" /> Eliminar Usuário
+              <Trash2 className="w-4 h-4" /> Mover para Lixeira
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

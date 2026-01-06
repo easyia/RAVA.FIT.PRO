@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { Lock, Unlock, Camera } from "lucide-react";
+import { Lock, Unlock, Camera, ShieldCheck, Aperture } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface ShutterLockProps {
     isLocked: boolean;
@@ -8,112 +9,121 @@ interface ShutterLockProps {
 }
 
 export const ShutterLock: React.FC<ShutterLockProps> = ({ isLocked, onToggle }) => {
-    const [showLogo, setShowLogo] = useState(false);
-
+    // Prevent scrolling when locked
     useEffect(() => {
         if (isLocked) {
-            const timer = setTimeout(() => setShowLogo(true), 600);
-            return () => clearTimeout(timer);
+            document.body.style.overflow = "hidden";
         } else {
-            setShowLogo(false);
+            document.body.style.overflow = "auto";
         }
+        return () => { document.body.style.overflow = "auto"; };
     }, [isLocked]);
 
     return (
-        <div
-            className={cn(
-                "fixed inset-0 z-[9999] pointer-events-none overflow-hidden flex items-center justify-center transition-all duration-300",
-                isLocked ? "pointer-events-auto bg-black/20" : "bg-transparent"
-            )}
-        >
-            {/* Shutter Blades Container */}
-            <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
-                {[0, 60, 120, 180, 240, 300].map((angle, i) => (
-                    <div
-                        key={i}
-                        className={cn(
-                            "absolute bg-black shadow-2xl transition-all ease-[cubic-bezier(0.2,0,0.1,1)] will-change-transform",
-                            isLocked ? "duration-[4000ms]" : "duration-500", // Slow lock, fast unlock (fade out)
-                            // Increased size massively to 150vmax to ensure coverage on any screen aspect ratio
-                            "w-[150vmax] h-[150vmax]",
-                            // Ensure visibility toggles correctly
-                            isLocked ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none transition-opacity delay-0" // Add specific transition for opacity if needed, or rely on all
-                        )}
-                        style={{
-                            // Transform origin is center of screen for the rotation
-                            // BUT we need the blades to hinge from the outside in or pivot around the center.
-                            // Better approach: Position them centered, and translate them OUT when open, IN when closed?
-                            // No, mechanical iris rotates.
-                            left: '50%',
-                            top: '50%',
-                            transformOrigin: '0% 0%', // Pivot from top-left of the blade which is at screen center?
-                            // Let's try positioning Top-Left at 50% 50% then rotating.
-
-                            // Closed state (Locked): Blades rotated to form hexagon. 
-                            // Open state (Unlocked): Blades rotated OUT ensuring aperture is clear.
-
-                            // Let's use a simple transform logic:
-                            // Locked: Rotate to 'angle'.
-                            // Unlocked: Rotate to 'angle + 90' (flinging them out)? Or scaling to 0?
-
-                            // Using clip-path effectively creates the blade shape.
-                            // clip-path: polygon(0% 0%, 100% 0%, 50% 100%) -> Triangle? 
-                            // Standard 6-blade iris blade is roughly triangular or curved.
-                            // Let's stick to the previous rect with polygon but ensure scale/position is correct.
-
-                            transform: isLocked
-                                ? `translate(-50%, -50%) rotate(${angle}deg) translate(0%, 0%)`
-                                : `translate(-50%, -50%) rotate(${angle}deg) translate(0%, -100%)`,
-
-                            // Fix: The previous scale approach might have been shrinking them to nothingness.
-                            // Now we translate them "out" of the center hole.
-
-                            clipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)', // Full rect
-                            transitionDelay: `${i * 0.15}s`,
-                            zIndex: 100
-                        }}
+        <>
+            <AnimatePresence>
+                {isLocked && (
+                    <motion.div
+                        initial={{ clipPath: "circle(0% at 94% 90%)" }} // Starts from the button position roughly
+                        animate={{ clipPath: "circle(150% at 50% 50%)" }}
+                        exit={{ clipPath: "circle(0% at 94% 90%)" }}
+                        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }} // Apple-like spring easing
+                        className="fixed inset-0 z-[9999] bg-[#000000] flex flex-col items-center justify-center text-white overflow-hidden"
                     >
-                        {/* Textura metálica sutil para dar acabamento premium */}
-                        <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-10 pointer-events-none" />
-                    </div>
-                ))}
-            </div>
+                        {/* Background Texture & Effects */}
+                        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 brightness-100 contrast-150 pointer-events-none mix-blend-overlay" />
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 0.3 }}
+                            transition={{ delay: 0.5, duration: 1 }}
+                            className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-primary/10 blur-[150px] rounded-full pointer-events-none"
+                        />
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 0.15 }}
+                            transition={{ delay: 0.7, duration: 1 }}
+                            className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-amber-500/10 blur-[150px] rounded-full pointer-events-none"
+                        />
 
-            {/* Logo and Content */}
-            <div
-                className={cn(
-                    "relative z-[101] flex flex-col items-center justify-center transition-all duration-[2000ms] delay-[1500ms]",
-                    showLogo ? "opacity-100 scale-100 translate-y-0" : "opacity-0 scale-90 translate-y-10"
+                        {/* Content Container */}
+                        <div className="relative z-10 flex flex-col items-center p-8 max-w-md text-center">
+
+                            {/* Logo */}
+                            <motion.div
+                                initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                transition={{ delay: 0.2, duration: 0.5 }}
+                                className="mb-16"
+                            >
+                                <img src="/Logomarca.png" alt="RAVA FIT PRO" className="h-32 md:h-40 w-auto object-contain drop-shadow-2xl" />
+                            </motion.div>
+
+                            {/* Privacy Icon */}
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ delay: 0.4, type: "spring", stiffness: 200, damping: 20 }}
+                                className="w-20 h-20 bg-white/5 rounded-3xl flex items-center justify-center mb-8 border border-white/10 shadow-2xl backdrop-blur-sm"
+                            >
+                                <ShieldCheck className="w-10 h-10 text-emerald-500" />
+                            </motion.div>
+
+                            {/* Status Text */}
+                            <motion.div
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.5 }}
+                                className="space-y-2 mb-12"
+                            >
+                                <h2 className="text-3xl font-bold tracking-tight">Painel Protegido</h2>
+                                <p className="text-zinc-500 text-sm font-medium uppercase tracking-widest">Modo de Privacidade Ativo</p>
+                            </motion.div>
+
+                            {/* Unlock Swipe/Button */}
+                            <motion.button
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={onToggle}
+                                className="group relative px-8 py-4 bg-white text-black rounded-full font-bold flex items-center gap-3 hover:bg-zinc-200 transition-colors shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)]"
+                            >
+                                <Unlock className="w-5 h-5 text-black group-hover:rotate-[-15deg] transition-transform" />
+                                <span>Desbloquear Acesso</span>
+                                <div className="absolute inset-x-0 -bottom-px h-px bg-gradient-to-r from-transparent via-black/20 to-transparent" />
+                            </motion.button>
+
+                            <motion.p
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ delay: 1 }}
+                                className="mt-8 text-xs text-zinc-600 font-mono"
+                            >
+                                Clique para retomar sua sessão
+                            </motion.p>
+                        </div>
+                    </motion.div>
                 )}
-            >
-                {/* Logo Maior - Removido efeito de fundo (drop-shadow) */}
-                <img
-                    src="/Logomarca.png"
-                    alt="RAVA FIT PRO"
-                    className="w-[600px] h-auto mb-10"
-                />
+            </AnimatePresence>
 
-                <h2 className="text-white/40 text-sm tracking-[0.8em] mb-8 font-light uppercase animate-pulse">Painel Bloqueado</h2>
-
-                <button
-                    onClick={onToggle}
-                    className="group flex items-center gap-3 px-8 py-4 rounded-full bg-white/5 hover:bg-white/10 text-white backdrop-blur-md border border-white/10 transition-all hover:scale-105 active:scale-95 hover:border-white/30 hover:shadow-[0_0_30px_rgba(255,255,255,0.1)]"
-                >
-                    <Unlock className="w-5 h-5 group-hover:rotate-12 transition-transform" />
-                    <span className="font-medium tracking-wide">Desbloquear Sistema</span>
-                </button>
-            </div>
-
-            {/* Floating Toggle Button (Visible when NOT locked) */}
-            {!isLocked && (
-                <button
-                    onClick={onToggle}
-                    className="fixed bottom-24 right-6 z-[110] w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all pointer-events-auto group ring-4 ring-background"
-                    title="Bloquear para Gravação"
-                >
-                    <Camera className="w-6 h-6 group-hover:rotate-12 transition-transform" />
-                </button>
-            )}
-        </div>
+            {/* Floating Trigger Button (Only visible when unlocked) */}
+            <AnimatePresence>
+                {!isLocked && (
+                    <motion.button
+                        initial={{ scale: 0, rotate: 180 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        exit={{ scale: 0, rotate: -180 }}
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={onToggle}
+                        className="fixed bottom-24 right-8 z-[110] w-14 h-14 rounded-2xl bg-[#09090b] border border-white/10 text-white shadow-2xl flex items-center justify-center group overflow-hidden"
+                        title="Bloquear Tela"
+                    >
+                        <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <Aperture className="w-6 h-6 group-hover:rotate-180 transition-transform duration-700 ease-in-out" />
+                    </motion.button>
+                )}
+            </AnimatePresence>
+        </>
     );
 };

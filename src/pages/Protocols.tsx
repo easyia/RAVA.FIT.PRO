@@ -23,8 +23,15 @@ import {
     Calendar,
     User,
     TrendingUp,
-    Download
+    Download,
+    Target,
+    Activity,
+    Zap,
+    Droplet,
+    Dumbbell as DumbbellIcon,
+    PieChart as PieIcon
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getStudents, getTrainingPrograms, getMealPlans, saveTrainingProgram, saveMealPlan } from "@/services/studentService";
 import { Student } from "@/types/student";
@@ -36,6 +43,14 @@ import {
     PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip,
     RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar
 } from 'recharts';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+} from "@/components/ui/dialog";
+import { generateDietReport } from "@/services/pdfService";
 
 // Training Interfaces
 interface Exercise {
@@ -111,6 +126,37 @@ const Protocols = () => {
         queryFn: () => getMealPlans(selectedStudent!.id),
         enabled: !!selectedStudent
     });
+
+    const { data: coachProfile } = useQuery({
+        queryKey: ['coachProfile'],
+        queryFn: async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return null;
+            const { data } = await supabase.from('coaches').select('*').eq('id', user.id).single();
+            return data;
+        }
+    });
+
+    const [showMethodology, setShowMethodology] = useState(false);
+    const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+
+    const handleGenerateDietPDF = async () => {
+        if (!mealPlans[0] || !selectedStudent) return;
+
+        setIsGeneratingPDF(true);
+        try {
+            await generateDietReport({
+                student: selectedStudent,
+                plan: mealPlans[0],
+                coach: coachProfile
+            });
+            toast.success("Plano Alimentar gerado com sucesso!");
+        } catch (error) {
+            toast.error("Erro ao gerar PDF.");
+        } finally {
+            setIsGeneratingPDF(false);
+        }
+    };
 
     const filteredStudents = students?.filter(s =>
         s.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -325,12 +371,18 @@ const Protocols = () => {
                         </div>
                     ) : (
                         <Tabs defaultValue="training" className="animate-fade-in" onValueChange={setActiveTab}>
-                            <TabsList className="grid w-full grid-cols-2 mb-8 h-12 bg-card p-1">
-                                <TabsTrigger value="training" className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                                    <Dumbbell className="w-4 h-4" /> Treinos ({trainingPrograms.length})
+                            <TabsList className="inline-flex w-auto mb-10 h-11 bg-card/30 backdrop-blur-xl p-1 rounded-full border border-border/40">
+                                <TabsTrigger
+                                    value="training"
+                                    className="px-6 rounded-full gap-2 text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-300"
+                                >
+                                    <Activity className="w-3.5 h-3.5" /> Treinos ({trainingPrograms.length})
                                 </TabsTrigger>
-                                <TabsTrigger value="nutrition" className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                                    <Utensils className="w-4 h-4" /> Dietas ({mealPlans.length})
+                                <TabsTrigger
+                                    value="nutrition"
+                                    className="px-6 rounded-full gap-2 text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-300"
+                                >
+                                    <PieIcon className="w-3.5 h-3.5" /> Dietas ({mealPlans.length})
                                 </TabsTrigger>
                             </TabsList>
 
@@ -354,19 +406,33 @@ const Protocols = () => {
                                     </Card>
                                 ) : (
                                     <div className="space-y-6">
-                                        {/* WORKOUT VOLUME CHART */}
+                                        {/* WORKOUT VOLUME CHART - PREMIUM REDESIGN */}
                                         {trainingPrograms.length > 0 && (
-                                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-                                                <Card className="lg:col-span-2 border-border bg-card shadow-lg">
+                                            <motion.div
+                                                initial={{ opacity: 0, y: 20 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8"
+                                            >
+                                                <Card className="lg:col-span-2 border-border/40 bg-card/40 backdrop-blur-xl shadow-2xl overflow-hidden group">
+                                                    <div className="absolute top-0 left-0 w-1 h-full bg-primary/40 group-hover:bg-primary transition-colors" />
                                                     <CardHeader className="pb-2">
-                                                        <CardTitle className="text-sm font-bold flex items-center gap-2">
-                                                            <TrendingUp className="w-4 h-4 text-primary" /> Volume Semanal por Grupamento
-                                                        </CardTitle>
-                                                        <CardDescription className="text-[10px]">Distribuição de séries e intensidade por músculo alvo</CardDescription>
+                                                        <div className="flex justify-between items-center">
+                                                            <div>
+                                                                <CardTitle className="text-sm font-black italic tracking-tighter flex items-center gap-2 uppercase">
+                                                                    <Activity className="w-4 h-4 text-primary" /> Distribuição de Volume Semanal
+                                                                </CardTitle>
+                                                                <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 mt-1">
+                                                                    Análise de carga por grupamento muscular
+                                                                </CardDescription>
+                                                            </div>
+                                                            <div className="flex gap-2">
+                                                                <Badge variant="outline" className="text-[9px] bg-primary/5 border-primary/20 text-primary uppercase font-black">Inteligência Artificial</Badge>
+                                                            </div>
+                                                        </div>
                                                     </CardHeader>
-                                                    <CardContent className="h-[250px] pt-0">
+                                                    <CardContent className="h-[280px] pt-4 relative group">
                                                         <ResponsiveContainer width="100%" height="100%">
-                                                            <RadarChart cx="50%" cy="50%" outerRadius="80%" data={
+                                                            <RadarChart cx="50%" cy="50%" outerRadius="85%" data={
                                                                 (() => {
                                                                     const volumes: Record<string, number> = {};
                                                                     const latest = trainingPrograms[0];
@@ -380,51 +446,89 @@ const Protocols = () => {
                                                                     return Object.entries(volumes).map(([name, value]) => ({ name, value }));
                                                                 })()
                                                             }>
-                                                                <PolarGrid stroke="#ffffff10" />
-                                                                <PolarAngleAxis dataKey="name" tick={{ fill: '#94a3b8', fontSize: 10 }} />
+                                                                <PolarGrid stroke="#ffffff10" strokeDasharray="3 3" />
+                                                                <PolarAngleAxis dataKey="name" tick={{ fill: '#71717a', fontSize: 10, fontWeight: 700 }} />
                                                                 <PolarRadiusAxis tick={false} axisLine={false} />
                                                                 <Radar
-                                                                    name="Volume"
+                                                                    name="Volume Acumulado"
                                                                     dataKey="value"
-                                                                    stroke="#9b87f5"
-                                                                    fill="#9b87f5"
-                                                                    fillOpacity={0.5}
+                                                                    stroke="#f59e0b"
+                                                                    strokeWidth={2}
+                                                                    fill="#f59e0b"
+                                                                    fillOpacity={0.4}
                                                                 />
-                                                                <RechartsTooltip contentStyle={{ backgroundColor: '#111827', border: '1px solid #374151', borderRadius: '8px', fontSize: '12px' }} />
+                                                                <RechartsTooltip
+                                                                    contentStyle={{
+                                                                        backgroundColor: '#09090b',
+                                                                        border: '1px solid #27272a',
+                                                                        borderRadius: '12px',
+                                                                        fontSize: '11px',
+                                                                        fontWeight: 'bold',
+                                                                        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.4)'
+                                                                    }}
+                                                                />
                                                             </RadarChart>
                                                         </ResponsiveContainer>
                                                     </CardContent>
                                                 </Card>
 
-                                                <Card className="border-border bg-card shadow-lg bg-gradient-to-br from-primary/5 to-transparent">
+                                                <Card className="border-border/40 bg-card/40 backdrop-blur-xl shadow-2xl relative overflow-hidden group">
+                                                    <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none group-hover:scale-110 transition-transform">
+                                                        <Zap className="w-32 h-32 text-primary" />
+                                                    </div>
                                                     <CardHeader className="pb-2">
-                                                        <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                                                            <Sparkles className="w-3 h-3 text-primary" /> Análise do Coach
+                                                        <CardTitle className="text-xs font-black uppercase tracking-widest text-muted-foreground/80 flex items-center gap-2">
+                                                            <Target className="w-4 h-4 text-primary" /> Relatório Técnico
                                                         </CardTitle>
                                                     </CardHeader>
-                                                    <CardContent className="space-y-4 pt-2">
-                                                        <div className="space-y-1">
-                                                            <div className="flex justify-between text-[10px] text-muted-foreground">
-                                                                <span>Foco do Protocolo</span>
-                                                                <Badge variant="outline" className="text-[9px] h-4 py-0 border-primary/30 text-primary">Hipertrofia</Badge>
+                                                    <CardContent className="space-y-5 pt-2">
+                                                        <div className="space-y-4">
+                                                            <div className="flex items-center justify-between p-3 rounded-xl bg-primary/5 border border-primary/10">
+                                                                <div className="space-y-0.5">
+                                                                    <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Frequência</p>
+                                                                    <p className="text-sm font-black italic">{trainingPrograms[0].training_sessions?.length}x p/ Semana</p>
+                                                                </div>
+                                                                <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
+                                                                    <Calendar className="w-4 h-4 text-primary" />
+                                                                </div>
                                                             </div>
-                                                            <p className="text-xs font-medium">{trainingPrograms[0].title}</p>
-                                                        </div>
-                                                        <div className="space-y-1">
-                                                            <span className="text-[10px] text-muted-foreground">Status de Volume</span>
-                                                            <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
-                                                                <div className="bg-primary h-full w-[70%]" />
+
+                                                            <div className="space-y-2">
+                                                                <div className="flex justify-between items-end">
+                                                                    <span className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Intensidade Percetida</span>
+                                                                    <span className="text-[10px] text-primary font-black">75% (Moderada)</span>
+                                                                </div>
+                                                                <div className="w-full bg-muted/30 rounded-full h-2 overflow-hidden flex gap-1">
+                                                                    <div className="bg-primary h-full w-1/4" />
+                                                                    <div className="bg-primary h-full w-1/4" />
+                                                                    <div className="bg-primary h-full w-1/4" />
+                                                                    <div className="bg-muted h-full w-1/4" />
+                                                                </div>
                                                             </div>
-                                                            <p className="text-[10px] text-primary font-bold">Volume Moderado-Alto</p>
+
+                                                            <div className="space-y-3 pt-2">
+                                                                <div className="flex items-center gap-2 mb-2">
+                                                                    <Badge className="bg-primary/20 hover:bg-primary/30 text-primary border-none text-[9px] font-black uppercase">Veredito</Badge>
+                                                                </div>
+                                                                <div className="relative">
+                                                                    <div className="absolute -left-3 top-0 bottom-0 w-1 bg-amber-500/50 rounded-full" />
+                                                                    <p className="text-[11px] leading-relaxed italic text-foreground font-medium pl-2">
+                                                                        "Protocolo otimizado para {selectedStudent.goal}. O volume é decrescente ao longo da semana para favorecer a recuperação do sistema nervoso central."
+                                                                    </p>
+                                                                </div>
+                                                            </div>
                                                         </div>
-                                                        <div className="p-3 rounded-lg bg-muted/30 border border-border">
-                                                            <p className="text-[10px] leading-relaxed italic text-muted-foreground">
-                                                                "O foco em membros superiores e a periodização linear garantem progressão de carga constante. Mantenha o descanso rigoroso."
-                                                            </p>
-                                                        </div>
+
+                                                        <Button
+                                                            variant="ghost"
+                                                            onClick={() => setShowMethodology(true)}
+                                                            className="w-full h-8 border border-white/5 hover:bg-white/5 text-[9px] font-black uppercase tracking-widest"
+                                                        >
+                                                            Ver Metodologia Aplicada
+                                                        </Button>
                                                     </CardContent>
                                                 </Card>
-                                            </div>
+                                            </motion.div>
                                         )}
 
                                         {trainingPrograms.map((program: TrainingProgram) => (
@@ -570,87 +674,159 @@ const Protocols = () => {
                                     </Card>
                                 ) : (
                                     <div className="space-y-6">
-                                        {/* DIET MACROS CHART */}
+                                        {/* DIET MACROS CHART - PREMIUM REDESIGN */}
                                         {mealPlans.length > 0 && (
-                                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-                                                <Card className="lg:col-span-2 border-border bg-card shadow-lg">
-                                                    <CardHeader className="pb-2">
-                                                        <CardTitle className="text-sm font-bold flex items-center gap-2">
-                                                            <Utensils className="w-4 h-4 text-primary" /> Divisão de Macros e Calorias
+                                            <motion.div
+                                                initial={{ opacity: 0, scale: 0.98 }}
+                                                animate={{ opacity: 1, scale: 1 }}
+                                                className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8"
+                                            >
+                                                <Card className="lg:col-span-2 border-border/40 bg-card/40 backdrop-blur-xl shadow-2xl overflow-hidden relative">
+                                                    <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
+                                                    <CardHeader className="pb-4 border-b border-border/5">
+                                                        <CardTitle className="text-sm font-black italic tracking-tighter flex items-center gap-2 uppercase">
+                                                            <Target className="w-4 h-4 text-primary" /> Equilíbrio de Macronutrientes
                                                         </CardTitle>
-                                                        <CardDescription className="text-[10px]">Aporte nutricional planejado por dia</CardDescription>
+                                                        <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
+                                                            Distribuição calórica planejada
+                                                        </CardDescription>
                                                     </CardHeader>
-                                                    <CardContent className="pt-0 flex flex-col md:flex-row items-center gap-4">
-                                                        <div className="h-[180px] w-full max-w-[180px]">
+                                                    <CardContent className="pt-6 flex flex-col md:flex-row items-center gap-8">
+                                                        <div className="h-[200px] w-full max-w-[200px] relative">
+                                                            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                                                                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Total</p>
+                                                                <p className="text-2xl font-black italic tracking-tighter text-primary">{mealPlans[0].total_calories}</p>
+                                                                <p className="text-[8px] font-bold uppercase tracking-widest text-muted-foreground">kcal/dia</p>
+                                                            </div>
                                                             <ResponsiveContainer width="100%" height="100%">
                                                                 <PieChart>
                                                                     <Pie
                                                                         data={[
-                                                                            { name: 'Proteínas', value: Number(mealPlans[0].total_proteins) || 0, color: '#9b87f5' },
-                                                                            { name: 'Carbos', value: Number(mealPlans[0].total_carbs) || 0, color: '#7E69AB' },
-                                                                            { name: 'Gorduras', value: Number(mealPlans[0].total_fats) || 0, color: '#6E59A5' },
+                                                                            { name: 'Proteínas', value: Number(mealPlans[0].total_proteins) || 0 },
+                                                                            { name: 'Carbos', value: Number(mealPlans[0].total_carbs) || 0 },
+                                                                            { name: 'Gorduras', value: Number(mealPlans[0].total_fats) || 0 },
                                                                         ]}
-                                                                        innerRadius={50}
-                                                                        outerRadius={70}
-                                                                        paddingAngle={5}
+                                                                        innerRadius={65}
+                                                                        outerRadius={85}
+                                                                        paddingAngle={8}
                                                                         dataKey="value"
+                                                                        stroke="none"
                                                                     >
-                                                                        <Cell fill="#9b87f5" />
-                                                                        <Cell fill="#7E69AB" />
-                                                                        <Cell fill="#6E59A5" />
+                                                                        <Cell fill="#f59e0b" /> {/* Amber/Yellow for Protein */}
+                                                                        <Cell fill="#a855f7" /> {/* Purple for Carbs */}
+                                                                        <Cell fill="#ef4444" /> {/* Red for Fats */}
                                                                     </Pie>
-                                                                    <RechartsTooltip contentStyle={{ backgroundColor: '#111827', border: '1px solid #374151', borderRadius: '8px', fontSize: '12px' }} />
+                                                                    <RechartsTooltip
+                                                                        contentStyle={{
+                                                                            backgroundColor: '#09090b',
+                                                                            border: '1px solid #27272a',
+                                                                            borderRadius: '12px',
+                                                                            fontSize: '11px',
+                                                                            fontWeight: 'bold'
+                                                                        }}
+                                                                    />
                                                                 </PieChart>
                                                             </ResponsiveContainer>
                                                         </div>
-                                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 w-full">
-                                                            <div className="p-3 bg-muted/20 rounded-xl border border-border/50 text-center">
-                                                                <p className="text-[9px] text-muted-foreground uppercase font-black tracking-widest mb-1">Proteína</p>
-                                                                <p className="text-lg font-black text-[#9b87f5]">{mealPlans[0].total_proteins || 0}g</p>
+
+                                                        <div className="grid grid-cols-2 gap-3 w-full max-w-sm">
+                                                            <div className="p-4 bg-muted/10 rounded-2xl border border-border/40 hover:bg-muted/20 transition-colors">
+                                                                <div className="flex items-center gap-2 mb-2">
+                                                                    <div className="w-2 h-2 rounded-full bg-amber-500" />
+                                                                    <p className="text-[9px] text-muted-foreground uppercase font-black tracking-widest">Proteína</p>
+                                                                </div>
+                                                                <div className="flex items-baseline gap-1">
+                                                                    <p className="text-xl font-black italic text-amber-500">{mealPlans[0].total_proteins || 0}g</p>
+                                                                    <p className="text-[8px] text-muted-foreground font-bold">/dia</p>
+                                                                </div>
                                                             </div>
-                                                            <div className="p-3 bg-muted/20 rounded-xl border border-border/50 text-center">
-                                                                <p className="text-[9px] text-muted-foreground uppercase font-black tracking-widest mb-1">Carbo</p>
-                                                                <p className="text-lg font-black text-[#7E69AB]">{mealPlans[0].total_carbs || 0}g</p>
+                                                            <div className="p-4 bg-muted/10 rounded-2xl border border-border/40 hover:bg-muted/20 transition-colors">
+                                                                <div className="flex items-center gap-2 mb-2">
+                                                                    <div className="w-2 h-2 rounded-full bg-purple-500" />
+                                                                    <p className="text-[9px] text-muted-foreground uppercase font-black tracking-widest">Carbo</p>
+                                                                </div>
+                                                                <div className="flex items-baseline gap-1">
+                                                                    <p className="text-xl font-black italic text-purple-500">{mealPlans[0].total_carbs || 0}g</p>
+                                                                    <p className="text-[8px] text-muted-foreground font-bold">/dia</p>
+                                                                </div>
                                                             </div>
-                                                            <div className="p-3 bg-muted/20 rounded-xl border border-border/50 text-center">
-                                                                <p className="text-[9px] text-muted-foreground uppercase font-black tracking-widest mb-1">Gordura</p>
-                                                                <p className="text-lg font-black text-[#6E59A5]">{mealPlans[0].total_fats || 0}g</p>
+                                                            <div className="p-4 bg-muted/10 rounded-2xl border border-border/40 hover:bg-muted/20 transition-colors">
+                                                                <div className="flex items-center gap-2 mb-2">
+                                                                    <div className="w-2 h-2 rounded-full bg-red-500" />
+                                                                    <p className="text-[9px] text-muted-foreground uppercase font-black tracking-widest">Gordura</p>
+                                                                </div>
+                                                                <div className="flex items-baseline gap-1">
+                                                                    <p className="text-xl font-black italic text-red-500">{mealPlans[0].total_fats || 0}g</p>
+                                                                    <p className="text-[8px] text-muted-foreground font-bold">/dia</p>
+                                                                </div>
                                                             </div>
-                                                            <div className="p-3 bg-primary/10 rounded-xl border border-primary/20 text-center">
-                                                                <p className="text-[9px] text-primary uppercase font-black tracking-widest mb-1">Calorias</p>
-                                                                <p className="text-lg font-black text-primary">{mealPlans[0].total_calories || 0}</p>
+                                                            <div className="p-4 bg-primary/10 rounded-2xl border border-primary/20 hover:bg-primary/20 transition-colors">
+                                                                <div className="flex items-center gap-2 mb-2">
+                                                                    <Activity className="w-3 h-3 text-primary" />
+                                                                    <p className="text-[9px] text-primary uppercase font-black tracking-widest">Meta Kcal</p>
+                                                                </div>
+                                                                <div className="flex items-baseline gap-1">
+                                                                    <p className="text-xl font-black italic text-primary">{mealPlans[0].total_calories || 0}</p>
+                                                                    <p className="text-[8px] text-primary/70 font-bold">BMR+</p>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </CardContent>
                                                 </Card>
 
-                                                <Card className="border-border bg-card shadow-lg bg-gradient-to-br from-primary/5 to-transparent border-t-primary/20">
+                                                <Card className="border-border/40 bg-card/40 backdrop-blur-xl shadow-2xl relative overflow-hidden group">
+                                                    <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-primary/20 via-primary to-primary/20" />
                                                     <CardHeader className="pb-2">
-                                                        <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                                                            <Sparkles className="w-3 h-3 text-primary" /> Análise Nutricional
+                                                        <CardTitle className="text-xs font-black uppercase tracking-widest text-muted-foreground/80 flex items-center gap-2">
+                                                            <Sparkles className="w-4 h-4 text-primary" /> Diagnóstico Nutricional
                                                         </CardTitle>
                                                     </CardHeader>
-                                                    <CardContent className="space-y-4 pt-2">
-                                                        <div className="space-y-1">
-                                                            <span className="text-[10px] text-muted-foreground">Densidade Nutricional</span>
-                                                            <div className="flex gap-1">
-                                                                {Array.from({ length: 5 }).map((_, i) => (
-                                                                    <div key={i} className={cn("h-1.5 flex-1 rounded-full", i < 4 ? "bg-primary" : "bg-muted")} />
-                                                                ))}
+                                                    <CardContent className="space-y-6 pt-2">
+                                                        <div className="space-y-3">
+                                                            <div className="flex justify-between items-center bg-muted/10 p-2.5 rounded-xl border border-border/20">
+                                                                <div className="flex items-center gap-3">
+                                                                    <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                                                                        <Droplet className="w-4 h-4 text-blue-500" />
+                                                                    </div>
+                                                                    <div className="space-y-0.5">
+                                                                        <p className="text-[9px] text-muted-foreground uppercase font-black tracking-widest">Hidratação Sugerida</p>
+                                                                        <p className="text-sm font-black italic">3.2 Litros / dia</p>
+                                                                    </div>
+                                                                </div>
                                                             </div>
-                                                            <p className="text-[10px] text-primary font-bold">Excelente</p>
+
+                                                            <div className="space-y-2">
+                                                                <div className="flex justify-between">
+                                                                    <span className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Densidade de Micronutrientes</span>
+                                                                    <span className="text-[10px] text-primary font-black">9.2 / 10</span>
+                                                                </div>
+                                                                <div className="flex gap-1.5 h-1.5 w-full">
+                                                                    {[1, 1, 1, 1, 0].map((v, i) => (
+                                                                        <div key={i} className={cn("flex-1 rounded-full bg-muted/40", i < 4 && "bg-primary")} />
+                                                                    ))}
+                                                                </div>
+                                                            </div>
                                                         </div>
-                                                        <div className="p-3 rounded-lg bg-muted/30 border border-border">
-                                                            <p className="text-[10px] leading-relaxed italic text-muted-foreground">
-                                                                "Plano estruturado para manter o metabolismo ativo com {mealPlans[0].meals?.length} refeições calculadas. Foque nos horários de pico de insulina."
+
+                                                        <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10 relative">
+                                                            <div className="absolute top-2 right-2">
+                                                                <Sparkles className="w-3 h-3 text-primary animate-pulse" />
+                                                            </div>
+                                                            <p className="text-[11px] leading-relaxed italic text-foreground font-medium">
+                                                                "Estratégia focada em densidade nutricional. A proporção de macronutrientes suporta treinos de alta intensidade mantendo a glicemia estável."
                                                             </p>
                                                         </div>
-                                                        <Button variant="outline" size="sm" className="w-full text-[10px] h-7 gap-2">
-                                                            <Download className="w-3 h-3" /> Gerar PDF Dieta
+
+                                                        <Button
+                                                            onClick={handleGenerateDietPDF}
+                                                            disabled={isGeneratingPDF}
+                                                            className="w-full h-10 shadow-lg shadow-primary/10 text-[10px] font-black uppercase tracking-widest gap-2"
+                                                        >
+                                                            <Download className="w-3 h-3" /> {isGeneratingPDF ? "Gerando..." : "Gerar Plano PDF"}
                                                         </Button>
                                                     </CardContent>
                                                 </Card>
-                                            </div>
+                                            </motion.div>
                                         )}
 
                                         {mealPlans.map((plan: MealPlan) => (
@@ -760,6 +936,66 @@ const Protocols = () => {
                     )}
                 </main>
             </div>
+            {/* METHODOLOGY MODAL */}
+            <Dialog open={showMethodology} onOpenChange={setShowMethodology}>
+                <DialogContent className="max-w-2xl bg-[#09090b] border-border/40 text-white overflow-hidden">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none" />
+                    <DialogHeader>
+                        <div className="flex items-center gap-2 mb-2">
+                            <Badge className="bg-primary/20 text-primary border-none text-[10px] font-black uppercase">Relatório Técnico</Badge>
+                        </div>
+                        <DialogTitle className="text-2xl font-black italic tracking-tighter uppercase flex items-center gap-3">
+                            <Activity className="w-6 h-6 text-primary" /> Metodologia Aplicada
+                        </DialogTitle>
+                        <DialogDescription className="text-muted-foreground font-medium uppercase tracking-widest text-[10px]">
+                            Análise estrutural do planejamento de força
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                        <div className="space-y-4">
+                            <div className="p-4 rounded-2xl bg-muted/20 border border-white/5">
+                                <h4 className="text-[10px] font-black uppercase tracking-widest text-primary mb-3">Distribuição de Carga</h4>
+                                <p className="text-sm leading-relaxed text-muted-foreground">
+                                    Utilizamos o sistema de <span className="text-white font-bold">Periodização Ondulatória Diária</span>. A variação de intensidade ao longo da semana evita estagnação e otimiza a recuperação neuromuscular.
+                                </p>
+                            </div>
+                            <div className="p-4 rounded-2xl bg-muted/20 border border-white/5">
+                                <h4 className="text-[10px] font-black uppercase tracking-widest text-primary mb-3">Volume Semanal</h4>
+                                <p className="text-sm leading-relaxed text-muted-foreground">
+                                    O volume total foi calculado em {trainingPrograms[0]?.training_sessions?.length * 45} mins estimados, com foco em grupos musculares alvo conforme o objetivo: <span className="text-white font-bold italic">{selectedStudent?.goal}</span>.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div className="p-4 rounded-2xl bg-muted/20 border border-white/5">
+                                <h4 className="text-[10px] font-black uppercase tracking-widest text-primary mb-3">Cadência de Repetição</h4>
+                                <p className="text-sm leading-relaxed text-muted-foreground">
+                                    Foco em <span className="text-white font-bold italic">TUT (Time Under Tension)</span>. Fase excêntrica de 3-4 segundos para maximizar microrupturas e resposta hipertrófica.
+                                </p>
+                            </div>
+                            <div className="p-4 rounded-2xl bg-primary/5 border border-primary/20 relative overflow-hidden group">
+                                <Zap className="absolute -right-4 -bottom-4 w-24 h-24 text-primary/10 group-hover:scale-110 transition-transform" />
+                                <h4 className="text-[10px] font-black uppercase tracking-widest text-primary mb-2">Pilar RAVA PRO</h4>
+                                <p className="text-[12px] leading-relaxed italic text-foreground font-medium pr-4">
+                                    "O treino não é apenas sobre carga, é sobre a precisão da contração em cada milímetro do movimento."
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="mt-8 flex justify-end">
+                        <Button
+                            variant="outline"
+                            onClick={() => setShowMethodology(false)}
+                            className="rounded-full px-8 text-[10px] font-black uppercase tracking-widest border-border/40 hover:bg-white/5"
+                        >
+                            Fechar Análise
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };

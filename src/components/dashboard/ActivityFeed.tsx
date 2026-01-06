@@ -5,14 +5,15 @@ import { MessageSquareOff } from "lucide-react";
 interface ActivityFeedProps {
   activities: Activity[];
   onViewAll?: () => void;
+  onActivityClick?: (activity: Activity) => void;
 }
 
-export function ActivityFeed({ activities, onViewAll }: ActivityFeedProps) {
+export function ActivityFeed({ activities, onViewAll, onActivityClick }: ActivityFeedProps) {
   return (
     <div className="bg-card rounded-xl border border-border overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-border">
-        <h3 className="text-sm font-semibold text-foreground">Mensagens</h3>
+        <h3 className="text-sm font-semibold text-foreground">Atividades Recentes</h3>
         {activities.length > 0 && (
           <button
             onClick={onViewAll}
@@ -29,6 +30,7 @@ export function ActivityFeed({ activities, onViewAll }: ActivityFeedProps) {
           activities.map((activity) => (
             <div
               key={activity.id}
+              onClick={() => onActivityClick?.(activity)}
               className="p-4 hover:bg-surface-hover transition-colors cursor-pointer"
             >
               <div className="flex gap-3">

@@ -24,7 +24,7 @@ export async function getStudents(): Promise<Student[]> {
     phone: s.phone,
     avatar: s.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&h=150&fit=crop&crop=faces',
     goal: (s.anamnesis?.[0]?.main_goal as any) || 'condicionamento',
-    status: s.status === 'active' ? 'ativo' : s.status === 'inactive' ? 'inativo' : s.status === 'waiting' ? 'aguardando' : 'ativo',
+    status: s.status === 'active' ? 'ativo' : s.status === 'inactive' ? 'inativo' : s.status === 'pending_approval' ? 'pendente' : 'ativo',
     classification: s.classification || 'bronze',
     serviceType: s.service_type || 'online',
     progress: 0,
@@ -36,6 +36,16 @@ export async function getStudents(): Promise<Student[]> {
   }));
 }
 
+export async function getPendingApprovalsCount(): Promise<number> {
+  const { count, error } = await supabase
+    .from('students')
+    .select('*', { count: 'exact', head: true })
+    .eq('status', 'pending_approval');
+
+  if (error) return 0;
+  return count || 0;
+}
+
 export async function getActiveStudents(): Promise<Student[]> {
   const students = await getStudents();
   return students.filter(s => s.status === 'ativo' || s.status === 'pendente');
@@ -44,7 +54,7 @@ export async function getActiveStudents(): Promise<Student[]> {
 export async function uploadFile(file: File, bucket: string = 'avatars'): Promise<string> {
   const { data: userData } = await supabase.auth.getUser();
   const userId = userData.user?.id || 'public';
-  
+
   const fileExt = file.name.split('.').pop();
   const fileName = `${userId}-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
   const filePath = fileName;
@@ -84,7 +94,7 @@ const cleanData = (data: Record<string, any>) => {
   return cleaned;
 };
 
-export async function createStudent(rawFormData: any): Promise<void> {
+export async function createStudent(rawFormData: any): Promise<any> {
   const formData = cleanData(rawFormData);
   const { data: userData, error: userError } = await supabase.auth.getUser();
   if (userError || !userData.user) throw new Error("Usuário não autenticado");
@@ -99,6 +109,8 @@ export async function createStudent(rawFormData: any): Promise<void> {
       phone: formData.phone,
       birth_date: formData.birth_date,
       sex: formData.sex,
+      cpf: formData.cpf,
+      rg: formData.rg,
       profession: formData.profession,
       marital_status: formData.marital_status,
       emergency_contact: formData.emergency_contact,
@@ -148,7 +160,8 @@ export async function createStudent(rawFormData: any): Promise<void> {
       contraindications: formData.contraindications,
       initial_training_frequency: formData.training_frequency,
       training_level: formData.training_level,
-      uses_ergogenics: formData.uses_ergogenics === 'true'
+      uses_ergogenics: formData.uses_ergogenics === 'true',
+      uses_ergogenics_details: formData.uses_ergogenics_details
     });
 
   if (anamnesisError) {
@@ -160,6 +173,8 @@ export async function createStudent(rawFormData: any): Promise<void> {
     });
     throw anamnesisError;
   }
+
+  return student;
 }
 
 export async function getStudentDetails(studentId: string): Promise<any> {
@@ -175,6 +190,34 @@ export async function getStudentDetails(studentId: string): Promise<any> {
   if (studentError) throw studentError;
 
   return student;
+}
+
+export const acceptLegalTerms = async (studentId: string) => {
+  const timestamp = new Date().toISOString();
+  const { error } = await supabase
+    .from("students")
+    .update({
+      legal_consent_at: timestamp,
+      terms_accepted_at: timestamp,
+      updated_at: timestamp
+    })
+    .eq("id", studentId);
+
+  if (error) throw error;
+};
+
+export async function getStudentProfile(studentId: string): Promise<any> {
+  const { data, error } = await supabase
+    .from('students')
+    .select(`
+      *,
+      anamnesis (id)
+    `)
+    .eq('id', studentId)
+    .single();
+
+  if (error) throw error;
+  return data;
 }
 
 export async function getTrainingPrograms(studentId: string): Promise<any[]> {
@@ -263,7 +306,7 @@ export async function saveTrainingProgram(studentId: string, program: any): Prom
       const { error: exError } = await supabase
         .from('training_exercises')
         .insert(exercisesToInsert);
-      
+
       if (exError) throw exError;
     }
   }
@@ -299,7 +342,8 @@ export async function saveMealPlan(studentId: string, plan: any): Promise<void> 
       .insert({
         meal_plan_id: newPlan.id,
         name: meal.name,
-        meal_time: meal.time
+        meal_time: meal.time,
+        type: meal.type
       })
       .select()
       .single();
@@ -318,7 +362,7 @@ export async function saveMealPlan(studentId: string, plan: any): Promise<void> 
       const { error: foodError } = await supabase
         .from('meal_foods')
         .insert(foodsToInsert);
-      
+
       if (foodError) throw foodError;
     }
   }
@@ -329,7 +373,7 @@ export async function updateStudentStatus(studentId: string, status: string): Pr
     .from('students')
     .update({ status })
     .eq('id', studentId);
-  
+
   if (error) throw error;
 }
 
@@ -338,7 +382,7 @@ export async function deleteStudent(studentId: string): Promise<void> {
     .from('students')
     .delete()
     .eq('id', studentId);
-  
+
   if (error) throw error;
 }
 
@@ -352,6 +396,8 @@ export async function updateStudent(studentId: string, rawData: any): Promise<vo
       phone: data.phone,
       birth_date: data.birth_date,
       sex: data.sex,
+      cpf: data.cpf,
+      rg: data.rg,
       profession: data.profession,
       marital_status: data.marital_status,
       emergency_contact: data.emergency_contact,
@@ -361,7 +407,7 @@ export async function updateStudent(studentId: string, rawData: any): Promise<vo
       service_type: data.service_type
     })
     .eq('id', studentId);
-  
+
   if (studentError) {
     console.error("Erro detalhado ao atualizar aluno:", {
       message: studentError.message,
@@ -402,7 +448,8 @@ export async function updateStudent(studentId: string, rawData: any): Promise<vo
       contraindications: data.contraindications,
       initial_training_frequency: data.training_frequency,
       training_level: data.training_level,
-      uses_ergogenics: data.uses_ergogenics === 'true'
+      uses_ergogenics: data.uses_ergogenics === 'true',
+      uses_ergogenics_details: data.uses_ergogenics_details
     })
     .eq('student_id', studentId);
 
@@ -445,14 +492,14 @@ export async function getDashboardStats(): Promise<any> {
     .from('students')
     .select('id')
     .eq('coach_id', coachId);
-  
+
   const studentIds = allStudents?.map(s => s.id) || [];
-  
+
   const { data: anamnesisData } = await supabase
     .from('anamnesis')
     .select('student_id')
     .in('student_id', studentIds);
-  
+
   const studentIdsWithAnamnesis = new Set(anamnesisData?.map(a => a.student_id));
   const pendingAnamnesis = studentIds.filter(id => !studentIdsWithAnamnesis.has(id)).length;
 
@@ -487,7 +534,7 @@ export async function getDashboardStats(): Promise<any> {
     .lte('created_at', endOfPreviousMonth.toISOString());
 
   const protocolsPrevMonth = (trainingPrevMonth || 0) + (mealPrevMonth || 0);
-  
+
   const calcTrend = (current: number, prev: number) => {
     if (prev === 0) return current > 0 ? "+100%" : "0%";
     const diff = ((current - prev) / prev) * 100;
@@ -500,87 +547,186 @@ export async function getDashboardStats(): Promise<any> {
     pendingAnamnesis,
     protocolsThisMonth,
     trends: {
-        totalStudents: "+5%", // Mock de alunos por enquanto ou calcular por data
-        activeStudents: "+2%",
-        pendingAnamnesis: "-10%",
-        protocols: calcTrend(protocolsThisMonth, protocolsPrevMonth)
+      totalStudents: "+5%", // Mock de alunos por enquanto ou calcular por data
+      activeStudents: "+2%",
+      pendingAnamnesis: "-10%",
+      protocols: calcTrend(protocolsThisMonth, protocolsPrevMonth)
     }
   };
 }
 export async function getCoachProfile(): Promise<any> {
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) return null;
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user) return null;
 
-    const { data, error } = await supabase
-        .from('coaches')
-        .select('*')
-        .eq('id', userData.user.id)
-        .single();
+  const { data, error } = await supabase
+    .from('coaches')
+    .select('*')
+    .eq('id', userData.user.id)
+    .single();
 
-    if (error) {
-        console.error("Error fetching coach profile:", error.message);
-        return null;
-    }
+  if (error) {
+    console.error("Error fetching coach profile:", error.message);
+    return null;
+  }
 
-    return data;
+  return data;
+}
+
+export async function getCoachDetailsPublic(coachId: string): Promise<any> {
+  const { data, error } = await supabase.rpc('get_public_coach_profile', { p_coach_id: coachId });
+
+  if (error) {
+    console.error("Error fetching coach public profile:", error.message);
+    return null;
+  }
+
+  return data && data.length > 0 ? data[0] : null;
 }
 
 export async function updateCoachProfile(data: any): Promise<void> {
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) throw new Error("Não autenticado");
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user) throw new Error("Não autenticado");
 
-    const { error } = await supabase
-        .from('coaches')
-        .upsert({
-            id: userData.user.id,
-            name: data.name,
-            email: userData.user.email,
-            avatar_url: data.avatar_url,
-            phone: data.phone,
-            specialty: data.specialty,
-            bio: data.bio
-        });
+  const { error } = await supabase
+    .from('coaches')
+    .upsert({
+      id: userData.user.id,
+      name: data.name,
+      email: userData.user.email,
+      avatar_url: data.avatar_url,
+      phone: data.phone,
+      specialty: data.specialty,
+      bio: data.bio
+    });
 
-    if (error) throw error;
+  if (error) throw error;
 }
 
 export async function createPhysicalAssessment(data: any): Promise<void> {
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) throw new Error("Não autenticado");
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user) throw new Error("Não autenticado");
 
-    const { error } = await supabase
-        .from('physical_assessments')
-        .insert({
-            student_id: data.student_id,
-            coach_id: userData.user.id,
-            assessment_date: data.assessment_date,
-            weight: data.weight,
-            height: data.height,
-            bmi: data.bmi,
-            body_fat: data.body_fat,
-            muscle_mass: data.muscle_mass,
-            circumferences: data.circumferences,
-            postural_notes: data.postural_notes,
-            functional_notes: data.functional_notes,
-            general_notes: data.general_notes,
-            front_photo_url: data.front_photo_url,
-            left_side_photo_url: data.left_side_photo_url,
-            right_side_photo_url: data.right_side_photo_url,
-            back_photo_url: data.back_photo_url,
-            video_url: data.video_url,
-            videos: data.videos || []
-        });
+  const { error } = await supabase
+    .from('physical_assessments')
+    .insert({
+      student_id: data.student_id,
+      coach_id: userData.user.id,
+      assessment_date: data.assessment_date,
+      weight: data.weight,
+      height: data.height,
+      bmi: data.bmi,
+      body_fat: data.body_fat,
+      muscle_mass: data.muscle_mass,
+      circumferences: data.circumferences,
+      postural_notes: data.postural_notes,
+      functional_notes: data.functional_notes,
+      general_notes: data.general_notes,
+      front_photo_url: data.front_photo_url,
+      left_side_photo_url: data.left_side_photo_url,
+      right_side_photo_url: data.right_side_photo_url,
+      back_photo_url: data.back_photo_url,
+      video_url: data.video_url,
+      videos: data.videos || [],
+      neck: data.neck,
+      shoulder: data.shoulder,
+      chest: data.chest,
+      waist: data.waist,
+      abdomen: data.abdomen,
+      hip: data.hip,
+      arm_right_relaxed: data.arm_right_relaxed,
+      arm_left_relaxed: data.arm_left_relaxed,
+      arm_right_contracted: data.arm_right_contracted,
+      arm_left_contracted: data.arm_left_contracted,
+      thigh_right_proximal: data.thigh_right_proximal,
+      thigh_left_proximal: data.thigh_left_proximal,
+      thigh_right_medial: data.thigh_right_medial,
+      thigh_left_medial: data.thigh_left_medial,
+      thigh_right_distal: data.thigh_right_distal,
+      thigh_left_distal: data.thigh_left_distal,
+      calf_right: data.calf_right,
+      calf_left: data.calf_left,
+      chest_fold: data.chest_fold,
+      midaxillary_fold: data.midaxillary_fold,
+      triceps_fold: data.triceps_fold,
+      subscapular_fold: data.subscapular_fold,
+      abdominal_fold: data.abdominal_fold,
+      suprailiac_fold: data.suprailiac_fold,
+      thigh_fold: data.thigh_fold,
+      mobility_notes: data.mobility_notes,
+      rm_notes: data.rm_notes
+    });
 
-    if (error) throw error;
+  if (error) throw error;
 }
 
 export async function getPhysicalAssessments(studentId: string): Promise<any[]> {
-    const { data, error } = await supabase
-        .from('physical_assessments')
-        .select('*')
-        .eq('student_id', studentId)
-        .order('assessment_date', { ascending: false });
+  const { data, error } = await supabase
+    .from('physical_assessments')
+    .select('*')
+    .eq('student_id', studentId)
+    .order('assessment_date', { ascending: false });
 
-    if (error) throw error;
-    return data || [];
+  if (error) throw error;
+  return data || [];
+}
+export async function updatePhysicalAssessment(assessmentId: string, data: any): Promise<void> {
+  const { error } = await supabase
+    .from('physical_assessments')
+    .update({
+      assessment_date: data.assessment_date,
+      weight: data.weight,
+      height: data.height,
+      bmi: data.bmi,
+      body_fat: data.body_fat,
+      muscle_mass: data.muscle_mass,
+      circumferences: data.circumferences,
+      postural_notes: data.postural_notes,
+      functional_notes: data.functional_notes,
+      general_notes: data.general_notes,
+      front_photo_url: data.front_photo_url,
+      left_side_photo_url: data.left_side_photo_url,
+      right_side_photo_url: data.right_side_photo_url,
+      back_photo_url: data.back_photo_url,
+      video_url: data.video_url,
+      videos: data.videos || [],
+      neck: data.neck,
+      shoulder: data.shoulder,
+      chest: data.chest,
+      waist: data.waist,
+      abdomen: data.abdomen,
+      hip: data.hip,
+      arm_right_relaxed: data.arm_right_relaxed,
+      arm_left_relaxed: data.arm_left_relaxed,
+      arm_right_contracted: data.arm_right_contracted,
+      arm_left_contracted: data.arm_left_contracted,
+      thigh_right_proximal: data.thigh_right_proximal,
+      thigh_left_proximal: data.thigh_left_proximal,
+      thigh_right_medial: data.thigh_right_medial,
+      thigh_left_medial: data.thigh_left_medial,
+      thigh_right_distal: data.thigh_right_distal,
+      thigh_left_distal: data.thigh_left_distal,
+      calf_right: data.calf_right,
+      calf_left: data.calf_left,
+      chest_fold: data.chest_fold,
+      midaxillary_fold: data.midaxillary_fold,
+      triceps_fold: data.triceps_fold,
+      subscapular_fold: data.subscapular_fold,
+      abdominal_fold: data.abdominal_fold,
+      suprailiac_fold: data.suprailiac_fold,
+      thigh_fold: data.thigh_fold,
+      mobility_notes: data.mobility_notes,
+      rm_notes: data.rm_notes
+    })
+    .eq('id', assessmentId);
+
+  if (error) throw error;
+}
+
+export async function deletePhysicalAssessment(assessmentId: string): Promise<void> {
+  const { error } = await supabase
+    .from('physical_assessments')
+    .delete()
+    .eq('id', assessmentId);
+
+  if (error) throw error;
 }

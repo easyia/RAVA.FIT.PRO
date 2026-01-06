@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { AppSidebar } from '@/components/layout/AppSidebar';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -58,16 +59,14 @@ interface Progression {
 
 interface AIResponse {
     programa_treino: WorkoutProgram;
-    adaptacoes_lesoes: Adaptation[];
+    adaptacoes_lesoes: (Adaptation & { racional_dor?: string })[];
     treinos: WorkoutSession[];
-    progressao: Progression;
     justificativa: {
         escolha_exercicios: string;
         volume_intensidade: string;
-        periodizacao: string;
-        adaptacoes: string;
+        sincronia_nutricional: string;
     };
-    proximos_passos: string;
+    progressao: Progression;
 }
 
 const AITrainingAssistant = () => {
@@ -76,11 +75,16 @@ const AITrainingAssistant = () => {
     const [prompt, setPrompt] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
     const [generatedWorkout, setGeneratedWorkout] = useState<AIResponse | null>(null);
+    const [studentSearch, setStudentSearch] = useState('');
 
     const { data: students = [] } = useQuery({
         queryKey: ['students'],
         queryFn: getStudents,
     });
+
+    const filteredStudents = useMemo(() => {
+        return students.filter(s => s.name.toLowerCase().includes(studentSearch.toLowerCase()));
+    }, [students, studentSearch]);
 
     const { data: coach } = useQuery({
         queryKey: ['coachProfile'],
@@ -157,8 +161,19 @@ const AITrainingAssistant = () => {
             };
 
             await saveTrainingProgram(selectedStudentId, programToSave);
-            toast.success('Treino salvo e atribuído!');
-            navigate('/protocolos');
+            toast.success('Treino salvo e atribuído! Redirecionando para planejamento nutricional...', {
+                duration: 3000
+            });
+
+            // Auto redirect to nutrition after successful save
+            setTimeout(() => {
+                navigate('/ia-diet-assistant', {
+                    state: {
+                        studentId: selectedStudentId,
+                        workoutSync: generatedWorkout.justificativa.sincronia_nutricional
+                    }
+                });
+            }, 2000);
         } catch (error) {
             console.error(error);
             toast.error('Erro ao salvar.');
@@ -204,7 +219,9 @@ const AITrainingAssistant = () => {
 
             if (data.success) {
                 setGeneratedWorkout(data.workout);
-                toast.success('Treino gerado com sucesso!');
+                toast.success('Treino gerado! Revise o protocolo abaixo e clique em "Prescrever" para salvar e ir para a Dieta.', {
+                    duration: 5000
+                });
             } else {
                 throw new Error(data.error || 'Erro desconhecido na geração do treino.');
             }
@@ -245,7 +262,7 @@ const AITrainingAssistant = () => {
             >
                 <main className="p-8">
                     <DashboardHeader
-                        title="Assistente IA"
+                        title="Prescrição IA (Full Stack)"
                         showSearch={false}
                         actions={
                             <Button disabled variant="outline" className="gap-2">
@@ -280,21 +297,35 @@ const AITrainingAssistant = () => {
                                                 </Badge>
                                             )}
                                         </div>
-                                        <Select value={selectedStudentId} onValueChange={setSelectedStudentId}>
-                                            <SelectTrigger className="h-12">
-                                                <SelectValue placeholder="Selecione um aluno..." />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {students.map((student) => (
-                                                    <SelectItem key={student.id} value={student.id}>
-                                                        <div className="flex items-center gap-2">
-                                                            <img src={student.avatar} className="w-6 h-6 rounded-full object-cover" />
-                                                            {student.name}
+                                        <div className="relative">
+                                            <Input
+                                                placeholder="🔍 Pesquisar aluno pelo nome..."
+                                                value={studentSearch}
+                                                onChange={(e) => setStudentSearch(e.target.value)}
+                                                className="mb-2 h-10 text-xs border-dashed"
+                                            />
+                                            <Select value={selectedStudentId} onValueChange={setSelectedStudentId}>
+                                                <SelectTrigger className="h-12">
+                                                    <SelectValue placeholder={studentSearch ? `Resultados para "${studentSearch}"` : "Selecione um aluno..."} />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {filteredStudents.length > 0 ? (
+                                                        filteredStudents.map((student) => (
+                                                            <SelectItem key={student.id} value={student.id}>
+                                                                <div className="flex items-center gap-2">
+                                                                    <img src={student.avatar} className="w-6 h-6 rounded-full object-cover" />
+                                                                    {student.name}
+                                                                </div>
+                                                            </SelectItem>
+                                                        ))
+                                                    ) : (
+                                                        <div className="p-4 text-center text-xs text-muted-foreground">
+                                                            Nenhum aluno encontrado
                                                         </div>
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
+                                                    )}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
                                     </div>
 
                                     {/* Student Preview Card */}
@@ -416,11 +447,11 @@ const AITrainingAssistant = () => {
                                             <div className="flex justify-between items-start">
                                                 <div>
                                                     <CardTitle className="text-2xl">{generatedWorkout.programa_treino.titulo}</CardTitle>
-                                                    <CardDescription className="flex items-center gap-2 mt-2">
+                                                    <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
                                                         <Badge variant="secondary">{generatedWorkout.programa_treino.objetivo}</Badge>
                                                         <Badge variant="outline">{generatedWorkout.programa_treino.nivel}</Badge>
                                                         <Badge variant="outline">{generatedWorkout.programa_treino.frequencia_semanal}x/Semana</Badge>
-                                                    </CardDescription>
+                                                    </div>
                                                 </div>
                                                 <Button
                                                     variant="outline"
@@ -450,6 +481,11 @@ const AITrainingAssistant = () => {
                                                             <p><span className="font-medium">Lesão:</span> {adapt.lesao}</p>
                                                             <p><span className="font-medium">Evitados:</span> {adapt.exercicios_evitados.join(", ")}</p>
                                                             <p><span className="font-medium">Substituições:</span> {adapt.substituicoes.join(", ")}</p>
+                                                            {adapt.racional_dor && (
+                                                                <p className="mt-2 p-2 bg-status-error/10 rounded border border-status-error/20 text-[11px] font-bold">
+                                                                    ⚠️ ZONA DE EXCLUSÃO: {adapt.racional_dor}
+                                                                </p>
+                                                            )}
                                                         </div>
                                                     ))}
                                                 </div>
@@ -468,60 +504,79 @@ const AITrainingAssistant = () => {
                                                         </CardTitle>
                                                         <Badge className="bg-surface text-foreground">{session.dia_semana_sugerido}</Badge>
                                                     </div>
-                                                    <CardDescription>Foco: {session.foco}</CardDescription>
+                                                    <div className="text-sm text-muted-foreground">Foco: {session.foco}</div>
                                                 </CardHeader>
                                                 <CardContent className="pt-6">
                                                     <div className="space-y-4">
                                                         {session.exercicios.map((ex, exIdx) => (
-                                                            <div key={exIdx} className="flex items-start gap-4 p-3 rounded-lg hover:bg-muted/50 transition-colors border border-transparent hover:border-border">
-                                                                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
+                                                            <div key={exIdx} className="group flex flex-col sm:flex-row items-start gap-4 p-4 rounded-2xl bg-muted/20 border border-border/40 hover:border-primary/30 transition-all duration-300">
+                                                                <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-black text-sm shadow-inner group-hover:scale-110 transition-transform">
                                                                     {exIdx + 1}
                                                                 </div>
-                                                                <div className="flex-1">
-                                                                    <div className="flex justify-between items-start mb-2">
-                                                                        <input
-                                                                            type="text"
-                                                                            value={ex.nome}
-                                                                            onChange={(e) => handleEditExercise(index, exIdx, 'nome', e.target.value)}
-                                                                            className="bg-transparent border-none p-0 font-medium text-foreground focus:ring-0 focus:outline-none w-full"
-                                                                        />
-                                                                        <div className="flex gap-2 text-xs text-muted-foreground items-center shrink-0 ml-4">
-                                                                            <input
-                                                                                type="number"
-                                                                                value={ex.series}
-                                                                                onChange={(e) => handleEditExercise(index, exIdx, 'series', parseInt(e.target.value))}
-                                                                                className="w-8 bg-muted/50 rounded px-1 focus:ring-1 focus:ring-primary outline-none"
-                                                                            />
-                                                                            <span>séries</span>
-                                                                            <input
+
+                                                                <div className="flex-1 w-full space-y-3">
+                                                                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                                                        <div className="flex-1">
+                                                                            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1 block">Nome do Exercício</label>
+                                                                            <Input
                                                                                 type="text"
-                                                                                value={ex.repeticoes}
-                                                                                onChange={(e) => handleEditExercise(index, exIdx, 'repeticoes', e.target.value)}
-                                                                                className="w-12 bg-muted/50 rounded px-1 focus:ring-1 focus:ring-primary outline-none text-center"
+                                                                                value={ex.nome}
+                                                                                onChange={(e) => handleEditExercise(index, exIdx, 'nome', e.target.value)}
+                                                                                className="h-9 font-bold bg-transparent border-none focus-visible:ring-1 focus-visible:ring-primary/30 px-0 text-base"
                                                                             />
-                                                                            <span>reps</span>
-                                                                            <input
-                                                                                type="number"
-                                                                                value={ex.descanso_segundos}
-                                                                                onChange={(e) => handleEditExercise(index, exIdx, 'descanso_segundos', parseInt(e.target.value))}
-                                                                                className="w-10 bg-muted/50 rounded px-1 focus:ring-1 focus:ring-primary outline-none text-center"
-                                                                            />
-                                                                            <span>s</span>
+                                                                        </div>
+
+                                                                        <div className="flex items-center gap-2 shrink-0">
+                                                                            <div className="flex flex-col items-center">
+                                                                                <label className="text-[8px] font-black uppercase tracking-tighter text-muted-foreground mb-1">Séries</label>
+                                                                                <Input
+                                                                                    type="number"
+                                                                                    value={ex.series}
+                                                                                    onChange={(e) => handleEditExercise(index, exIdx, 'series', parseInt(e.target.value))}
+                                                                                    className="w-12 h-9 text-center font-bold bg-surface border-none focus-visible:ring-2 focus-visible:ring-primary shadow-sm rounded-lg"
+                                                                                />
+                                                                            </div>
+                                                                            <div className="flex flex-col items-center">
+                                                                                <label className="text-[8px] font-black uppercase tracking-tighter text-muted-foreground mb-1">Reps</label>
+                                                                                <Input
+                                                                                    type="text"
+                                                                                    value={ex.repeticoes}
+                                                                                    onChange={(e) => handleEditExercise(index, exIdx, 'repeticoes', e.target.value)}
+                                                                                    className="w-16 h-9 text-center font-bold bg-surface border-none focus-visible:ring-2 focus-visible:ring-primary shadow-sm rounded-lg"
+                                                                                />
+                                                                            </div>
+                                                                            <div className="flex flex-col items-center">
+                                                                                <label className="text-[8px] font-black uppercase tracking-tighter text-muted-foreground mb-1">Descanso</label>
+                                                                                <div className="relative">
+                                                                                    <Input
+                                                                                        type="number"
+                                                                                        value={ex.descanso_segundos}
+                                                                                        onChange={(e) => handleEditExercise(index, exIdx, 'descanso_segundos', parseInt(e.target.value))}
+                                                                                        className="w-16 h-9 text-center font-bold bg-surface border-none focus-visible:ring-2 focus-visible:ring-primary shadow-sm rounded-lg pr-5"
+                                                                                    />
+                                                                                    <span className="absolute right-1 top-1/2 -translate-y-1/2 text-[9px] font-bold text-muted-foreground">s</span>
+                                                                                </div>
+                                                                            </div>
                                                                         </div>
                                                                     </div>
-                                                                    <div className="space-y-1">
-                                                                        <input
+
+                                                                    <div>
+                                                                        <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1 block">Observações Técnicas</label>
+                                                                        <Input
                                                                             type="text"
                                                                             value={ex.observacoes || ''}
-                                                                            placeholder="Adicionar observação..."
+                                                                            placeholder="Ex: Cadência 4020, Foco no alongamento..."
                                                                             onChange={(e) => handleEditExercise(index, exIdx, 'observacoes', e.target.value)}
-                                                                            className="w-full text-xs text-muted-foreground bg-transparent border-none p-0 focus:ring-0 focus:outline-none"
+                                                                            className="h-8 text-xs text-muted-foreground bg-transparent border-none focus-visible:ring-1 focus-visible:ring-primary/20 px-0 italic"
                                                                         />
                                                                     </div>
+
                                                                     {ex.adaptacao_lesao && (
-                                                                        <Badge variant="outline" className="mt-2 text-[10px] border-amber-500/50 text-amber-500">
-                                                                            Adaptado
-                                                                        </Badge>
+                                                                        <div className="flex items-center gap-2">
+                                                                            <Badge variant="outline" className="text-[9px] border-amber-500/50 text-amber-500 bg-amber-500/5 font-black uppercase tracking-widest px-2 py-0">
+                                                                                <AlertCircle className="w-2.5 h-2.5 mr-1" /> Adaptado para Lesão
+                                                                            </Badge>
+                                                                        </div>
                                                                     )}
                                                                 </div>
                                                             </div>
@@ -535,10 +590,14 @@ const AITrainingAssistant = () => {
                                     {/* Justification & Progression */}
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <Card>
-                                            <CardHeader><CardTitle className="text-lg">Justificativa da IA</CardTitle></CardHeader>
+                                            <CardHeader><CardTitle className="text-lg">Justificativa PhD & Sincronia</CardTitle></CardHeader>
                                             <CardContent className="space-y-4 text-sm text-muted-foreground">
-                                                <p><strong className="text-foreground">Escolhas:</strong> {generatedWorkout.justificativa.escolha_exercicios}</p>
-                                                <p><strong className="text-foreground">Volume:</strong> {generatedWorkout.justificativa.volume_intensidade}</p>
+                                                <p><strong className="text-foreground">Biomecânica:</strong> {generatedWorkout.justificativa.escolha_exercicios}</p>
+                                                <p><strong className="text-foreground">Fisiologia:</strong> {generatedWorkout.justificativa.volume_intensidade}</p>
+                                                <p className="p-3 bg-primary/5 rounded-xl border border-primary/20 text-primary">
+                                                    <strong className="text-primary font-bold">Sincronia Nutricional:</strong><br />
+                                                    {generatedWorkout.justificativa.sincronia_nutricional}
+                                                </p>
                                             </CardContent>
                                         </Card>
                                         <Card>
@@ -569,8 +628,8 @@ const AITrainingAssistant = () => {
                         </div>
                     </div>
                 </main>
-            </div>
-        </div>
+            </div >
+        </div >
     );
 };
 

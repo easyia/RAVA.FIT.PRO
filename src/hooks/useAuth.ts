@@ -25,5 +25,11 @@ export function useAuth() {
     return () => subscription.unsubscribe();
   }, []);
 
-  return { user, session, loading, isAuthenticated: !!user };
+  return {
+    user,
+    session,
+    loading,
+    isAuthenticated: !!user,
+    role: user?.user_metadata?.role || 'coach' // Default to coach if not specified
+  };
 }

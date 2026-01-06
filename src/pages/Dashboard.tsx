@@ -26,6 +26,8 @@ const Dashboard = () => {
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
+  const [defaultTab, setDefaultTab] = useState("info");
+  const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -52,9 +54,40 @@ const Dashboard = () => {
     queryFn: getActiveStudents,
   });
 
-  const handleOpenDetails = (id: string) => {
+  const filteredStudents = activeStudents.filter((student: any) =>
+    student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    student.email?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const displayStudents = searchQuery ? filteredStudents : filteredStudents.slice(0, 4);
+
+  const handleOpenDetails = (id: string, tab: string = "info") => {
     setSelectedStudentId(id);
+    setDefaultTab(tab);
     setIsModalOpen(true);
+  };
+
+  const handleActivityClick = (activity: any) => {
+    // Verificação robusta para mensagens
+    const isMessage =
+      activity.type === 'message' ||
+      (typeof activity.id === 'string' && activity.id.startsWith('message-')) ||
+      (!activity.type && activity.message && !activity.message.toLowerCase().includes('avaliação') && !activity.message.toLowerCase().includes('anamnese'));
+
+    if (isMessage) {
+      // Redireciona para a nova Central de Mensagens
+      navigate('/mensagens', { state: { studentId: activity.studentId } });
+    } else {
+      // Para outras atividades, abre o modal na aba correspondente
+      let targetTab = 'info';
+      if (activity.type === 'anamnesis' || (typeof activity.id === 'string' && activity.id.startsWith('anamnesis-'))) {
+        targetTab = 'anamnesis';
+      } else if (activity.type === 'assessment' || (typeof activity.id === 'string' && activity.id.startsWith('assessment-'))) {
+        targetTab = 'evaluation';
+      }
+
+      handleOpenDetails(activity.studentId, targetTab);
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -118,7 +151,8 @@ const Dashboard = () => {
             <DashboardHeader
               title={coach ? `Olá, ${coach.name.split(' ')[0]}! 👋` : "Dashboard"}
               showSearch={true}
-              searchPlaceholder="Buscar alunos, protocolos..."
+              searchPlaceholder="Buscar alunos por nome..."
+              onSearch={setSearchQuery}
               actions={
                 <div className="flex gap-2">
                   <Button
@@ -152,8 +186,10 @@ const Dashboard = () => {
             {/* Active students section */}
             <section>
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-h2 text-foreground">Alunos Ativos</h2>
-                {activeStudents.length > 0 && (
+                <h2 className="text-h2 text-foreground">
+                  {searchQuery ? `Resultados da busca (${filteredStudents.length})` : "Alunos Ativos"}
+                </h2>
+                {!searchQuery && activeStudents.length > 0 && (
                   <button
                     onClick={() => navigate('/alunos')}
                     className="text-sm font-medium text-primary hover:text-primary/80 transition-colors"
@@ -169,9 +205,9 @@ const Dashboard = () => {
                     <Skeleton key={i} className="h-48 w-full rounded-xl" />
                   ))}
                 </div>
-              ) : activeStudents.length > 0 ? (
+              ) : displayStudents.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {activeStudents.slice(0, 4).map((student) => (
+                  {displayStudents.map((student: any) => (
                     <StudentCard
                       key={student.id}
                       student={student}
@@ -210,6 +246,7 @@ const Dashboard = () => {
               <ActivityFeed
                 activities={recentActivities}
                 onViewAll={() => navigate("/alunos")}
+                onActivityClick={handleActivityClick}
               />
             </div>
           </aside>
@@ -231,6 +268,7 @@ const Dashboard = () => {
         studentId={selectedStudentId}
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+        defaultTab={defaultTab}
       />
     </div>
   );

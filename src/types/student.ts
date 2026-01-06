@@ -1,4 +1,4 @@
-export type StudentStatus = 'ativo' | 'inativo' | 'pendente' | 'aguardando';
+// StudentStatus is defined later in this file
 export type StudentGoal = 'hipertrofia' | 'emagrecimento' | 'condicionamento' | 'reabilitacao' | 'performance';
 export type StudentClassification = 'bronze' | 'silver' | 'gold';
 export type ServiceType = 'presencial' | 'online';
@@ -29,9 +29,15 @@ export const goalLabels: Record<StudentGoal, string> = {
   performance: 'Performance',
 };
 
+export type StudentStatus = 'active' | 'inactive' | 'pending_approval' | 'deleted' | 'ativo' | 'inativo' | 'pendente' | 'excluido';
+
 export const statusLabels: Record<StudentStatus, string> = {
+  active: 'Ativo',
+  inactive: 'Inativo',
+  pending_approval: 'Pendente',
+  deleted: 'Excluído',
   ativo: 'Ativo',
   inativo: 'Inativo',
   pendente: 'Pendente',
-  aguardando: 'Aguardando',
+  excluido: 'Excluído',
 };

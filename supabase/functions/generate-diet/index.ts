@@ -49,24 +49,30 @@ serve(async (req) => {
       .single();
 
     if (!training) {
-        // We still allow generating diet, but the user requested strict workflow. 
-        // Although the UI handles this, the AI should know.
+      // We still allow generating diet, but the user requested strict workflow. 
+      // Although the UI handles this, the AI should know.
     }
 
-    // 2. Build Prompt
-    const systemPrompt = `Você é um Nutricionista Esportivo de ELTO NÍVEL especializado em performance e estética física.
-PAPEL:
-- Assistir treinadores na criação de planos alimentares (dietas) precisos.
-- Fornecer 3 OPÇÕES (variantes) de refeições para cada horário (Opção 1, Opção 2, Opção 3).
-- Garantir que as calorias e macros totais sejam respeitados em todas as opções.
-- Considerar o protocolo de treino atual do aluno para sugerir refeições pré e pós-treino adequadas.
+    // 2. Build Prompt PhD Sênior
+    const systemPrompt = `Você é um PhD Sênior em Nutrição Esportiva e Bioquímica Metabólica. Seu papel é criar protocolos nutricionais de elite sincronizados com a biomecânica de treino.
 
-DADOS ALVO:
-- Calorias Alvo: ${body.target_calories} kcal
-- Proteínas: ${body.macros.p}g
-- Carboidratos: ${body.macros.c}g
-- Gorduras: ${body.macros.f}g
+────────────────────────
+[REGRAS DE SINCRONIA E BIOENERGÉTICA]
 
+1. SINCRONIA DE TREINO (CROSS-DATA):
+- Analise o 'training_program' ativo do aluno.
+- REGRA DE CARBOIDRATOS: Calcule o aporte de carboidratos com base no volume de séries semanais relatado pelo motor de treino. Treinos de alto volume (> 15 séries/músculo) exigem maior aporte peri-treino.
+
+2. PRIORIDADE METABÓLICA (ESPORTE):
+- O gasto calórico do 'main_sport' (Futebol, Corrida, etc.) informado na anamnese é a sua PRIORIDADE metabólica de base. Calcule o TDEE considerando primeiro o esporte e depois o adicional da musculação.
+
+3. SUPLEMENTAÇÃO TIER 1 (CIÊNCIA PURA):
+- Prescreva apenas suplementos com alto grau de evidência (Creatina, Cafeína, Beta-Alanina, Whey/Proteína isolada). Justifique o uso biomecanicamente ou bioquimicamente.
+
+4. AJUSTE REPARADOR (HORMONAL):
+- Se 'hormones' estiver presente, ajuste a síntese proteica alvo. Usuários de Hormônios/TRT suportam e exigem maior aporte proteico (2.2g - 2.6g/kg) devido ao aumento do turnover.
+
+────────────────────────
 FORMATO DE RESPOSTA (JSON):
 {
   "dieta": {
@@ -86,26 +92,30 @@ FORMATO DE RESPOSTA (JSON):
              "itens": [
                 { "alimento": "string", "quantidade": number, "unidade": "string", "carb": number, "prot": number, "gord": number }
              ]
-          },
-          { "id": 2, "itens": [...] },
-          { "id": 3, "itens": [...] }
+          }
         ]
       }
     ],
-    "justificativa": "string",
-    "suplementacao_sugerida": ["string"]
+    "justificativa_bioenergetica": "string",
+    "suplementacao_estrategica": [
+      { "suplemento": "string", "dose": "string", "horario": "string", "justificativa_phd": "string" }
+    ]
   }
 }`;
 
     const userPrompt = `
-# DADOS DO ALUNO
+# DADOS DO ALUNO (ANAMNESE)
 - Objetivo: ${student.anamnesis?.[0]?.main_goal}
-- Peso: ${student.anamnesis?.[0]?.weight_kg}kg
-- Treino Atual: ${training ? training.title : 'Nenhum definido'}
-- Detalhes do Treino: ${training ? JSON.stringify(training.training_sessions) : 'N/A'}
+- Peso Atual: ${student.anamnesis?.[0]?.weight_kg}kg | Altura: ${student.anamnesis?.[0]?.height_cm}cm
+- Esporte Principal: ${student.anamnesis?.[0]?.main_sport} (${student.anamnesis?.[0]?.sport_level})
+- Uso de Hormônios: ${student.anamnesis?.[0]?.use_hormones || "Não relatado"}
+- Intolerâncias: ${student.anamnesis?.[0]?.food_intolerances || "Nenhuma"}
+
+# CONTEXTO DE TREINO (Sincronia Ativa)
+${training ? JSON.stringify(training) : "Nenhum treino ativo registrado ainda."}
 
 # SOLICITAÇÃO ADICIONAL:
-"${body.prompt_users || 'Gere uma dieta equilibrada com 3 variações por refeição'}"
+"${body.prompt_users || 'Gere uma dieta otimizada'}"
     `;
 
     // 3. Call OpenAI
