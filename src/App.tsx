@@ -37,6 +37,8 @@ import StudentTraining from "./pages/student/StudentTraining";
 import StudentDiet from "./pages/student/StudentDiet";
 
 import MessagesPage from "./pages/coach/MessagesPage";
+import PendingApproval from "./pages/coach/PendingApproval";
+import CoachApprovals from "./pages/admin/CoachApprovals";
 
 const queryClient = new QueryClient();
 
@@ -59,6 +61,7 @@ const App = () => (
           <Route path="/aluno/cadastro" element={<StudentSignup />} />
           <Route path="/aluno/login" element={<StudentLogin />} />
           <Route path="/aluno/preview" element={<StudentPreview />} />
+          <Route path="/aguardando-aprovacao" element={<PendingApproval />} />
 
           {/* Área Logada Aluno */}
           <Route element={<RoleProtectedRoute allowedRole="student" redirectTo="/aluno/login" />}>
@@ -92,6 +95,7 @@ const App = () => (
             <Route path="/configuracoes" element={<Settings />} />
             <Route path="/calendario" element={<CalendarPage />} />
             <Route path="/onboarding" element={<Onboarding />} />
+            <Route path="/admin/aprovacoes" element={<CoachApprovals />} />
           </Route>
 
           <Route path="*" element={<NotFound />} />

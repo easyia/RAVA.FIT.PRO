@@ -20,7 +20,8 @@ import {
   Copy,
   Eye,
   ExternalLink,
-  MessageSquare
+  MessageSquare,
+  ShieldCheck
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getCoachProfile, getPendingApprovalsCount } from "@/services/studentService";
@@ -110,6 +111,16 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
     { icon: Calendar, label: "Calendário", path: "/calendario", disabled: true, badge: "Em breve" },
     { icon: BarChart3, label: "Relatórios", path: "/relatorios", disabled: true, badge: "Em breve" },
   ];
+
+  // Add Admin items if coach is admin
+  if (coach?.is_admin) {
+    menuItems.push({
+      icon: ShieldCheck,
+      label: "Treinadores",
+      path: "/admin/aprovacoes",
+      badge: "Curadoria"
+    });
+  }
 
   return (
     <aside
