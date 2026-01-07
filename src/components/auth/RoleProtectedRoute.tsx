@@ -8,7 +8,7 @@ interface RoleProtectedRouteProps {
 }
 
 export function RoleProtectedRoute({ allowedRole, redirectTo = "/auth" }: RoleProtectedRouteProps) {
-    const { isAuthenticated, loading, role } = useAuth();
+    const { isAuthenticated, loading, role, status } = useAuth();
 
     if (loading) {
         return (
@@ -22,7 +22,6 @@ export function RoleProtectedRoute({ allowedRole, redirectTo = "/auth" }: RolePr
         return <Navigate to={redirectTo} />;
     }
 
-    const { status } = useAuth();
     if (role === 'coach' && status === 'pending') {
         return <Navigate to="/aguardando-aprovacao" />;
     }
