@@ -18,6 +18,7 @@ import {
     Lock,
     TrendingUp,
 } from "lucide-react";
+import { track } from "@vercel/analytics";
 
 const LandingPage = () => {
     const navigate = useNavigate();
@@ -50,13 +51,19 @@ const LandingPage = () => {
 
                     <div className="flex items-center gap-8">
                         <button
-                            onClick={() => navigate("/auth")}
+                            onClick={() => {
+                                track("nav_is_member_clicked");
+                                navigate("/auth");
+                            }}
                             className="hidden md:block text-sm font-medium text-zinc-400 hover:text-white transition-colors"
                         >
                             Já sou membro
                         </button>
                         <Button
-                            onClick={() => navigate("/auth")}
+                            onClick={() => {
+                                track("nav_login_clicked");
+                                navigate("/auth");
+                            }}
                             className="bg-white text-black hover:bg-zinc-200 font-bold rounded-full px-8 h-12 transition-all active:scale-95"
                         >
                             Entrar
@@ -93,7 +100,10 @@ const LandingPage = () => {
                         <div className="pt-10 flex flex-col items-center gap-4">
                             <Button
                                 size="lg"
-                                onClick={() => navigate("/auth")}
+                                onClick={() => {
+                                    track("hero_request_invite_clicked");
+                                    navigate("/auth");
+                                }}
                                 className="h-16 px-12 text-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-black font-black rounded-full shadow-[0_0_40px_-10px_rgba(245,158,11,0.5)] group relative overflow-hidden"
                             >
                                 <span className="relative z-10 flex items-center gap-2">
@@ -184,7 +194,10 @@ const LandingPage = () => {
                                 Escalar sua consultoria não deve significar trabalhar mais. O FIT PRO foi desenhado para automatizar o braçal e te deixar livre para o estratégico.
                             </p>
                             <Button
-                                onClick={() => navigate("/auth")}
+                                onClick={() => {
+                                    track("benefits_scale_business_clicked");
+                                    navigate("/auth");
+                                }}
                                 variant="outline"
                                 className="border-amber-500/20 text-amber-500 hover:bg-amber-500/5 rounded-full px-8 h-12"
                             >
@@ -328,7 +341,10 @@ const LandingPage = () => {
 
                                 <Button
                                     size="lg"
-                                    onClick={() => navigate("/auth")}
+                                    onClick={() => {
+                                        track("pricing_request_invite_clicked");
+                                        navigate("/auth");
+                                    }}
                                     className="w-full h-16 text-xl bg-white text-black hover:bg-zinc-200 font-black rounded-full transition-transform active:scale-[0.98]"
                                 >
                                     Solicitar Convite Exclusivo
