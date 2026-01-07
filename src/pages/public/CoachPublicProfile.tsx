@@ -48,10 +48,13 @@ export default function CoachPublicProfile() {
 
                 <div className="relative z-10 w-full max-w-screen-xl mx-auto px-4 md:px-12 pb-12">
                     <div className="max-w-4xl mx-auto md:mx-0 flex flex-col items-center md:items-start text-center md:text-left">
-                        <span className="px-3 py-1 bg-primary text-black font-bold text-[10px] md:text-xs uppercase tracking-widest rounded-full mb-4 inline-block">Consultoria PhD Premium</span>
-                        <h1 className="text-4xl sm:text-5xl md:text-8xl font-black tracking-tighter mb-4 leading-[0.9] uppercase italic break-words w-full">
-                            {profile.name}
+                        <span className="px-3 py-1 bg-primary text-zinc-950 font-black text-[10px] md:text-xs uppercase tracking-widest rounded-full mb-4 inline-block">Membro Oficial FIT PRO</span>
+                        <h1 className="text-5xl sm:text-6xl md:text-9xl font-black tracking-tighter mb-2 leading-[0.8] uppercase italic break-words w-full">
+                            FIT <span className="text-primary italic">PRO</span>
                         </h1>
+                        <p className="text-base md:text-xl font-bold uppercase tracking-[0.2em] text-white/60 mb-8">
+                            Consultoria <span className="text-white">Elite</span>
+                        </p>
                         {profile.social_instagram && (
                             <a
                                 href={`https://instagram.com/${profile.social_instagram}`}
@@ -96,7 +99,7 @@ export default function CoachPublicProfile() {
                         <div className="sticky top-24 bg-neutral-900/40 p-6 md:p-10 rounded-3xl border border-white/10 backdrop-blur-2xl flex flex-col justify-center items-center text-center space-y-8 w-full max-w-md mx-auto">
                             <div className="space-y-2">
                                 <h3 className="text-2xl font-black italic uppercase tracking-tighter">Pronto para o Próximo Nível?</h3>
-                                <p className="text-sm text-gray-400 font-medium">Faça seu cadastro agora e inicie sua jornada PhD.</p>
+                                <p className="text-sm text-gray-400 font-medium">Faça seu cadastro agora e inicie sua jornada Elite.</p>
                             </div>
 
                             <Button
@@ -109,7 +112,7 @@ export default function CoachPublicProfile() {
                             </Button>
 
                             <div className="pt-4 border-t border-white/5 w-full">
-                                <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Inscrição Protegida por RAVA FIT PRO</p>
+                                <p className="text-[10px] text-gray-400 uppercase tracking-widest font-black">Powered by <span className="text-primary tracking-tighter">FIT</span> PRO</p>
                             </div>
                         </div>
                     </div>
@@ -117,7 +120,7 @@ export default function CoachPublicProfile() {
             </div>
 
             <footer className="max-w-screen-xl mx-auto px-6 md:px-12 py-12 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-6 opacity-30">
-                <div className="text-sm font-black italic tracking-tighter">RAVA FIT PRO</div>
+                <div className="text-sm font-black italic tracking-tighter uppercase"><span className="text-primary">FIT</span> PRO</div>
                 <div className="text-[10px] uppercase font-bold tracking-widest">© 2026 • Todos os direitos reservados</div>
             </footer>
         </div>

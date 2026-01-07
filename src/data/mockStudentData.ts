@@ -4,7 +4,7 @@
 export const mockStudent = {
     id: 'preview-student-001',
     full_name: 'Carlos Eduardo Silva',
-    email: 'carlos.demo@ravafit.com',
+    email: 'carlos.demo@fitpro.com',
     phone: '(11) 99876-5432',
     avatar_url: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150&h=150&fit=crop&crop=faces',
     birth_date: '1992-03-15',
@@ -21,7 +21,7 @@ export const mockStudent = {
 export const mockCoach = {
     id: 'demo-coach',
     name: 'Prof. Anderson Lima',
-    email: 'anderson@ravafit.com',
+    email: 'anderson@fitpro.com',
     avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=faces',
     specialty: 'Hipertrofia e Performance',
     bio: 'Especialista em transformação corporal com mais de 10 anos de experiência.',

@@ -55,7 +55,10 @@ export const ShutterLock: React.FC<ShutterLockProps> = ({ isLocked, onToggle }) 
                                 transition={{ delay: 0.2, duration: 0.5 }}
                                 className="mb-16"
                             >
-                                <img src="/Logomarca.png" alt="RAVA FIT PRO" className="h-32 md:h-40 w-auto object-contain drop-shadow-2xl" />
+                                <h1 className="text-6xl md:text-8xl font-black tracking-tighter inline-flex items-baseline">
+                                    <span className="text-primary">FIT</span>
+                                    <span className="text-zinc-500 font-medium ml-2 text-2xl md:text-3xl tracking-[0.3em]">PRO</span>
+                                </h1>
                             </motion.div>
 
                             {/* Privacy Icon */}

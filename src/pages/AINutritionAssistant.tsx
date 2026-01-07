@@ -565,7 +565,7 @@ const AINutritionAssistant = () => {
                                             {generatedDiet.justificativa_bioenergetica && (
                                                 <Card className="bg-muted/30 border-dashed">
                                                     <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2">
-                                                        <Sparkles className="w-4 h-4 text-primary" /> Bioenergética PhD
+                                                        <Sparkles className="w-4 h-4 text-primary" /> Bioenergética Elite
                                                     </CardTitle></CardHeader>
                                                     <CardContent>
                                                         <p className="text-sm text-muted-foreground leading-relaxed">{generatedDiet.justificativa_bioenergetica}</p>
@@ -585,7 +585,7 @@ const AINutritionAssistant = () => {
                                                                     <span className="font-bold text-xs">{sup.suplemento}</span>
                                                                     <Badge variant="outline" className="text-[10px]">{sup.dose} - {sup.horario}</Badge>
                                                                 </div>
-                                                                <p className="text-[10px] text-muted-foreground italic">{sup.justificativa_phd}</p>
+                                                                <p className="text-[10px] text-muted-foreground italic">{sup.justificativa_elite}</p>
                                                             </div>
                                                         ))}
                                                     </CardContent>

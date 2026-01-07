@@ -1,7 +1,8 @@
 import { cn } from "@/lib/utils";
 import { Student, goalLabels, statusLabels } from "@/types/student";
-import { Calendar, MoreHorizontal, Edit, Trash2, UserCog } from "lucide-react";
+import { Calendar, MoreHorizontal, Edit, Trash2, UserCog, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -55,11 +56,12 @@ export function StudentCard({ student, onClick, onDelete, onEdit, onStatusChange
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
-          <img
-            src={student.avatar}
-            alt={student.name}
-            className="w-12 h-12 rounded-lg border border-border object-cover"
-          />
+          <Avatar className="w-12 h-12 rounded-lg border border-border">
+            <AvatarImage src={student.avatar || ""} className="object-cover" />
+            <AvatarFallback className="rounded-lg bg-primary/10 text-primary font-bold uppercase">
+              {student.name ? student.name.charAt(0).toUpperCase() : <User className="w-6 h-6" />}
+            </AvatarFallback>
+          </Avatar>
           <div>
             <h3 className="text-base font-semibold text-foreground group-hover:text-primary transition-colors">
               {student.name}

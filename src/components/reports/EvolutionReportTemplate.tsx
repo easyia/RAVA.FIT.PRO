@@ -215,7 +215,7 @@ export const EvolutionReportTemplate = ({ data }: { data: EvolutionReportData })
             <div className="print-page" style={styles.page}>
                 {/* HEADER */}
                 <div style={styles.header}>
-                    <h1 style={styles.title}>RAVA FIT PRO</h1>
+                    <h1 style={styles.title}>FIT PRO</h1>
                     <p style={styles.subtitle}>Performance & Evolution Tracking</p>
 
                     {/* Identity Table */}
@@ -366,7 +366,7 @@ export const EvolutionReportTemplate = ({ data }: { data: EvolutionReportData })
                             latestAssessment?.general_notes ||
                             'Nenhuma observação registrada para este período. O aluno segue em evolução conforme o planejado.'}
                     </div>
-                    <p style={styles.signature}>RAVA FIT PRO - Excellence in Coaching</p>
+                    <p style={styles.signature}>FIT PRO - THE NEW STANDARD</p>
                 </div>
             </div>
         </div>

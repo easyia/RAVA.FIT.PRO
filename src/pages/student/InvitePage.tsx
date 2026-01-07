@@ -2,7 +2,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { getCoachDetailsPublic } from "@/services/studentService";
 import { Button } from "@/components/ui/button";
-import { Loader2, ArrowRight, ShieldCheck, Zap, Trophy } from "lucide-react";
+import { Loader2, ArrowRight, ShieldCheck, Zap, Trophy, User } from "lucide-react";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { motion } from "framer-motion";
 
 export default function InvitePage() {
@@ -49,20 +50,21 @@ export default function InvitePage() {
                     className="text-center mb-12"
                 >
                     <div className="relative inline-block mb-6">
-                        <img
-                            src={coach.avatar_url || "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=150&h=150&fit=crop&crop=faces"}
-                            alt={coach.name}
-                            className="w-32 h-44 object-cover rounded-2xl border-4 border-primary/20 shadow-2xl"
-                        />
+                        <Avatar className="w-32 h-32 md:w-32 md:h-44 object-cover rounded-2xl border-4 border-primary/20 shadow-2xl">
+                            <AvatarImage src={coach.avatar_url || ""} className="object-cover" />
+                            <AvatarFallback className="rounded-2xl bg-primary/10 text-primary text-4xl font-black">
+                                {coach.name ? coach.name.charAt(0).toUpperCase() : <User className="w-12 h-12" />}
+                            </AvatarFallback>
+                        </Avatar>
                         <div className="absolute -bottom-2 -right-2 bg-primary text-white p-2 rounded-xl shadow-lg">
                             <ShieldCheck className="w-5 h-5" />
                         </div>
                     </div>
-                    <h1 className="text-3xl font-black italic tracking-tight mb-2 uppercase">
-                        {coach.name} <span className="text-primary">Te Convidou</span>
+                    <h1 className="text-5xl md:text-7xl font-black italic tracking-tighter mb-4 uppercase leading-[0.8]">
+                        FIT <span className="text-primary tracking-tighter italic">PRO</span>
                     </h1>
-                    <p className="text-lg text-muted-foreground font-medium">
-                        Você foi selecionado para o ecossistema <span className="text-foreground font-bold italic">RAVA FIT PRO</span>.
+                    <p className="text-lg text-muted-foreground font-medium uppercase tracking-[0.2em] mb-8">
+                        Você foi convidado para a Consultoria <span className="text-white">Elite</span>
                     </p>
                 </motion.div>
 
@@ -87,7 +89,7 @@ export default function InvitePage() {
                             <Trophy className="w-6 h-6 text-status-success" />
                         </div>
                         <div>
-                            <h3 className="font-bold">PhD Protocol</h3>
+                            <h3 className="font-bold">Elite Protocol</h3>
                             <p className="text-xs text-muted-foreground">O método acadêmico aplicado ao seu resultado real.</p>
                         </div>
                     </div>

@@ -367,7 +367,7 @@ export function BiomechanicalVideoPlayer({
                     className="w-full h-12 gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-600/90 hover:to-pink-600/90"
                 >
                     {isAnalyzing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
-                    {isAnalyzing ? 'Analisando Biomecânica...' : 'Análise Biomecânica PhD (IA)'}
+                    {isAnalyzing ? 'Analisando Biomecânica...' : 'Análise Biomecânica Elite (IA)'}
                 </Button>
 
                 {/* AI Results */}
@@ -375,7 +375,7 @@ export function BiomechanicalVideoPlayer({
                     <div className="mt-6 p-4 bg-purple-500/5 rounded-xl border border-purple-500/20">
                         <h4 className="font-bold text-purple-600 mb-3 flex items-center gap-2">
                             <Sparkles className="w-4 h-4" />
-                            Análise Biomecânica PhD
+                            Análise Biomecânica Elite
                         </h4>
                         {aiAnalysis.technical_issues?.length > 0 ? (
                             <div className="space-y-2">

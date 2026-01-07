@@ -159,7 +159,7 @@ const Dashboard = () => {
                     variant="outline"
                     size="icon"
                     onClick={() => setRightSidebarCollapsed(!rightSidebarCollapsed)}
-                    className="xl:hidden"
+                    className="lg:hidden"
                   >
                     <Users className="w-4 h-4" />
                   </Button>
@@ -232,7 +232,7 @@ const Dashboard = () => {
 
           {/* Right column - Side panel */}
           <aside className={cn(
-            "hidden xl:flex flex-col border-l border-border bg-sidebar transition-all duration-300 ease-in-out h-[calc(100vh-2rem)] sticky top-4 rounded-xl mr-4 my-4",
+            "hidden lg:flex flex-col border-l border-border bg-sidebar transition-all duration-300 ease-in-out h-[calc(100vh-2rem)] sticky top-4 rounded-xl mr-4 my-4",
             rightSidebarCollapsed ? "w-0 opacity-0 border-none p-0 overflow-hidden" : "w-80 p-6 opacity-100"
           )}>
             <div className="flex justify-between items-center mb-4">
@@ -255,7 +255,7 @@ const Dashboard = () => {
           {rightSidebarCollapsed && (
             <button
               onClick={() => setRightSidebarCollapsed(false)}
-              className="hidden xl:flex fixed bottom-6 right-6 z-[100] w-10 h-10 bg-card border border-border text-tertiary rounded-xl items-center justify-center shadow-lg hover:text-primary hover:border-primary transition-all active:scale-95 group"
+              className="hidden lg:flex fixed bottom-6 right-6 z-[100] w-10 h-10 bg-card border border-border text-tertiary rounded-xl items-center justify-center shadow-lg hover:text-primary hover:border-primary transition-all active:scale-95 group"
               title="Abrir Agenda & Atividade"
             >
               <Users className="w-5 h-5 transition-transform group-hover:scale-110" />

@@ -17,10 +17,12 @@ import Onboarding from "./pages/Onboarding";
 import Auth from "./pages/Auth";
 import LandingPage from "./pages/public/LandingPage";
 import NotFound from "./pages/NotFound";
-import { UpdatesOnboarding } from "@/components/dashboard/UpdatesOnboarding";
 import FinancePage from "./pages/coach/FinancePage";
 import PlanManager from "./pages/coach/PlanManager";
 import CoachPublicProfile from "./pages/public/CoachPublicProfile";
+import PendingApproval from "./pages/public/PendingApprovalPage";
+import CoachRequestAccess from "./pages/public/CoachRequestAccess";
+import AdminApprovals from "./pages/coach/AdminApprovals";
 
 import { RoleProtectedRoute } from "@/components/auth/RoleProtectedRoute";
 import StudentLogin from "./pages/student/StudentLogin";
@@ -37,15 +39,12 @@ import StudentTraining from "./pages/student/StudentTraining";
 import StudentDiet from "./pages/student/StudentDiet";
 
 import MessagesPage from "./pages/coach/MessagesPage";
-import PendingApproval from "./pages/coach/PendingApproval";
-import CoachApprovals from "./pages/admin/CoachApprovals";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <UpdatesOnboarding />
       <Toaster />
       <Sonner />
       <BrowserRouter>
@@ -54,6 +53,8 @@ const App = () => (
           <Route path="/" element={<LandingPage />} />
           <Route path="/link/:coach_id" element={<CoachPublicProfile />} />
           <Route path="/auth" element={<Auth />} />
+          <Route path="/solicitar-acesso" element={<CoachRequestAccess />} />
+          <Route path="/aguardando-aprovacao" element={<PendingApproval />} />
 
           {/* Fluxo Público Aluno */}
           <Route path="/convite/:coach_id" element={<InvitePage />} />
@@ -61,7 +62,6 @@ const App = () => (
           <Route path="/aluno/cadastro" element={<StudentSignup />} />
           <Route path="/aluno/login" element={<StudentLogin />} />
           <Route path="/aluno/preview" element={<StudentPreview />} />
-          <Route path="/aguardando-aprovacao" element={<PendingApproval />} />
 
           {/* Área Logada Aluno */}
           <Route element={<RoleProtectedRoute allowedRole="student" redirectTo="/aluno/login" />}>
@@ -95,7 +95,7 @@ const App = () => (
             <Route path="/configuracoes" element={<Settings />} />
             <Route path="/calendario" element={<CalendarPage />} />
             <Route path="/onboarding" element={<Onboarding />} />
-            <Route path="/admin/aprovacoes" element={<CoachApprovals />} />
+            <Route path="/admin/aprovacoes" element={<AdminApprovals />} />
           </Route>
 
           <Route path="*" element={<NotFound />} />

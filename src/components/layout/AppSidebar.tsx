@@ -21,15 +21,19 @@ import {
   Eye,
   ExternalLink,
   MessageSquare,
-  ShieldCheck
+  ShieldAlert,
+  User
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getCoachProfile, getPendingApprovalsCount } from "@/services/studentService";
+import { getPendingCoachesCount } from "@/services/adminService";
 import { getOverdueSubscriptionsCount } from "@/services/financeService";
 import { ModeToggle } from "./ModeToggle";
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 interface AppSidebarProps {
   collapsed: boolean;
@@ -39,6 +43,7 @@ interface AppSidebarProps {
 export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
+  const { isAdmin } = useAuth();
   const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
 
   const { data: coach } = useQuery({
@@ -58,6 +63,13 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
     refetchInterval: 60000,
   });
 
+  const { data: pendingCoachesCount = 0 } = useQuery({
+    queryKey: ["pendingCoachesCount"],
+    queryFn: getPendingCoachesCount,
+    enabled: isAdmin,
+    refetchInterval: 30000,
+  });
+
   const toggleMenu = (label: string, path?: string) => {
     if (collapsed) {
       onToggle();
@@ -73,7 +85,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
   };
 
   const menuItems = [
-    { icon: LayoutDashboard, label: "Dashboard", path: "/" },
+    { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
     {
       icon: MessageSquare,
       label: "Mensagens",
@@ -110,17 +122,13 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
     },
     { icon: Calendar, label: "Calendário", path: "/calendario", disabled: true, badge: "Em breve" },
     { icon: BarChart3, label: "Relatórios", path: "/relatorios", disabled: true, badge: "Em breve" },
-  ];
-
-  // Add Admin items if coach is admin
-  if (coach?.is_admin) {
-    menuItems.push({
-      icon: ShieldCheck,
-      label: "Treinadores",
+    ...(isAdmin ? [{
+      icon: ShieldAlert,
+      label: "Aprovações",
       path: "/admin/aprovacoes",
-      badge: "Curadoria"
-    });
-  }
+      pendingBadge: pendingCoachesCount > 0 ? pendingCoachesCount : undefined
+    }] : []),
+  ];
 
   return (
     <aside
@@ -133,10 +141,10 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
       <div className="flex items-center justify-center h-16 w-full border-b border-sidebar-border/50">
         {!collapsed ? (
           <h1 className="text-xl font-black tracking-wider italic bg-gradient-to-r from-primary via-primary to-white bg-clip-text text-transparent drop-shadow-[0_2px_10_rgba(255,255,255,0.1)]">
-            RAVA FIT PRO
+            FIT PRO
           </h1>
         ) : (
-          <h1 className="text-xl font-black italic text-primary">R</h1>
+          <h1 className="text-xl font-black italic text-primary">F</h1>
         )}
       </div>
 
@@ -286,14 +294,12 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
             collapsed ? "justify-center" : "bg-sidebar-border/30 hover:bg-sidebar-border/50"
           )}
         >
-          <img
-            src={coach?.avatar_url || "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=150&h=150&fit=crop&crop=faces"}
-            alt="Profile"
-            className="w-9 h-9 rounded-lg object-cover flex-shrink-0 shadow-sm"
-            onError={(e) => {
-              (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=150&h=150&fit=crop&crop=faces";
-            }}
-          />
+          <Avatar className="w-9 h-9 rounded-lg shadow-sm">
+            <AvatarImage src={coach?.avatar_url || ""} />
+            <AvatarFallback className="rounded-lg bg-primary/10 text-primary font-bold">
+              {coach?.name ? coach.name.charAt(0).toUpperCase() : <User className="w-5 h-5" />}
+            </AvatarFallback>
+          </Avatar>
           {!collapsed && (
             <div className="flex-1 min-w-0 flex flex-col justify-center">
               <p className="text-sm font-semibold text-foreground truncate leading-none mb-1">

@@ -192,7 +192,7 @@ export const DietReportTemplate = ({ data }: DietReportTemplateProps) => {
             <div className="print-page" style={styles.page}>
                 {/* HEADER */}
                 <div style={styles.header}>
-                    <h1 style={styles.title}>RAVA FIT PRO</h1>
+                    <h1 style={styles.title}>FIT PRO</h1>
                     <p style={styles.subtitle}>Nutritional Planning & Performance</p>
 
                     {/* Identity Table */}
@@ -290,7 +290,7 @@ export const DietReportTemplate = ({ data }: DietReportTemplateProps) => {
                     </div>
 
                     <footer style={styles.footer}>
-                        Coach {coach?.full_name || 'RAVA Personal'} — Excellence in Performance
+                        Treinador {coach?.full_name || 'FIT PRO'} — Excellence in Performance
                     </footer>
                 </div>
             </div>

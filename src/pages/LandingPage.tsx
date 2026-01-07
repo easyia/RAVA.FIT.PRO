@@ -39,7 +39,7 @@ const LandingPage = () => {
             // In a real scenario, you would call a serverless function/webhook here
             // For now, we simulate success to allow the UI to finish the flow
 
-            const message = `Olá! Quero participar do Beta do RAVA.FIT.%0A%0A Nome: ${formData.name}%0A WhatsApp: ${formData.whatsapp}%0A Social/CREF: ${formData.social}%0A Atuação: ${formData.profile}`;
+            const message = `Olá! Quero participar do Beta do FIT PRO.%0A%0A Nome: ${formData.name}%0A WhatsApp: ${formData.whatsapp}%0A Social/CREF: ${formData.social}%0A Atuação: ${formData.profile}`;
             window.open(`https://wa.me/5511999999999?text=${message}`, '_blank');
 
             toast.success("Inscrição iniciada! Finalize o envio pelo WhatsApp.");
@@ -61,7 +61,7 @@ const LandingPage = () => {
                         <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/60 rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
                             <Dumbbell className="text-white w-6 h-6" />
                         </div>
-                        <span className="font-black text-2xl tracking-tighter text-white">RAVA<span className="text-primary italic">.FIT</span></span>
+                        <span className="font-black text-2xl tracking-tighter text-white">FIT<span className="text-primary italic"> PRO</span></span>
                     </div>
                     <div className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-400">
                         <a href="#problema" className="hover:text-white transition-colors">O Problema</a>
@@ -176,7 +176,7 @@ const LandingPage = () => {
             <section id="solucao" className="py-24 px-6">
                 <div className="max-w-7xl mx-auto space-y-16">
                     <div className="text-center max-w-3xl mx-auto space-y-4">
-                        <Badge className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/20">RAVA FIT PRO</Badge>
+                        <Badge className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/20">FIT PRO</Badge>
                         <h2 className="text-4xl md:text-5xl font-black text-white">Ecossistema Completo.</h2>
                         <p className="text-slate-400 text-lg">
                             Centralize tudo o que você precisa para entregar resultados de alto nível.
@@ -313,10 +313,10 @@ const LandingPage = () => {
                 <div className="max-w-7xl mx-auto flex flex-col md:row items-center justify-between gap-8">
                     <div className="flex items-center gap-2">
                         <Dumbbell className="text-primary w-6 h-6" />
-                        <span className="font-black text-xl tracking-tighter text-white uppercase">RAVA<span className="text-primary italic">.FIT</span></span>
+                        <span className="font-black text-xl tracking-tighter text-white uppercase"><span className="text-primary tracking-tighter">FIT</span> PRO</span>
                     </div>
                     <p className="text-slate-500 text-sm">
-                        © 2026 RAVA FIT PRO. Todos os direitos reservados.
+                        © 2026 FIT PRO. Todos os direitos reservados.
                     </p>
                     <div className="flex items-center gap-6">
                         <a href="#" className="text-slate-500 hover:text-white transition-colors"><Instagram className="w-5 h-5" /></a>

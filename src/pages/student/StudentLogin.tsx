@@ -50,7 +50,7 @@ export default function StudentLogin() {
                     <div className="mx-auto w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mb-4">
                         <Dumbbell className="w-6 h-6 text-primary" />
                     </div>
-                    <CardTitle className="text-2xl font-bold italic tracking-wider">RAVA FIT PRO</CardTitle>
+                    <CardTitle className="text-2xl font-black italic tracking-wider">FIT PRO</CardTitle>
                     <CardDescription>Área do Aluno</CardDescription>
                 </CardHeader>
                 <CardContent>

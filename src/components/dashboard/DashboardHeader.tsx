@@ -11,7 +11,8 @@ import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { StudentDetailsModal } from "./StudentDetailsModal";
 import { Badge } from "@/components/ui/badge";
-import { Activity } from "lucide-react";
+import { Activity, User } from "lucide-react";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -187,7 +188,12 @@ export function DashboardHeader({
                       >
                         <div className="flex gap-3">
                           <div className="w-10 h-10 rounded-full overflow-hidden border border-border flex-shrink-0 group-hover:border-primary/50 transition-colors">
-                            <img src={notification.studentAvatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop"} alt="" className="w-full h-full object-cover" />
+                            <Avatar className="w-full h-full">
+                              <AvatarImage src={notification.studentAvatar || ""} className="object-cover" />
+                              <AvatarFallback className="bg-primary/10 text-primary font-bold text-xs uppercase">
+                                {notification.studentName ? notification.studentName.charAt(0).toUpperCase() : <User className="w-4 h-4" />}
+                              </AvatarFallback>
+                            </Avatar>
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-xs font-bold text-foreground">

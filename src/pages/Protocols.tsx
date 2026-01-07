@@ -977,7 +977,7 @@ const Protocols = () => {
                             </div>
                             <div className="p-4 rounded-2xl bg-primary/5 border border-primary/20 relative overflow-hidden group">
                                 <Zap className="absolute -right-4 -bottom-4 w-24 h-24 text-primary/10 group-hover:scale-110 transition-transform" />
-                                <h4 className="text-[10px] font-black uppercase tracking-widest text-primary mb-2">Pilar RAVA PRO</h4>
+                                <h4 className="text-[10px] font-black uppercase tracking-widest text-primary mb-2">Pilar FIT PRO Elite</h4>
                                 <p className="text-[12px] leading-relaxed italic text-foreground font-medium pr-4">
                                     "O treino não é apenas sobre carga, é sobre a precisão da contração em cada milímetro do movimento."
                                 </p>

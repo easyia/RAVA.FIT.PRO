@@ -30,7 +30,7 @@ export default function StudentLayout() {
             {/* Top Header for Mobile */}
             <header className="h-14 border-b border-border/50 flex items-center justify-between px-4 sticky top-0 bg-background/80 backdrop-blur-xl z-50">
                 <div className="w-9" />
-                <h1 className="text-lg font-black italic tracking-tighter text-primary">RAVA FIT PRO</h1>
+                <h1 className="text-lg font-black italic tracking-tighter text-white uppercase"><span className="text-primary italic tracking-tighter">FIT</span> PRO</h1>
                 <ModeToggle />
             </header>
 

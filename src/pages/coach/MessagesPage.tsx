@@ -12,6 +12,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { StudentChatTab } from "@/components/dashboard/StudentChatTab";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 export default function MessagesPage() {
     const { user } = useAuth();
@@ -89,11 +90,12 @@ export default function MessagesPage() {
                                             )}
                                         >
                                             <div className="relative shrink-0">
-                                                <img
-                                                    src={chat.studentAvatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100"}
-                                                    className="w-12 h-12 rounded-full object-cover border border-border"
-                                                    alt=""
-                                                />
+                                                <Avatar className="w-12 h-12 border border-border">
+                                                    <AvatarImage src={chat.studentAvatar || ""} className="object-cover" />
+                                                    <AvatarFallback className="bg-primary/10 text-primary font-bold">
+                                                        {chat.studentName ? chat.studentName.charAt(0).toUpperCase() : <User className="w-5 h-5" />}
+                                                    </AvatarFallback>
+                                                </Avatar>
                                                 <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-card rounded-full" />
                                             </div>
                                             <div className="flex-1 min-w-0">

@@ -22,7 +22,8 @@ export function RoleProtectedRoute({ allowedRole, redirectTo = "/auth" }: RolePr
         return <Navigate to={redirectTo} />;
     }
 
-    if (role === 'coach' && status === 'pending') {
+    // Se o coach ainda não foi aprovado, bloqueia acesso e manda para página de pendência
+    if (role === 'coach' && status === 'pending_approval') {
         return <Navigate to="/aguardando-aprovacao" />;
     }
 

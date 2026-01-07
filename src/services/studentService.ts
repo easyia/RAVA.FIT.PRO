@@ -22,7 +22,7 @@ export async function getStudents(): Promise<Student[]> {
     name: s.full_name,
     email: s.email,
     phone: s.phone,
-    avatar: s.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&h=150&fit=crop&crop=faces',
+    avatar: s.avatar_url,
     goal: (s.anamnesis?.[0]?.main_goal as any) || 'condicionamento',
     status: s.status === 'active' ? 'ativo' : s.status === 'inactive' ? 'inativo' : s.status === 'pending_approval' ? 'pendente' : 'ativo',
     classification: s.classification || 'bronze',

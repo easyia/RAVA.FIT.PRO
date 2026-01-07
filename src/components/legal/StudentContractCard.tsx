@@ -24,7 +24,7 @@ PLANO SELECIONADO: ${subscription.plan?.name} - R$ ${subscription.plan?.price.to
 DURAÇÃO: ${subscription.plan?.duration_months} meses
 
 CLÁUSULA 1 - DO OBJETO
-O presente contrato tem por objeto a prestação de serviços de consultoria esportiva e prescrição de treinamento físico e orientações nutricionais (quando aplicável) através da plataforma RAVA FIT PRO.
+O presente contrato tem por objeto a prestação de serviços de consultoria esportiva e prescrição de treinamento físico e orientações nutricionais (quando aplicável) através da plataforma FIT PRO.
 
 CLÁUSULA 2 - DAS OBRIGAÇÕES DO CONTRATANTE
 I - Fornecer informações verídicas sobre seu estado de saúde;
@@ -35,7 +35,7 @@ CLÁUSULA 3 - DA VIGÊNCIA
 O contrato inicia-se em ${new Date(subscription.start_date).toLocaleDateString()} e tem validade conforme a duração do plano escolhido.
 
 CLÁUSULA 4 - DA ASSINATURA DIGITAL
-As partes reconhecem a validade da assinatura digital deste instrumento aceito via plataforma RAVA FIT PRO.
+As partes reconhecem a validade da assinatura digital deste instrumento aceito via plataforma FIT PRO.
 
 Data: ${new Date().toLocaleDateString()}
     `;

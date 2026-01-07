@@ -282,7 +282,7 @@ export function Symmetrograph({ photoUrl, assessmentId, photoView, onAnalysisCom
                     </Button>
                     <Button onClick={handleAIAnalysis} disabled={isAnalyzing} className="flex-1">
                         {isAnalyzing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
-                        {isAnalyzing ? 'Analisando...' : 'Analisar com IA PhD'}
+                        {isAnalyzing ? 'Analisando...' : 'Analisar com Elite Vision'}
                     </Button>
                 </div>
 
@@ -291,7 +291,7 @@ export function Symmetrograph({ photoUrl, assessmentId, photoView, onAnalysisCom
                     <div className="mt-6 p-4 bg-primary/5 rounded-xl border border-primary/20">
                         <h4 className="font-bold text-primary mb-3 flex items-center gap-2">
                             <Sparkles className="w-4 h-4" />
-                            Análise Biomecânica PhD
+                            Análise Biomecânica Elite
                         </h4>
                         {aiAnalysis.desvios_detectados?.length > 0 ? (
                             <div className="space-y-2">

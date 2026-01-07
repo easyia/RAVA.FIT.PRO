@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from '@/components/ui/progress';
 import {
     Dumbbell, Utensils, Calendar, TrendingUp, User, Bell, Trophy,
@@ -34,11 +35,12 @@ const StudentPreview = () => {
             <header className="sticky top-0 z-50 bg-gray-900/80 backdrop-blur-xl border-b border-white/10">
                 <div className="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <img
-                            src={mockStudent.avatar_url}
-                            alt={mockStudent.full_name}
-                            className="w-10 h-10 rounded-full border-2 border-amber-500/50"
-                        />
+                        <Avatar className="w-10 h-10 border-2 border-amber-500/50">
+                            <AvatarImage src={mockStudent.avatar_url} className="object-cover" />
+                            <AvatarFallback className="bg-amber-500 text-black font-bold">
+                                {mockStudent.full_name ? mockStudent.full_name.charAt(0).toUpperCase() : <User className="w-4 h-4" />}
+                            </AvatarFallback>
+                        </Avatar>
                         <div>
                             <p className="text-xs text-gray-400">Olá,</p>
                             <h1 className="font-bold text-sm">{mockStudent.full_name.split(' ')[0]}</h1>
@@ -55,11 +57,12 @@ const StudentPreview = () => {
                 {/* Coach Card */}
                 <Card className="bg-gradient-to-r from-amber-500/20 to-orange-500/20 border-amber-500/30">
                     <CardContent className="p-4 flex items-center gap-4">
-                        <img
-                            src={mockCoach.avatar_url}
-                            alt={mockCoach.name}
-                            className="w-14 h-14 rounded-full border-2 border-amber-500"
-                        />
+                        <Avatar className="w-14 h-14 border-2 border-amber-500">
+                            <AvatarImage src={mockCoach.avatar_url} className="object-cover" />
+                            <AvatarFallback className="bg-amber-500 text-black font-bold text-xl">
+                                {mockCoach.name ? mockCoach.name.charAt(0).toUpperCase() : <User className="w-6 h-6" />}
+                            </AvatarFallback>
+                        </Avatar>
                         <div className="flex-1">
                             <p className="text-xs text-amber-200/80 uppercase tracking-wider">Seu Treinador</p>
                             <h2 className="font-bold text-white">{mockCoach.name}</h2>

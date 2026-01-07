@@ -1,6 +1,7 @@
 import { Activity } from "@/types/activity";
 import { cn } from "@/lib/utils";
-import { MessageSquareOff } from "lucide-react";
+import { MessageSquareOff, User } from "lucide-react";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 interface ActivityFeedProps {
   activities: Activity[];
@@ -34,11 +35,12 @@ export function ActivityFeed({ activities, onViewAll, onActivityClick }: Activit
               className="p-4 hover:bg-surface-hover transition-colors cursor-pointer"
             >
               <div className="flex gap-3">
-                <img
-                  src={activity.studentAvatar}
-                  alt={activity.studentName}
-                  className="w-9 h-9 rounded-full border border-border object-cover flex-shrink-0"
-                />
+                <Avatar className="w-9 h-9 border border-border">
+                  <AvatarImage src={activity.studentAvatar || ""} className="object-cover" />
+                  <AvatarFallback className="bg-primary/10 text-primary font-bold text-xs uppercase">
+                    {activity.studentName ? activity.studentName.charAt(0).toUpperCase() : <User className="w-4 h-4" />}
+                  </AvatarFallback>
+                </Avatar>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-sm font-medium text-foreground truncate">

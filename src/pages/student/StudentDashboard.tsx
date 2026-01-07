@@ -313,12 +313,12 @@ export default function StudentDashboard() {
                     <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none" />
                     <CardContent className="p-4 flex items-center gap-4 relative z-10">
                         <div className="relative">
-                            <motion.img
-                                whileHover={{ scale: 1.03 }}
-                                src={coach.avatar_url || "https://images.unsplash.com/photo-1594381898411-846e7d193883?w=800&auto=format&fit=crop&q=60"}
-                                alt={coach.name}
-                                className="w-14 h-14 rounded-xl object-cover border border-border/50"
-                            />
+                            <Avatar className="w-14 h-14 rounded-xl shadow-sm border border-border/50">
+                                <AvatarImage src={coach.avatar_url || ""} className="object-cover" />
+                                <AvatarFallback className="rounded-xl bg-primary/10 text-primary font-bold text-xl">
+                                    {coach.full_name ? coach.full_name.charAt(0).toUpperCase() : <User className="w-6 h-6" />}
+                                </AvatarFallback>
+                            </Avatar>
                             <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-emerald-500 border-2 border-background rounded-full" />
                         </div>
                         <div className="flex-1 min-w-0">

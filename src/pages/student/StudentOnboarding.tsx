@@ -7,7 +7,7 @@ import { ArrowRight, ArrowLeft, Target, Activity, ShieldCheck, Zap } from "lucid
 const steps = [
     {
         id: "welcome",
-        title: "Bem-vindo ao RAVA FIT PRO",
+        title: "Bem-vindo ao FIT PRO",
         description: "Você acaba de ser convidado para um ecossistema de alta performance, onde ciência e tecnologia trabalham para o seu corpo.",
         icon: ShieldCheck,
         color: "text-primary"
@@ -21,7 +21,7 @@ const steps = [
     },
     {
         id: "method",
-        title: "O Método PhD",
+        title: "O Método Elite",
         description: "Análise antropométrica detalhada e protocolos baseados em biomecânica acadêmica, agora na palma da sua mão.",
         icon: Target,
         color: "text-status-success"
@@ -29,7 +29,7 @@ const steps = [
     {
         id: "ready",
         title: "Pronto para começar?",
-        description: "Vamos realizar um cadastro rápido e, em seguida, sua ficha de anamnese PhD para o seu coach preparar seu primeiro protocolo.",
+        description: "Vamos realizar um cadastro rápido e, em seguida, sua ficha de anamnese elite para o seu coach preparar seu primeiro protocolo.",
         icon: Activity,
         color: "text-primary"
     }

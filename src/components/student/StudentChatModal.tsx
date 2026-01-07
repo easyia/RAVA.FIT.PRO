@@ -5,6 +5,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { MessageSquare, Bot, User, Send, ChevronLeft, Loader2, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -132,16 +133,21 @@ export function StudentChatModal({ open, onOpenChange, studentId, coachId, coach
                             </Button>
                         )}
                         <div className="flex items-center gap-3 flex-1">
-                            {view === 'coach' && coachAvatar && (
+                            {view === 'coach' && (
                                 <div className="relative">
-                                    <img src={coachAvatar} className="w-10 h-10 rounded-full object-cover border border-white/10" alt="" />
+                                    <Avatar className="w-10 h-10 border border-white/10">
+                                        <AvatarImage src={coachAvatar || ""} className="object-cover" />
+                                        <AvatarFallback className="bg-primary/10 text-primary font-bold">
+                                            {coachName ? coachName.charAt(0).toUpperCase() : <User className="w-4 h-4" />}
+                                        </AvatarFallback>
+                                    </Avatar>
                                     <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-zinc-900 rounded-full" />
                                 </div>
                             )}
                             <div>
                                 <DialogTitle className="text-base font-bold text-white leading-tight">
                                     {view === 'initial' && "Central de Mensagens"}
-                                    {view === 'ai' && "RAVA Intelligence"}
+                                    {view === 'ai' && "FIT PRO AI"}
                                     {view === 'coach' && coachName}
                                 </DialogTitle>
                                 <p className="text-[10px] text-zinc-400 font-medium">
@@ -187,7 +193,7 @@ export function StudentChatModal({ open, onOpenChange, studentId, coachId, coach
                                         </div>
                                         <div className="text-left flex-1 min-w-0">
                                             <div className="flex items-center gap-2 mb-1.5">
-                                                <h3 className="font-bold text-lg text-white group-hover:text-amber-400 transition-colors">RAVA Intelligence</h3>
+                                                <h3 className="font-bold text-lg text-white group-hover:text-amber-400 transition-colors">FIT PRO AI</h3>
                                                 <Badge className="bg-amber-500/20 text-amber-500 border-amber-500/30 text-[9px] uppercase font-black px-1.5 py-0 shadow-[0_0_10px_-2px_rgba(245,158,11,0.3)]">PRO</Badge>
                                             </div>
                                             <p className="text-xs text-zinc-400 leading-relaxed font-medium group-hover:text-zinc-300 transition-colors">
@@ -206,11 +212,12 @@ export function StudentChatModal({ open, onOpenChange, studentId, coachId, coach
                                     <div className="relative bg-[#121214] hover:bg-[#121214]/90 backdrop-blur-xl p-6 rounded-[1.95rem] flex items-center gap-5 transition-colors h-full border border-white/5">
                                         <div className="relative shrink-0">
                                             <div className="w-16 h-16 rounded-2xl p-[2px] bg-gradient-to-br from-primary to-emerald-500 shadow-[0_0_30px_-5px_rgba(var(--primary),0.4)]">
-                                                <img
-                                                    src={coachAvatar || "https://images.unsplash.com/photo-1594381898411-846e7d193883?w=200"}
-                                                    className="w-full h-full rounded-[14px] object-cover"
-                                                    alt=""
-                                                />
+                                                <Avatar className="w-full h-full rounded-[14px]">
+                                                    <AvatarImage src={coachAvatar || ""} className="object-cover" />
+                                                    <AvatarFallback className="rounded-[14px] bg-primary/10 text-primary font-bold text-xl">
+                                                        {coachName ? coachName.charAt(0).toUpperCase() : <User className="w-6 h-6" />}
+                                                    </AvatarFallback>
+                                                </Avatar>
                                             </div>
                                             <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 border-4 border-[#121214] rounded-full shadow-lg" />
                                         </div>

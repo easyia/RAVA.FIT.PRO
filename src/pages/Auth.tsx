@@ -61,8 +61,11 @@ const Auth = () => {
 
             <Card className="w-full max-w-md border-border bg-card/50 backdrop-blur-xl shadow-2xl animate-fade-in relative z-10">
                 <CardHeader className="space-y-4 text-center pb-8">
-                    <div className="flex justify-center">
-                        <img src="/Logomarca.png" alt="RAVA FIT PRO" className="h-16 w-auto" />
+                    <div className="flex justify-center mb-2">
+                        <span className="font-black text-3xl tracking-tighter inline-flex items-baseline">
+                            <span className="text-primary tracking-tighter">FIT</span>
+                            <span className="text-zinc-500 font-medium ml-1 text-sm tracking-[0.2em]">PRO</span>
+                        </span>
                     </div>
                     <div className="space-y-2">
                         <CardTitle className="text-3xl font-bold tracking-tight">

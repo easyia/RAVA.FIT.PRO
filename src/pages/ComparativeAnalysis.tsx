@@ -391,7 +391,7 @@ const ComparativeAnalysis = () => {
                     <!-- Cabecalho -->
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #F3F4F6; padding-bottom: 25px; margin-bottom: 35px;">
                         <div>
-                            <h1 style="color: #F59E0B; font-size: 32px; font-weight: 900; margin: 0; font-style: italic; letter-spacing: -1px;">RAVA FIT PRO</h1>
+                            <h1 style="color: #F59E0B; font-size: 32px; font-weight: 1000; margin: 0; font-style: italic; letter-spacing: -1.5px; font-family: 'Inter', sans-serif;">FIT <span style="color: #111827;">PRO</span></h1>
                             <p style="color: #4B5563; font-size: 11px; margin: 5px 0 0 0; letter-spacing: 3px; text-transform: uppercase; font-weight: 700;">Performance & Evolution Tracking</p>
                         </div>
                         <div style="text-align: right;">
@@ -476,7 +476,7 @@ const ComparativeAnalysis = () => {
                     <!-- Rodape -->
                     <div style="margin-top: auto; padding-top: 30px; border-top: 2px solid #F3F4F6; display: flex; justify-content: space-between; align-items: center;">
                         <p style="font-size: 11px; color: #9CA3AF; margin: 0; font-weight: 500;">Este relatório é propriedade do aluno e seu treinador.</p>
-                        <p style="font-size: 12px; color: #111827; margin: 0; font-weight: 800;">RAVA FIT PRO - Excellence in Coaching</p>
+                        <p style="font-size: 11px; color: #111827; margin: 0; font-weight: 900; letter-spacing: 1px; text-transform: uppercase;">FIT PRO - THE NEW STANDARD</p>
                     </div>
                 </div>
             `;
@@ -496,7 +496,7 @@ const ComparativeAnalysis = () => {
             const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
 
             pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-            pdf.save(`Avaliacao_RAVA_${selectedStudent.name.replace(/\s+/g, '_')}_${assessment.assessment_date}.pdf`);
+            pdf.save(`Relatorio_FIT_PRO_${selectedStudent.name.replace(/\s+/g, '_')}_${assessment.assessment_date}.pdf`);
 
             toast.success("Relatório gerado com sucesso!", { id: toastId });
         } catch (error) {
@@ -871,7 +871,7 @@ const ComparativeAnalysis = () => {
                                             </CardContent>
                                         </Card>
 
-                                        {/* Botão de Análise Postural PhD */}
+                                        {/* Botão de Análise Postural Elite */}
                                         {assessments?.[comparisonIndexA] && (
                                             <Button
                                                 onClick={() => {
@@ -891,7 +891,7 @@ const ComparativeAnalysis = () => {
                                                 className="w-full h-12 gap-2 bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90"
                                             >
                                                 <Sparkles className="w-5 h-5" />
-                                                Análise Postural PhD (IA Vision)
+                                                Análise Postural Elite (IA Vision)
                                             </Button>
                                         )}
 
@@ -1329,7 +1329,7 @@ const ComparativeAnalysis = () => {
             <Dialog open={isSymmetrographOpen} onOpenChange={setIsSymmetrographOpen}>
                 <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
-                        <DialogTitle>Análise Postural PhD - IA Vision</DialogTitle>
+                        <DialogTitle>Análise Postural Elite - IA Vision</DialogTitle>
                         <DialogDescription>
                             Utilize as ferramentas de desenho e análise de IA para identificar desvios posturais biomecânicos.
                         </DialogDescription>

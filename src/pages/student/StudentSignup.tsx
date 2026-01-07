@@ -72,7 +72,7 @@ export default function StudentSignup() {
                         <ShieldCheck className="w-6 h-6 text-primary" />
                     </div>
                     <CardTitle className="text-2xl font-bold uppercase italic italic">Crie sua Conta</CardTitle>
-                    <CardDescription>Bem-vindo ao time RAVA FIT</CardDescription>
+                    <CardDescription>Bem-vindo ao FIT PRO</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <form onSubmit={handleSignup} className="space-y-4">

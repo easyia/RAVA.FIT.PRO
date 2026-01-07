@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, User, FileText, Dumbbell, Utensils, Calendar, Phone, Mail, TrendingUp, ChevronRight, Clock, MessageSquare, Send } from "lucide-react";
 import { getChatMessages, sendMessageFromCoach } from "@/services/aiService";
 import { StudentChatTab } from "./StudentChatTab";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 interface StudentDetailsModalProps {
     studentId: string | null;
@@ -88,7 +89,12 @@ export function StudentDetailsModal({ studentId, isOpen, onClose, onStatusChange
                         <DialogHeader className="p-6 bg-muted/30 border-b border-border">
                             <div className="flex items-center gap-6">
                                 <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-primary/20 shadow-xl">
-                                    <img src={student.avatar_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&h=150&fit=crop&crop=faces"} alt="" className="w-full h-full object-cover" />
+                                    <Avatar className="w-full h-full">
+                                        <AvatarImage src={student.avatar_url || ""} className="object-cover" />
+                                        <AvatarFallback className="bg-primary/10 text-primary text-3xl font-black uppercase">
+                                            {student.full_name ? student.full_name.charAt(0).toUpperCase() : <User className="w-10 h-10" />}
+                                        </AvatarFallback>
+                                    </Avatar>
                                 </div>
                                 <div>
                                     <DialogTitle className="text-2xl font-bold text-foreground mb-1">{student.full_name}</DialogTitle>

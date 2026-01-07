@@ -28,7 +28,7 @@ export default function StudentInterfaceTour() {
             color: "text-status-success"
         },
         {
-            title: "Sincronia RAVA",
+            title: "Sincronia FIT PRO",
             description: "Nossa tecnologia ajusta tudo automaticamente conforme seu feedback diário.",
             icon: Zap,
             color: "text-status-warning"

@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { User, Bell, Shield, Palette, Save, Upload, Loader2, LogOut } from "lucide-react";
 import { toast } from "sonner";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getCoachProfile, updateCoachProfile, uploadAvatar } from "@/services/studentService";
 import { supabase } from "@/lib/supabase";
@@ -113,22 +114,17 @@ const Settings = () => {
                                     <div className="flex flex-col md:flex-row items-center gap-8 pb-6 border-b border-border/50">
                                         <div className="relative group">
                                             <div className="w-32 h-32 rounded-2xl bg-sidebar border-2 border-dashed border-border flex items-center justify-center overflow-hidden">
-                                                {(localPreview || formData.avatar_url) ? (
-                                                    <img
-                                                        src={localPreview || formData.avatar_url}
-                                                        className="w-full h-full object-cover"
-                                                        onError={(e) => {
-                                                            const target = e.target as HTMLImageElement;
-                                                            target.onerror = null; // Previne loop
-                                                            setLocalPreview(null);
-                                                            // Se a imagem falhar, podemos forçar o ícone
-                                                        }}
+                                                <Avatar className="w-full h-full rounded-2xl">
+                                                    <AvatarImage
+                                                        src={localPreview || formData.avatar_url || ""}
+                                                        className="object-cover"
                                                     />
-                                                ) : (
-                                                    <User className="w-12 h-12 text-tertiary" />
-                                                )}
+                                                    <AvatarFallback className="rounded-2xl bg-primary/10 text-primary font-bold text-3xl">
+                                                        {formData.name ? formData.name.charAt(0).toUpperCase() : <User className="w-12 h-12" />}
+                                                    </AvatarFallback>
+                                                </Avatar>
                                                 {isUploading && (
-                                                    <div className="absolute inset-0 bg-background/60 flex items-center justify-center backdrop-blur-sm">
+                                                    <div className="absolute inset-0 bg-background/60 flex items-center justify-center backdrop-blur-sm z-10">
                                                         <Loader2 className="w-6 h-6 animate-spin text-primary" />
                                                     </div>
                                                 )}
@@ -222,7 +218,7 @@ const Settings = () => {
                             <Card className="border-border bg-card text-center p-12">
                                 <Palette className="w-12 h-12 text-tertiary mx-auto mb-4" />
                                 <h3 className="text-lg font-bold">Tema e Cores</h3>
-                                <p className="text-sm text-muted-foreground mb-6">O RAVA FIT PRO segue o tema do seu sistema operacional.</p>
+                                <p className="text-sm text-muted-foreground mb-6">O FIT PRO segue o tema do seu sistema operacional.</p>
                                 <div className="flex justify-center gap-4">
                                     <div className="w-20 h-10 bg-slate-200 rounded-lg border border-border cursor-pointer"></div>
                                     <div className="w-20 h-10 bg-slate-900 rounded-lg border border-border cursor-pointer"></div>

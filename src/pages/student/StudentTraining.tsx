@@ -125,7 +125,7 @@ export default function StudentTraining() {
             <div className="p-4 rounded-xl bg-status-info/10 border border-status-info/20 flex gap-3">
                 <Info className="w-5 h-5 text-status-info shrink-0" />
                 <p className="text-[10px] text-status-info-foreground leading-relaxed">
-                    Clique em um exercício para ver a análise biomecânica e orientações de execução PhD.
+                    Clique em um exercício para ver a análise biomecânica e orientações de execução Elite.
                 </p>
             </div>
         </div>

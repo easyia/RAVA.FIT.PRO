@@ -1,4 +1,4 @@
-# Relatório de Configuração - IA de Dieta (RAVA FIT PRO)
+# Relatório de Configuração - IA de Dieta (FIT PRO)
 
 Este documento descreve detalhadamente como a Inteligência Artificial para geração de dietas está configurada no sistema.
 
