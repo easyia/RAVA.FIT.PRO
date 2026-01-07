@@ -1,11 +1,20 @@
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { Clock, LogOut, CheckCircle2 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 const PendingApproval = () => {
     const navigate = useNavigate();
+    const { status, role, loading } = useAuth();
+
+    useEffect(() => {
+        if (!loading && role === 'coach' && status === 'approved') {
+            navigate("/dashboard");
+        }
+    }, [status, role, loading, navigate]);
 
     const handleLogout = async () => {
         await supabase.auth.signOut();
