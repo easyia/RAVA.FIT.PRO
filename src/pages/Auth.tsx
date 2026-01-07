@@ -29,7 +29,7 @@ const Auth = () => {
                 if (error) throw error;
                 toast.success("Bem-vindo de volta!");
                 // Verificamos o perfil no Dashboard ou em um loader especializado
-                navigate("/");
+                navigate("/dashboard");
             } else {
                 const { error } = await supabase.auth.signUp({
                     email,

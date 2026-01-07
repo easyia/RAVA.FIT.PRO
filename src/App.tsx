@@ -15,7 +15,7 @@ import AITrainingAssistant from "./pages/AITrainingAssistant";
 import AINutritionAssistant from "./pages/AINutritionAssistant";
 import Onboarding from "./pages/Onboarding";
 import Auth from "./pages/Auth";
-import LandingPage from "./pages/LandingPage";
+import LandingPage from "./pages/public/LandingPage";
 import NotFound from "./pages/NotFound";
 import { UpdatesOnboarding } from "@/components/dashboard/UpdatesOnboarding";
 import FinancePage from "./pages/coach/FinancePage";
@@ -48,7 +48,8 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/landing" element={<LandingPage />} />
+          {/* Rotas Públicas */}
+          <Route path="/" element={<LandingPage />} />
           <Route path="/link/:coach_id" element={<CoachPublicProfile />} />
           <Route path="/auth" element={<Auth />} />
 
@@ -76,7 +77,7 @@ const App = () => (
 
           {/* Rotas do Coach */}
           <Route element={<RoleProtectedRoute allowedRole="coach" redirectTo="/auth" />}>
-            <Route path="/" element={<Dashboard />} />
+            <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/mensagens" element={<MessagesPage />} />
             <Route path="/alunos" element={<StudentList />} />
             <Route path="/cadastro" element={<StudentRegistration />} />

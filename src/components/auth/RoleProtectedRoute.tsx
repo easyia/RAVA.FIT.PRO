@@ -24,7 +24,7 @@ export function RoleProtectedRoute({ allowedRole, redirectTo = "/auth" }: RolePr
 
     // Se o role for 'coach' e estamos tentando acessar rota de 'student', redireciona para dashboard do coach
     if (role !== allowedRole) {
-        const defaultRedirect = role === 'coach' ? '/' : '/aluno/dashboard';
+        const defaultRedirect = role === 'coach' ? '/dashboard' : '/aluno/dashboard';
         return <Navigate to={defaultRedirect} />;
     }
 

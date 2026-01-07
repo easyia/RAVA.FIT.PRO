@@ -83,7 +83,7 @@ const Onboarding = () => {
                 description: "Seu perfil foi configurado com sucesso."
             });
             queryClient.invalidateQueries({ queryKey: ["coachProfile"] });
-            navigate("/");
+            navigate("/dashboard");
         } catch (error: any) {
             toast.error("Erro ao salvar perfil.");
         } finally {

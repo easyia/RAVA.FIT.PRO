@@ -19,8 +19,8 @@ export default defineConfig(({ mode }) => ({
         maximumFileSizeToCacheInBytes: 5000000,
       },
       manifest: {
-        name: "RAVA FIT PRO",
-        short_name: "RAVA FIT",
+        name: "FIT PRO",
+        short_name: "FIT PRO",
         description: "Transformando Resultados em Alta Performance",
         theme_color: "#9b87f5",
         background_color: "#ffffff",
