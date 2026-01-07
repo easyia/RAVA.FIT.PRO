@@ -22,7 +22,7 @@ export function useAuth() {
                 .from('coaches')
                 .select('status, is_admin')
                 .eq('id', userId)
-                .single();
+                .maybeSingle();
 
             const result: any = await Promise.race([fetchPromise, timeoutPromise]);
             const { data, error } = result;

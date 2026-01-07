@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { getMyActiveSubscription } from "@/services/financeService";
 import { StudentContractCard } from "@/components/legal/StudentContractCard";
