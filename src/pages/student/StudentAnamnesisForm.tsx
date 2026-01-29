@@ -10,7 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
-import { Loader2, ArrowRight, ArrowLeft, Check, ClipboardCheck } from "lucide-react";
+import { Loader2, ArrowRight, ArrowLeft, Check, ClipboardCheck, AlertCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
+import ErrorBoundary from "@/components/ui/ErrorBoundary";
 
 const SECTIONS = [
     "Identificação",
@@ -117,10 +119,41 @@ export default function StudentAnamnesisForm() {
         }
     };
 
+    const validateStep = (step: number) => {
+        switch (step) {
+            case 0: // Identification
+                if (!formData.full_name?.trim()) return "Nome completo é obrigatório";
+                if (!formData.birth_date) return "Data de nascimento é obrigatória";
+                if (!formData.sex) return "Sexo biológico é obrigatório";
+                if (!formData.cpf?.trim()) return "CPF é obrigatório";
+                return null;
+            case 2: // Biometry
+                if (!formData.height_cm) return "Altura é obrigatória";
+                if (!formData.weight_kg) return "Peso atual é obrigatório";
+                return null;
+            case 3: // Goals
+                if (!formData.main_goal) return "Objetivo principal é obrigatório";
+                return null;
+            case 10: // LGPD
+                if (!formData.lgpd_accepted) return "Você precisa aceitar os termos da LGPD";
+                return null;
+            default:
+                return null;
+        }
+    };
+
     const handleNext = () => {
+        const error = validateStep(currentStep);
+        if (error) {
+            toast.error(error);
+            // Haptic feedback feel (if supported)
+            if (window.navigator.vibrate) window.navigator.vibrate(50);
+            return;
+        }
+
         if (currentStep < SECTIONS.length - 1) {
             setCurrentStep(currentStep + 1);
-            window.scrollTo(0, 0);
+            setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 100);
         } else {
             handleSubmit();
         }
@@ -134,89 +167,110 @@ export default function StudentAnamnesisForm() {
     };
 
     const handleSubmit = async () => {
-        if (!formData.lgpd_accepted) {
-            toast.error("Você precisa aceitar os termos da LGPD para continuar.");
+        // Final validation
+        const finalError = validateStep(currentStep);
+        if (finalError) {
+            toast.error(finalError);
+            return;
+        }
+
+        if (!user) {
+            toast.error("Usuário não autenticado.");
             return;
         }
 
         setLoading(true);
         try {
+            console.log("Starting anamnesis submission...");
+
             // 0. Upload Avatar if exists
             let avatarUrl = formData.avatar_url;
             if (avatarFile) {
-                const fileExt = avatarFile.name.split('.').pop();
-                const fileName = `${user?.id}-${Math.random()}.${fileExt}`;
-                const { error: uploadError } = await supabase.storage
-                    .from('avatars')
-                    .upload(fileName, avatarFile);
+                try {
+                    const fileExt = avatarFile.name.split('.').pop();
+                    const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+                    const { error: uploadError } = await supabase.storage
+                        .from('avatars')
+                        .upload(fileName, avatarFile);
 
-                if (uploadError) throw uploadError;
+                    if (uploadError) throw uploadError;
 
-                const { data: { publicUrl } } = supabase.storage
-                    .from('avatars')
-                    .getPublicUrl(fileName);
+                    const { data: { publicUrl } } = supabase.storage
+                        .from('avatars')
+                        .getPublicUrl(fileName);
 
-                avatarUrl = publicUrl;
+                    avatarUrl = publicUrl;
+                } catch (err) {
+                    console.error("Avatar upload failed:", err);
+                    // Continue without avatar or notify user? For now continue.
+                }
             }
 
-            // 1. Atualizar dados na tabela 'students' (campos de identificação + consentimento LGPD)
+            // 1. Update Student record
             const timestamp = new Date().toISOString();
             const { error: studentError } = await supabase
                 .from('students')
                 .update({
-                    full_name: formData.full_name,
+                    full_name: formData.full_name?.trim(),
                     birth_date: formData.birth_date,
                     sex: formData.sex,
-                    cpf: formData.cpf,
-                    rg: formData.rg,
-                    profession: formData.profession,
-                    marital_status: formData.marital_status,
-                    emergency_contact: formData.emergency_contact,
-                    emergency_phone: formData.emergency_phone,
+                    cpf: formData.cpf?.trim(),
+                    rg: formData.rg?.trim() || null,
+                    profession: formData.profession?.trim() || null,
+                    marital_status: formData.marital_status || null,
+                    emergency_contact: formData.emergency_contact?.trim() || null,
+                    emergency_phone: formData.emergency_phone?.trim() || null,
                     avatar_url: avatarUrl,
                     legal_consent_at: timestamp,
                     terms_accepted_at: timestamp,
                     updated_at: timestamp,
-                    status: 'pending_approval' // Garante o status correto
+                    status: 'pending_approval'
                 })
-                .eq('id', user?.id);
+                .eq('id', user.id);
 
-            if (studentError) throw studentError;
+            if (studentError) {
+                console.error("Student update error:", studentError);
+                throw new Error("Falha ao atualizar dados de identificação.");
+            }
 
-            // 2. Inserir ou atualizar na tabela 'anamnesis'
+            // 2. Upsert Anamnesis
             const { error: anamnesisError } = await supabase
                 .from('anamnesis')
                 .upsert({
-                    student_id: user?.id,
+                    student_id: user.id,
                     weight_kg: parseFloat(formData.weight_kg) || null,
                     height_cm: parseFloat(formData.height_cm) || null,
                     main_goal: formData.main_goal,
-                    secondary_goal: formData.secondary_goal,
-                    motivation_barriers: formData.motivation_barriers,
+                    secondary_goal: formData.secondary_goal?.trim() || null,
+                    motivation_barriers: formData.motivation_barriers?.trim() || null,
                     initial_training_frequency: formData.initial_training_frequency,
                     training_level: formData.training_level,
                     equipment_availability: formData.training_environment,
-                    training_preferences: formData.training_preferences,
-                    medical_conditions: formData.medical_conditions,
-                    medications: formData.medications,
-                    allergies: formData.allergies,
-                    injuries: formData.injuries,
-                    physical_limitations: formData.exercises_pain,
+                    training_preferences: formData.training_preferences?.trim() || null,
+                    medical_conditions: formData.medical_conditions?.trim() || null,
+                    medications: formData.medications?.trim() || null,
+                    allergies: formData.allergies?.trim() || null,
+                    injuries: formData.injuries?.trim() || null,
+                    physical_limitations: formData.exercises_pain?.trim() || null,
                     sleep_pattern: formData.sleep_quality,
                     alcohol_use: formData.alcohol_frequency,
-                    physical_activity_history: formData.physical_activity_history,
-                    diet_habits: formData.diet_habits,
-                    initial_nutrition_notes: `Não consome: ${formData.non_consumed_foods}. Hidratação: ${formData.hydration_daily}L`,
+                    physical_activity_history: formData.physical_activity_history?.trim() || null,
+                    diet_habits: formData.diet_habits?.trim() || null,
+                    initial_nutrition_notes: `Não consome: ${formData.non_consumed_foods || 'N/A'}. Hidratação: ${formData.hydration_daily || 'N/S'}L`,
                     stress_level: formData.stress_level,
-                    schedule_availability: `Disponibilidade: ${formData.available_days.join(', ')}. Acorda: ${formData.wake_up_time}, Dorme: ${formData.sleep_time}. Rotina: ${formData.daily_routine}`
+                    schedule_availability: `Disponibilidade: ${(formData.available_days || []).join(', ')}. Acorda: ${formData.wake_up_time}, Dorme: ${formData.sleep_time}. Rotina: ${formData.daily_routine || 'N/S'}`
                 });
 
-            if (anamnesisError) throw anamnesisError;
+            if (anamnesisError) {
+                console.error("Anamnesis upsert error:", anamnesisError);
+                throw new Error("Falha ao salvar questionário de saúde.");
+            }
 
             toast.success("Anamnese concluída com sucesso!");
             navigate("/aluno/dashboard");
         } catch (error: any) {
-            toast.error(error.message || "Erro ao salvar anamnese");
+            console.error("Submit Error:", error);
+            toast.error(error.message || "Ocorreu um erro inesperado. Tente novamente.");
         } finally {
             setLoading(false);
         }
@@ -668,59 +722,83 @@ export default function StudentAnamnesisForm() {
     };
 
     return (
-        <div className="min-h-screen bg-background pb-20 w-full overflow-x-hidden">
-            <header className="p-4 border-b sticky top-0 bg-background/80 backdrop-blur-md z-50 w-full">
-                <div className="w-full max-w-lg mx-auto flex items-center justify-between px-0">
-                    <h1 className="text-base font-black italic tracking-tighter text-primary uppercase">ANAMNESE</h1>
-                    <div className="text-xs font-bold bg-muted px-2 py-1 rounded">
-                        PASSO {currentStep + 1} DE {SECTIONS.length}
+        <ErrorBoundary>
+            <div className="min-h-screen bg-background pb-20 w-full overflow-x-hidden relative">
+                <AnimatePresence>
+                    {loading && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 z-[100] bg-background/80 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center"
+                        >
+                            <div className="bg-card border border-border p-8 rounded-3xl shadow-2xl flex flex-col items-center gap-4 max-w-xs w-full">
+                                <div className="relative">
+                                    <Loader2 className="w-12 h-12 text-primary animate-spin" />
+                                    <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full animate-pulse" />
+                                </div>
+                                <div className="space-y-1">
+                                    <h3 className="font-black italic uppercase tracking-tighter text-lg">Processando</h3>
+                                    <p className="text-xs text-muted-foreground font-medium">Salvando sua anamnese com segurança...</p>
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                <header className="p-4 border-b sticky top-0 bg-background/80 backdrop-blur-md z-50 w-full">
+                    <div className="w-full max-w-lg mx-auto flex items-center justify-between px-0">
+                        <h1 className="text-base font-black italic tracking-tighter text-primary uppercase">ANAMNESE</h1>
+                        <div className="text-xs font-bold bg-muted px-2 py-1 rounded">
+                            PASSO {currentStep + 1} DE {SECTIONS.length}
+                        </div>
                     </div>
-                </div>
-                <div className="w-full max-w-lg mx-auto mt-3 h-1 bg-muted rounded-full overflow-hidden">
-                    <motion.div
-                        className="h-full bg-primary"
-                        initial={{ width: 0 }}
-                        animate={{ width: `${((currentStep + 1) / SECTIONS.length) * 100}%` }}
-                    />
-                </div>
-            </header>
+                    <div className="w-full max-w-lg mx-auto mt-3 h-1 bg-muted rounded-full overflow-hidden">
+                        <motion.div
+                            className="h-full bg-primary"
+                            initial={{ width: 0 }}
+                            animate={{ width: `${((currentStep + 1) / SECTIONS.length) * 100}%` }}
+                        />
+                    </div>
+                </header>
 
-            <main className="px-4 py-6 w-full max-w-lg mx-auto">
-                <div className="mb-6">
-                    <h3 className="text-primary font-bold uppercase tracking-widest text-[10px] mb-1">{SECTIONS[currentStep]}</h3>
-                    <p className="text-muted-foreground text-sm">Responda com o máximo de precisão possível.</p>
-                </div>
+                <main className="px-4 py-6 w-full max-w-lg mx-auto">
+                    <div className="mb-6">
+                        <h3 className="text-primary font-bold uppercase tracking-widest text-[10px] mb-1">{SECTIONS[currentStep]}</h3>
+                        <p className="text-muted-foreground text-sm">Responda com o máximo de precisão possível.</p>
+                    </div>
 
-                <section className="bg-card border border-border/50 rounded-2xl p-4 shadow-xl overflow-x-hidden">
-                    {renderStep()}
-                </section>
+                    <section className="bg-card border border-border/50 rounded-2xl p-4 shadow-xl overflow-x-hidden">
+                        {renderStep()}
+                    </section>
 
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-10">
-                    <Button
-                        variant="ghost"
-                        onClick={handleBack}
-                        disabled={currentStep === 0}
-                        className="w-full sm:w-auto rounded-xl h-12 order-2 sm:order-1"
-                    >
-                        <ArrowLeft className="w-4 h-4 mr-2" /> Anterior
-                    </Button>
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-10">
+                        <Button
+                            variant="ghost"
+                            onClick={handleBack}
+                            disabled={currentStep === 0}
+                            className="w-full sm:w-auto rounded-xl h-12 order-2 sm:order-1"
+                        >
+                            <ArrowLeft className="w-4 h-4 mr-2" /> Anterior
+                        </Button>
 
-                    <Button
-                        onClick={handleNext}
-                        disabled={loading}
-                        className="w-full sm:w-auto rounded-xl h-12 px-8 font-bold order-1 sm:order-2"
-                    >
-                        {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : (
-                            currentStep === SECTIONS.length - 1 ? (
-                                <> <Check className="w-5 h-5 mr-2" /> Concluir </>
-                            ) : (
-                                <> Próximo <ArrowRight className="w-4 h-4 ml-2" /> </>
-                            )
-                        )}
-                    </Button>
-                </div>
-            </main>
-        </div>
+                        <Button
+                            onClick={handleNext}
+                            disabled={loading}
+                            className="w-full sm:w-auto rounded-xl h-12 px-8 font-bold order-1 sm:order-2"
+                        >
+                            {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : (
+                                currentStep === SECTIONS.length - 1 ? (
+                                    <> <Check className="w-5 h-5 mr-2" /> Concluir </>
+                                ) : (
+                                    <> Próximo <ArrowRight className="w-4 h-4 ml-2" /> </>
+                                )
+                            )}
+                        </Button>
+                    </div>
+                </main>
+            </div>
+        </ErrorBoundary>
     );
 }
 
