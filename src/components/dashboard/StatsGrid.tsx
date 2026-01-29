@@ -5,7 +5,7 @@ interface StatCardProps {
     title: string;
     value: number | string;
     icon: any;
-    trend: string;
+    trend: string | null;
     trendType: 'up' | 'down';
     className?: string;
 }
@@ -17,13 +17,15 @@ function StatCard({ title, value, icon: Icon, trend, trendType, className }: Sta
                 <div className="p-2 rounded-lg bg-sidebar/50 border border-border/50">
                     <Icon className="w-5 h-5 text-tertiary" />
                 </div>
-                <div className={cn(
-                    "flex items-center gap-1 text-xs font-medium",
-                    trendType === 'up' ? "text-status-success" : "text-status-error"
-                )}>
-                    {trendType === 'up' ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                    {trend}
-                </div>
+                {trend && (
+                    <div className={cn(
+                        "flex items-center gap-1 text-xs font-medium",
+                        trendType === 'up' ? "text-status-success" : "text-status-error"
+                    )}>
+                        {trendType === 'up' ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                        {trend}
+                    </div>
+                )}
             </div>
 
             <div>
@@ -41,10 +43,10 @@ interface StatsGridProps {
         pendingAnamnesis: number;
         protocolsThisMonth: number;
         trends: {
-            totalStudents: string;
-            activeStudents: string;
-            pendingAnamnesis: string;
-            protocols: string;
+            totalStudents: string | null;
+            activeStudents: string | null;
+            pendingAnamnesis: string | null;
+            protocols: string | null;
         };
     };
     isLoading?: boolean;
@@ -61,7 +63,8 @@ export function StatsGrid({ stats, isLoading }: StatsGridProps) {
         );
     }
 
-    const getTrendType = (trend: string, inverse = false) => {
+    const getTrendType = (trend: string | null | undefined, inverse = false) => {
+        if (!trend) return 'up';
         const isPositive = trend.startsWith('+');
         if (inverse) return isPositive ? 'down' : 'up';
         return isPositive ? 'up' : 'down';
@@ -73,29 +76,29 @@ export function StatsGrid({ stats, isLoading }: StatsGridProps) {
                 title="Total de Alunos"
                 value={stats.totalStudents}
                 icon={Users}
-                trend={stats.trends?.totalStudents || "0%"}
-                trendType={getTrendType(stats.trends?.totalStudents || "0%")}
+                trend={stats.trends?.totalStudents}
+                trendType={getTrendType(stats.trends?.totalStudents)}
             />
             <StatCard
                 title="Alunos Ativos"
                 value={stats.activeStudents}
                 icon={UserCheck}
-                trend={stats.trends?.activeStudents || "0%"}
-                trendType={getTrendType(stats.trends?.activeStudents || "0%")}
+                trend={stats.trends?.activeStudents}
+                trendType={getTrendType(stats.trends?.activeStudents)}
             />
             <StatCard
                 title="Anamneses Pendentes"
                 value={stats.pendingAnamnesis}
                 icon={ClipboardList}
-                trend={stats.trends?.pendingAnamnesis || "0%"}
-                trendType={getTrendType(stats.trends?.pendingAnamnesis || "0%", true)} // Invertido: cair é bom
+                trend={stats.trends?.pendingAnamnesis}
+                trendType={getTrendType(stats.trends?.pendingAnamnesis, true)} // Invertido: cair é bom
             />
             <StatCard
                 title="Protocolos Este Mês"
                 value={stats.protocolsThisMonth}
                 icon={FileText}
-                trend={stats.trends?.protocols || "0%"}
-                trendType={getTrendType(stats.trends?.protocols || "0%")}
+                trend={stats.trends?.protocols}
+                trendType={getTrendType(stats.trends?.protocols)}
             />
         </div>
     );

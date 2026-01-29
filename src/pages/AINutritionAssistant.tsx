@@ -126,23 +126,30 @@ const AINutritionAssistant = () => {
     }, [anamnesis, naf, studentDetails]);
 
     // Calculate final target based on GET + adjustment
-    const targetKcal = useMemo(() => {
+    const calculatedTargetKcal = useMemo(() => {
         if (!calculations) return 0;
         return Math.round(calculations.get) + calorieAdjustment;
     }, [calculations, calorieAdjustment]);
 
-    const macros = useMemo(() => {
-        if (!anamnesis || !calculations) return null;
-        const finalKcal = Math.round(calculations.get) + calorieAdjustment;
-        if (finalKcal <= 0) return null;
-        const calc = calculateMacros(finalKcal, anamnesis.weight_kg || 70, anamnesis.main_goal);
-        setCustomMacros({
-            p: Math.round(calc.protein.grams),
-            c: Math.round(calc.carbs.grams),
-            f: Math.round(calc.fats.grams)
-        });
-        return calc;
-    }, [targetKcal, anamnesis]);
+    // Update custom macros when target kcal or goal changes
+    useEffect(() => {
+        if (anamnesis && calculatedTargetKcal > 0 && !isEditingMacros) {
+            const calc = calculateMacros(calculatedTargetKcal, anamnesis.weight_kg || 70, anamnesis.main_goal);
+            setCustomMacros({
+                p: Math.round(calc.protein.grams),
+                c: Math.round(calc.carbs.grams),
+                f: Math.round(calc.fats.grams)
+            });
+        }
+    }, [calculatedTargetKcal, anamnesis?.main_goal, isEditingMacros]);
+
+    // Effective target (what we send and display as Meta)
+    const effectiveTargetKcal = useMemo(() => {
+        if (isEditingMacros) {
+            return (customMacros.p * 4) + (customMacros.c * 4) + (customMacros.f * 9);
+        }
+        return calculatedTargetKcal;
+    }, [isEditingMacros, customMacros, calculatedTargetKcal]);
 
     const handleGenerateDiet = async () => {
         if (!selectedStudentId || !hasTraining) {
@@ -156,7 +163,7 @@ const AINutritionAssistant = () => {
                 body: {
                     coach_id: coach?.id,
                     student_id: selectedStudentId,
-                    target_calories: targetKcal,
+                    target_calories: effectiveTargetKcal,
                     macros: {
                         p: customMacros.p,
                         c: customMacros.c,
@@ -187,7 +194,7 @@ const AINutritionAssistant = () => {
             const planToSave = {
                 title: generatedDiet.titulo,
                 goal: generatedDiet.objetivo,
-                total_calories: targetKcal,
+                total_calories: effectiveTargetKcal,
                 total_proteins: customMacros.p,
                 total_carbs: customMacros.c,
                 total_fats: customMacros.f,
@@ -195,7 +202,7 @@ const AINutritionAssistant = () => {
                     m.opcoes.map((opt: any, optIdx: number) => ({
                         name: m.nome,
                         time: m.horario,
-                        type: `Opção ${optIdx + 1}`,
+                        type: opt.nome_da_opcao || `Opção ${optIdx + 1}`,
                         foods: opt.itens.map((i: any) => ({
                             name: i.alimento,
                             quantity: i.quantidade,
@@ -205,11 +212,13 @@ const AINutritionAssistant = () => {
                 )
             };
 
+            console.log("Salvando plano de dieta:", planToSave);
             await saveMealPlan(selectedStudentId, planToSave);
             toast.success('Protocolo de Dieta salvo com sucesso!');
             navigate('/protocolos');
-        } catch (error) {
-            toast.error('Erro ao salvar dieta.');
+        } catch (error: any) {
+            console.error("Erro ao salvar dieta:", error);
+            toast.error('Erro ao salvar dieta: ' + (error.message || 'Erro desconhecido'));
         } finally {
             setIsSaving(false);
         }
@@ -376,7 +385,10 @@ const AINutritionAssistant = () => {
                                                     <Button
                                                         variant={calorieAdjustment === -500 ? "default" : "outline"}
                                                         size="sm"
-                                                        onClick={() => setCalorieAdjustment(-500)}
+                                                        onClick={() => {
+                                                            setCalorieAdjustment(-500);
+                                                            setIsEditingMacros(false);
+                                                        }}
                                                         className="text-xs"
                                                     >
                                                         -500 kcal
@@ -384,7 +396,10 @@ const AINutritionAssistant = () => {
                                                     <Button
                                                         variant={calorieAdjustment === 0 ? "default" : "outline"}
                                                         size="sm"
-                                                        onClick={() => setCalorieAdjustment(0)}
+                                                        onClick={() => {
+                                                            setCalorieAdjustment(0);
+                                                            setIsEditingMacros(false);
+                                                        }}
                                                         className="text-xs"
                                                     >
                                                         Manutenção
@@ -392,7 +407,10 @@ const AINutritionAssistant = () => {
                                                     <Button
                                                         variant={calorieAdjustment === 300 ? "default" : "outline"}
                                                         size="sm"
-                                                        onClick={() => setCalorieAdjustment(300)}
+                                                        onClick={() => {
+                                                            setCalorieAdjustment(300);
+                                                            setIsEditingMacros(false);
+                                                        }}
                                                         className="text-xs"
                                                     >
                                                         +300 kcal
@@ -402,7 +420,10 @@ const AINutritionAssistant = () => {
                                                     <Input
                                                         type="number"
                                                         value={calorieAdjustment}
-                                                        onChange={(e) => setCalorieAdjustment(parseInt(e.target.value) || 0)}
+                                                        onChange={(e) => {
+                                                            setCalorieAdjustment(parseInt(e.target.value) || 0);
+                                                            setIsEditingMacros(false);
+                                                        }}
                                                         className="font-bold text-center h-10"
                                                         placeholder="Ex: -300 ou +500"
                                                     />
@@ -414,7 +435,7 @@ const AINutritionAssistant = () => {
                                                         calorieAdjustment < 0 ? "bg-orange-500/10 text-orange-500" :
                                                             "bg-muted text-muted-foreground"
                                                 )}>
-                                                    Meta: {targetKcal} kcal/dia
+                                                    Meta: {effectiveTargetKcal} kcal/dia
                                                 </div>
                                             </div>
                                         </CardContent>
@@ -422,7 +443,7 @@ const AINutritionAssistant = () => {
                                 )}
 
                                 {/* Macros Editor */}
-                                {macros && (
+                                {anamnesis && calculations && (
                                     <Card className="border-border shadow-sm">
                                         <CardHeader className="pb-3">
                                             <div className="flex justify-between items-center">
@@ -510,7 +531,7 @@ const AINutritionAssistant = () => {
                                                 <h2 className="text-2xl font-bold">{generatedDiet.titulo}</h2>
                                                 <div className="flex gap-2 mt-2">
                                                     <Badge variant="secondary">{generatedDiet.objetivo}</Badge>
-                                                    <Badge variant="outline">{targetKcal} kcal/dia</Badge>
+                                                    <Badge variant="outline">{effectiveTargetKcal} kcal/dia</Badge>
                                                 </div>
                                             </div>
                                             <Button onClick={handleSaveDiet} disabled={isSaving} size="lg">
@@ -542,7 +563,7 @@ const AINutritionAssistant = () => {
                                                                     optIdx === 0 ? "bg-primary/5" : ""
                                                                 )}>
                                                                     <Badge variant={optIdx === 0 ? "default" : "outline"} className="mb-2">
-                                                                        Opção {optIdx + 1}
+                                                                        {meal.opcoes?.[optIdx]?.nome_da_opcao || `Opção ${optIdx + 1}`}
                                                                     </Badge>
                                                                     <ul className="space-y-2">
                                                                         {meal.opcoes?.[optIdx]?.itens?.map((item: any, iIdx: number) => (

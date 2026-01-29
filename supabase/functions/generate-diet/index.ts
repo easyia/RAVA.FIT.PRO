@@ -59,18 +59,30 @@ serve(async (req) => {
 ────────────────────────
 [REGRAS DE SINCRONIA E BIOENERGÉTICA]
 
-1. SINCRONIA DE TREINO (CROSS-DATA):
-- Analise o 'training_program' ativo do aluno.
-- REGRA DE CARBOIDRATOS: Calcule o aporte de carboidratos com base no volume de séries semanais relatado pelo motor de treino. Treinos de alto volume (> 15 séries/músculo) exigem maior aporte peri-treino.
+1. RESPEITO AOS ALVOS (OBRIGATÓRIO):
+- Você DEVE gerar a dieta respeitando EXATAMENTE os alvos de Calorias e Macros fornecidos no prompt (P: ${body.macros.p}g, C: ${body.macros.c}g, G: ${body.macros.f}g, Total: ${body.target_calories}kcal).
+- Não altere estes valores a menos que seja para um ajuste de margem de erro de < 5% para encaixar os alimentos.
 
-2. PRIORIDADE METABÓLICA (ESPORTE):
-- O gasto calórico do 'main_sport' (Futebol, Corrida, etc.) informado na anamnese é a sua PRIORIDADE metabólica de base. Calcule o TDEE considerando primeiro o esporte e depois o adicional da musculação.
+2. SINCRONIA DE TREINO (CROSS-DATA):
+- Analise o 'training_program' ativo do aluno fornecido abaixo.
+- Distribua os carboidratos priorizando as refeições pré e pós-treino com base nos horários sugeridos.
+- Justifique como a dieta suporta o volume e a intensidade do treino atual.
 
-3. SUPLEMENTAÇÃO TIER 1 (CIÊNCIA PURA):
-- Prescreva apenas suplementos com alto grau de evidência (Creatina, Cafeína, Beta-Alanina, Whey/Proteína isolada). Justifique o uso biomecanicamente ou bioquimicamente.
+3. PRIORIDADE METABÓLICA (ESPORTE):
+- Considere o gasto calórico do esporte informado na anamnese ('sport_specialty').
+- O aporte de micronutrientes e eletrólitos deve considerar a taxa de sudorese e desgaste do esporte.
 
-4. AJUSTE REPARADOR (HORMONAL):
-- Se 'hormones' estiver presente, ajuste a síntese proteica alvo. Usuários de Hormônios/TRT suportam e exigem maior aporte proteico (2.2g - 2.6g/kg) devido ao aumento do turnover.
+4. SUPLEMENTAÇÃO TIER 1 (CIÊNCIA PURA):
+- Prescreva apenas suplementos com alto grau de evidência (Creatina, Cafeína, Beta-Alanina, Whey/Proteína isolada).
+
+5. AJUSTE REPARADOR (HORMONAL):
+- Verifique o campo 'uses_ergogenics'. Se for 'true', você DEVE considerar o aumento da síntese proteica (alvo proteico já deve estar refletido nos macros fornecidos pelo coach, mas use o racional para justificar).
+
+6. LÓGICA DE EQUIVALÊNCIA E INDEPENDÊNCIA (CRÍTICO):
+- Cada refeição DEVE conter obrigatoriamente EXATAMENTE 3 OPÇÕES INDEPENDENTES (Menu A, Menu B, Menu C).
+- INDEPENDÊNCIA: Cada 'Opção' deve ser uma refeição COMPLETA por si só, contendo todos os macros (Proteína, Carbo, Gordura). JAMAIS divida os nutrientes entre as opções.
+- EQUIVALÊNCIA: Se a refeição alvo tem X calorias, a Opção 1 deve ter ~X kcal, a Opção 2 deve ter ~X kcal e a Opção 3 deve ter ~X kcal. O erro de colocar apenas um ingrediente em uma opção é terminantemente proibido.
+- VARIEDADE: Troque as fontes de proteína e carbo entre as opções (ex: Opção 1 Frango, Opção 2 Carne, Opção 3 Peixe/Ovo).
 
 ────────────────────────
 FORMATO DE RESPOSTA (JSON):
@@ -84,35 +96,59 @@ FORMATO DE RESPOSTA (JSON):
     "total_fats": number,
     "refeicoes": [
       {
-        "nome": "string",
+        "nome": "string (ex: Almoço)",
         "horario": "string",
         "opcoes": [
           {
-             "id": 1,
-             "itens": [
-                { "alimento": "string", "quantidade": number, "unidade": "string", "carb": number, "prot": number, "gord": number }
-             ]
+            "id": 1,
+            "nome_da_opcao": "string (ex: Opção Frango Padrão)",
+            "itens": [
+              { "alimento": "string", "quantidade": number, "unidade": "string", "carb": number, "prot": number, "gord": number }
+            ]
+          },
+          {
+            "id": 2,
+            "nome_da_opcao": "string (ex: Opção Carne Vermelha)",
+            "itens": [
+              { "alimento": "string", "quantidade": number, "unidade": "string", "carb": number, "prot": number, "gord": number }
+            ]
+          },
+          {
+            "id": 3,
+            "nome_da_opcao": "string (ex: Opção Peixe/Ovos)",
+            "itens": [
+              { "alimento": "string", "quantidade": number, "unidade": "string", "carb": number, "prot": number, "gord": number }
+            ]
           }
         ]
       }
     ],
-    "justificativa_bioenergetica": "string",
+    "justificativa_bioenergetica": "string (Explique como as 3 opções mantêm a equivalência e suportam o treino)",
     "suplementacao_estrategica": [
       { "suplemento": "string", "dose": "string", "horario": "string", "justificativa_phd": "string" }
     ]
   }
-}`;
+} (Responda APENAS o JSON)`;
 
     const userPrompt = `
+# ALVOS NUTRICIONAIS (DEFINIDOS PELO COACH)
+- Calorias Alvo: ${body.target_calories} kcal
+- Proteínas: ${body.macros.p}g
+- Carboidratos: ${body.macros.c}g
+- Gorduras: ${body.macros.f}g
+
 # DADOS DO ALUNO (ANAMNESE)
 - Objetivo: ${student.anamnesis?.[0]?.main_goal}
 - Peso Atual: ${student.anamnesis?.[0]?.weight_kg}kg | Altura: ${student.anamnesis?.[0]?.height_cm}cm
-- Esporte Principal: ${student.anamnesis?.[0]?.main_sport} (${student.anamnesis?.[0]?.sport_level})
-- Uso de Hormônios: ${student.anamnesis?.[0]?.use_hormones || "Não relatado"}
-- Intolerâncias: ${student.anamnesis?.[0]?.food_intolerances || "Nenhuma"}
+- Esporte Principal: ${student.anamnesis?.[0]?.sport_specialty || "Não informado"}
+- Uso de Hormônios: ${student.anamnesis?.[0]?.uses_ergogenics ? "Sim" : "Não"}
+- Detalhes Hormonais: ${student.anamnesis?.[0]?.uses_ergogenics_details || "Nenhum"}
+- Intolerâncias: ${student.anamnesis?.[0]?.non_consumed_foods || "Nenhuma relatada"}
 
 # CONTEXTO DE TREINO (Sincronia Ativa)
-${training ? JSON.stringify(training) : "Nenhum treino ativo registrado ainda."}
+${training ? `Programa: ${training.title}
+Objetivo Treino: ${training.goal}
+Sessões de Treino: ${JSON.stringify(training.training_sessions.map((s: any) => ({ nome: s.name, foco: s.focus })))}` : "Nenhum treino ativo registrado ainda."}
 
 # SOLICITAÇÃO ADICIONAL:
 "${body.prompt_users || 'Gere uma dieta otimizada'}"

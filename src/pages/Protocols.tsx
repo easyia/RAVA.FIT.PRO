@@ -33,7 +33,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getStudents, getTrainingPrograms, getMealPlans, saveTrainingProgram, saveMealPlan } from "@/services/studentService";
+import { getStudents, getTrainingPrograms, getMealPlans, saveTrainingProgram, saveMealPlan, setActiveTrainingProgram, setActiveMealPlan } from "@/services/studentService";
 import { Student } from "@/types/student";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
@@ -109,6 +109,77 @@ const Protocols = () => {
 
     const navigate = useNavigate();
     const queryClient = useQueryClient();
+    const [expandedTrainingIds, setExpandedTrainingIds] = useState<Set<string>>(new Set());
+    const [expandedDietIds, setExpandedDietIds] = useState<Set<string>>(new Set());
+    const [isSettingActive, setIsSettingActive] = useState(false);
+
+    const toggleTrainingExpansion = (id: string) => {
+        setExpandedTrainingIds(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    };
+
+    const toggleDietExpansion = (id: string) => {
+        setExpandedDietIds(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    };
+
+    const handleSetActiveTraining = async (programId: string) => {
+        if (!selectedStudent || isSettingActive) return;
+        setIsSettingActive(true);
+        try {
+            await setActiveTrainingProgram(selectedStudent.id, programId);
+
+            // Força a atualização local do estado antes do refetch
+            queryClient.setQueryData(['trainingPrograms', selectedStudent.id], (old: any) => {
+                if (!old) return [];
+                return old.map((p: any) => ({
+                    ...p,
+                    status: p.id === programId ? 'active' : 'inactive'
+                }));
+            });
+
+            await queryClient.refetchQueries({ queryKey: ['trainingPrograms', selectedStudent.id] });
+            toast.success("Plano de treino definido como ATIVO!");
+        } catch (error: any) {
+            console.error(error);
+            toast.error("Erro ao definir treino ativo.");
+        } finally {
+            setIsSettingActive(false);
+        }
+    };
+
+    const handleSetActiveDiet = async (planId: string) => {
+        if (!selectedStudent || isSettingActive) return;
+        setIsSettingActive(true);
+        try {
+            await setActiveMealPlan(selectedStudent.id, planId);
+
+            // Optimistic update
+            queryClient.setQueryData(['mealPlans', selectedStudent.id], (old: any) => {
+                if (!old) return [];
+                return old.map((p: any) => ({
+                    ...p,
+                    status: p.id === planId ? 'active' : 'inactive'
+                }));
+            });
+
+            await queryClient.refetchQueries({ queryKey: ['mealPlans', selectedStudent.id] });
+            toast.success("Plano de dieta definido como ATIVO!");
+        } catch (error: any) {
+            console.error(error);
+            toast.error("Erro ao definir dieta ativa.");
+        } finally {
+            setIsSettingActive(false);
+        }
+    };
 
     const { data: students, isLoading: loadingStudents } = useQuery({
         queryKey: ["students"],
@@ -127,6 +198,9 @@ const Protocols = () => {
         enabled: !!selectedStudent
     });
 
+    const activeDiet = mealPlans.find((p: any) => p.status === 'active') || mealPlans[0];
+    const activeTraining = trainingPrograms.find((p: any) => p.status === 'active') || trainingPrograms[0];
+
     const { data: coachProfile } = useQuery({
         queryKey: ['coachProfile'],
         queryFn: async () => {
@@ -141,13 +215,13 @@ const Protocols = () => {
     const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
     const handleGenerateDietPDF = async () => {
-        if (!mealPlans[0] || !selectedStudent) return;
+        if (!activeDiet || !selectedStudent) return;
 
         setIsGeneratingPDF(true);
         try {
             await generateDietReport({
                 student: selectedStudent,
-                plan: mealPlans[0],
+                plan: activeDiet,
                 coach: coachProfile
             });
             toast.success("Plano Alimentar gerado com sucesso!");
@@ -435,8 +509,7 @@ const Protocols = () => {
                                                             <RadarChart cx="50%" cy="50%" outerRadius="85%" data={
                                                                 (() => {
                                                                     const volumes: Record<string, number> = {};
-                                                                    const latest = trainingPrograms[0];
-                                                                    latest.training_sessions?.forEach((session: any) => {
+                                                                    activeTraining?.training_sessions?.forEach((session: any) => {
                                                                         session.training_exercises?.forEach((ex: any) => {
                                                                             const muscle = ex.main_muscle_group || session.name || 'Geral';
                                                                             const volume = (Number(ex.sets) || 0) * ((Number(ex.reps_min) + Number(ex.reps_max)) / 2 || 0);
@@ -486,7 +559,7 @@ const Protocols = () => {
                                                             <div className="flex items-center justify-between p-3 rounded-xl bg-primary/5 border border-primary/10">
                                                                 <div className="space-y-0.5">
                                                                     <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Frequência</p>
-                                                                    <p className="text-sm font-black italic">{trainingPrograms[0].training_sessions?.length}x p/ Semana</p>
+                                                                    <p className="text-sm font-black italic">{activeTraining?.training_sessions?.length}x p/ Semana</p>
                                                                 </div>
                                                                 <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
                                                                     <Calendar className="w-4 h-4 text-primary" />
@@ -533,121 +606,167 @@ const Protocols = () => {
 
                                         {trainingPrograms.map((program: TrainingProgram) => (
                                             <Card key={program.id} className="overflow-hidden">
-                                                <CardHeader className="bg-muted/30 border-b">
+                                                <CardHeader
+                                                    className="bg-muted/30 border-b cursor-pointer hover:bg-muted/40 transition-colors"
+                                                    onClick={() => toggleTrainingExpansion(program.id)}
+                                                >
                                                     <div className="flex justify-between items-start">
-                                                        <div>
-                                                            <CardTitle className="text-xl">{program.title || 'Sem título'}</CardTitle>
-                                                            <CardDescription className="flex items-center gap-4 mt-2">
-                                                                <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {program.number_weeks} semanas</span>
-                                                                <Badge variant={program.status === 'active' ? 'default' : 'secondary'}>{program.status}</Badge>
-                                                            </CardDescription>
-                                                        </div>
-                                                        {editingTrainingId !== program.id ? (
-                                                            <Button variant="outline" size="sm" onClick={() => handleEditTraining(program)}>
-                                                                <Edit3 className="w-4 h-4 mr-2" /> Editar
-                                                            </Button>
-                                                        ) : (
-                                                            <div className="flex gap-2">
-                                                                <Button variant="ghost" size="sm" onClick={() => setEditingTrainingId(null)}>
-                                                                    <X className="w-4 h-4 mr-1" /> Cancelar
-                                                                </Button>
-                                                                <Button size="sm" onClick={handleSaveEditedTraining} disabled={isSaving}>
-                                                                    <Save className="w-4 h-4 mr-1" /> Salvar
-                                                                </Button>
+                                                        <div className="flex items-center gap-4">
+                                                            <div className="p-2 rounded-lg bg-primary/10">
+                                                                <motion.div
+                                                                    animate={{ rotate: expandedTrainingIds.has(program.id) ? 90 : 0 }}
+                                                                >
+                                                                    <ChevronRight className="w-5 h-5 text-primary" />
+                                                                </motion.div>
                                                             </div>
-                                                        )}
+                                                            <div>
+                                                                <div className="flex items-center gap-3">
+                                                                    <CardTitle className="text-xl">{program.title || 'Sem título'}</CardTitle>
+                                                                    {program.status === 'active' && trainingPrograms.filter((p: any) => p.status === 'active').length === 1 ? (
+                                                                        <Badge className="bg-green-500/20 text-green-500 border-green-500/20 hover:bg-green-500/30">ATIVO</Badge>
+                                                                    ) : (
+                                                                        <Button
+                                                                            size="sm"
+                                                                            variant="outline"
+                                                                            className="h-7 text-[10px] font-bold uppercase tracking-wider border-primary/30 text-primary hover:bg-primary/10"
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                handleSetActiveTraining(program.id);
+                                                                            }}
+                                                                            disabled={isSettingActive}
+                                                                        >
+                                                                            <Zap className="w-3 h-3 mr-1" /> {program.status === 'active' ? 'Re-ativar (Manter Único)' : 'Tornar Ativo'}
+                                                                        </Button>
+                                                                    )}
+                                                                </div>
+                                                                <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+                                                                    <span className="flex items-center gap-1 font-medium"><Calendar className="w-3 h-3" /> {program.number_weeks} semanas</span>
+                                                                    <span className="text-[10px] uppercase font-bold text-muted-foreground/60">Criado em: {new Date(program.created_at).toLocaleDateString()}</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex gap-2">
+                                                            {editingTrainingId !== program.id ? (
+                                                                <Button variant="ghost" size="sm" onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleEditTraining(program);
+                                                                }}>
+                                                                    <Edit3 className="w-4 h-4 mr-2" /> Editar
+                                                                </Button>
+                                                            ) : (
+                                                                <div className="flex gap-2" onClick={e => e.stopPropagation()}>
+                                                                    <Button variant="ghost" size="sm" onClick={() => setEditingTrainingId(null)}>
+                                                                        <X className="w-4 h-4 mr-1" /> Cancelar
+                                                                    </Button>
+                                                                    <Button size="sm" onClick={handleSaveEditedTraining} disabled={isSaving}>
+                                                                        <Save className="w-4 h-4 mr-1" /> Salvar
+                                                                    </Button>
+                                                                </div>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 </CardHeader>
-                                                <CardContent className="p-0">
-                                                    {editingTrainingId === program.id ? (
-                                                        // EDIT MODE
-                                                        <div className="divide-y divide-border">
-                                                            {editedSessions.map((session, sIdx) => (
-                                                                <div key={session.id || sIdx} className="p-6">
-                                                                    <div className="flex items-center gap-4 mb-4">
-                                                                        <Badge variant="outline" className="text-lg font-bold px-3 py-1">{session.division}</Badge>
-                                                                        <span className="font-semibold">{session.name}</span>
-                                                                    </div>
-                                                                    <div className="space-y-3">
-                                                                        {session.exercises.map((ex, eIdx) => (
-                                                                            <div key={ex.id || eIdx} className="grid grid-cols-12 gap-3 items-center bg-muted/30 p-3 rounded-lg">
-                                                                                <div className="col-span-12 lg:col-span-4">
-                                                                                    <Input
-                                                                                        value={ex.name}
-                                                                                        onChange={(e) => updateExerciseField(sIdx, eIdx, 'name', e.target.value)}
-                                                                                        placeholder="Nome do exercício"
-                                                                                        className="bg-background"
-                                                                                    />
+                                                <AnimatePresence>
+                                                    {(expandedTrainingIds.has(program.id) || editingTrainingId === program.id) && (
+                                                        <motion.div
+                                                            initial={{ height: 0, opacity: 0 }}
+                                                            animate={{ height: "auto", opacity: 1 }}
+                                                            exit={{ height: 0, opacity: 0 }}
+                                                            className="overflow-hidden"
+                                                        >
+                                                            <CardContent className="p-0">
+                                                                {editingTrainingId === program.id ? (
+                                                                    // EDIT MODE
+                                                                    <div className="divide-y divide-border">
+                                                                        {editedSessions.map((session, sIdx) => (
+                                                                            <div key={session.id || sIdx} className="p-6">
+                                                                                <div className="flex items-center gap-4 mb-4">
+                                                                                    <Badge variant="outline" className="text-lg font-bold px-3 py-1">{session.division}</Badge>
+                                                                                    <span className="font-semibold">{session.name}</span>
                                                                                 </div>
-                                                                                <div className="col-span-3 lg:col-span-1">
-                                                                                    <Label className="text-[10px]">Séries</Label>
-                                                                                    <Input type="number" value={ex.sets} onChange={(e) => updateExerciseField(sIdx, eIdx, 'sets', parseInt(e.target.value))} className="bg-background" />
-                                                                                </div>
-                                                                                <div className="col-span-3 lg:col-span-1">
-                                                                                    <Label className="text-[10px]">Min</Label>
-                                                                                    <Input type="number" value={ex.reps_min} onChange={(e) => updateExerciseField(sIdx, eIdx, 'reps_min', parseInt(e.target.value))} className="bg-background" />
-                                                                                </div>
-                                                                                <div className="col-span-3 lg:col-span-1">
-                                                                                    <Label className="text-[10px]">Max</Label>
-                                                                                    <Input type="number" value={ex.reps_max} onChange={(e) => updateExerciseField(sIdx, eIdx, 'reps_max', parseInt(e.target.value))} className="bg-background" />
-                                                                                </div>
-                                                                                <div className="col-span-3 lg:col-span-2">
-                                                                                    <Label className="text-[10px]">Descanso</Label>
-                                                                                    <Input value={ex.rest_time} onChange={(e) => updateExerciseField(sIdx, eIdx, 'rest_time', e.target.value)} className="bg-background" />
-                                                                                </div>
-                                                                                <div className="col-span-10 lg:col-span-2">
-                                                                                    <Input
-                                                                                        value={ex.main_muscle_group}
-                                                                                        placeholder="Músculo"
-                                                                                        onChange={(e) => updateExerciseField(sIdx, eIdx, 'main_muscle_group', e.target.value)}
-                                                                                        className="bg-background"
-                                                                                    />
-                                                                                </div>
-                                                                                <div className="col-span-12 lg:col-span-2">
-                                                                                    <Input value={ex.notes} placeholder="Obs..." onChange={(e) => updateExerciseField(sIdx, eIdx, 'notes', e.target.value)} className="bg-background" />
-                                                                                </div>
-                                                                                <div className="col-span-2 lg:col-span-1 flex justify-end">
-                                                                                    <Button variant="ghost" size="icon" onClick={() => removeExerciseFromSession(sIdx, eIdx)} className="text-destructive hover:text-destructive">
-                                                                                        <Trash2 className="w-4 h-4" />
+                                                                                <div className="space-y-3">
+                                                                                    {session.exercises.map((ex, eIdx) => (
+                                                                                        <div key={ex.id || eIdx} className="grid grid-cols-12 gap-3 items-center bg-muted/30 p-3 rounded-lg">
+                                                                                            <div className="col-span-12 lg:col-span-4">
+                                                                                                <Input
+                                                                                                    value={ex.name}
+                                                                                                    onChange={(e) => updateExerciseField(sIdx, eIdx, 'name', e.target.value)}
+                                                                                                    placeholder="Nome do exercício"
+                                                                                                    className="bg-background"
+                                                                                                />
+                                                                                            </div>
+                                                                                            <div className="col-span-3 lg:col-span-1">
+                                                                                                <Label className="text-[10px]">Séries</Label>
+                                                                                                <Input type="number" value={ex.sets} onChange={(e) => updateExerciseField(sIdx, eIdx, 'sets', parseInt(e.target.value))} className="bg-background" />
+                                                                                            </div>
+                                                                                            <div className="col-span-3 lg:col-span-1">
+                                                                                                <Label className="text-[10px]">Min</Label>
+                                                                                                <Input type="number" value={ex.reps_min} onChange={(e) => updateExerciseField(sIdx, eIdx, 'reps_min', parseInt(e.target.value))} className="bg-background" />
+                                                                                            </div>
+                                                                                            <div className="col-span-3 lg:col-span-1">
+                                                                                                <Label className="text-[10px]">Max</Label>
+                                                                                                <Input type="number" value={ex.reps_max} onChange={(e) => updateExerciseField(sIdx, eIdx, 'reps_max', parseInt(e.target.value))} className="bg-background" />
+                                                                                            </div>
+                                                                                            <div className="col-span-3 lg:col-span-2">
+                                                                                                <Label className="text-[10px]">Descanso</Label>
+                                                                                                <Input value={ex.rest_time} onChange={(e) => updateExerciseField(sIdx, eIdx, 'rest_time', e.target.value)} className="bg-background" />
+                                                                                            </div>
+                                                                                            <div className="col-span-10 lg:col-span-2">
+                                                                                                <Input
+                                                                                                    value={ex.main_muscle_group}
+                                                                                                    placeholder="Músculo"
+                                                                                                    onChange={(e) => updateExerciseField(sIdx, eIdx, 'main_muscle_group', e.target.value)}
+                                                                                                    className="bg-background"
+                                                                                                />
+                                                                                            </div>
+                                                                                            <div className="col-span-12 lg:col-span-2">
+                                                                                                <Input value={ex.notes} placeholder="Obs..." onChange={(e) => updateExerciseField(sIdx, eIdx, 'notes', e.target.value)} className="bg-background" />
+                                                                                            </div>
+                                                                                            <div className="col-span-2 lg:col-span-1 flex justify-end">
+                                                                                                <Button variant="ghost" size="icon" onClick={() => removeExerciseFromSession(sIdx, eIdx)} className="text-destructive hover:text-destructive">
+                                                                                                    <Trash2 className="w-4 h-4" />
+                                                                                                </Button>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    ))}
+                                                                                    <Button variant="outline" size="sm" className="w-full border-dashed" onClick={() => addExerciseToSession(sIdx)}>
+                                                                                        <Plus className="w-4 h-4 mr-2" /> Adicionar Exercício
                                                                                     </Button>
                                                                                 </div>
                                                                             </div>
                                                                         ))}
-                                                                        <Button variant="outline" size="sm" className="w-full border-dashed" onClick={() => addExerciseToSession(sIdx)}>
-                                                                            <Plus className="w-4 h-4 mr-2" /> Adicionar Exercício
-                                                                        </Button>
                                                                     </div>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    ) : (
-                                                        // VIEW MODE
-                                                        <div className="divide-y divide-border">
-                                                            {program.training_sessions?.map((session: any) => (
-                                                                <div key={session.id} className="p-6">
-                                                                    <div className="flex items-center gap-4 mb-4">
-                                                                        <Badge variant="outline" className="text-lg font-bold px-3 py-1">{session.division}</Badge>
-                                                                        <span className="font-semibold">{session.name}</span>
-                                                                    </div>
-                                                                    <div className="space-y-2">
-                                                                        {session.training_exercises?.map((ex: any, eIdx: number) => (
-                                                                            <div key={ex.id} className="flex justify-between items-center py-2 px-3 bg-muted/20 rounded-lg">
-                                                                                <div className="flex items-center gap-3">
-                                                                                    <span className="text-xs text-muted-foreground w-6">{eIdx + 1}.</span>
-                                                                                    <span className="font-medium">{ex.name}</span>
+                                                                ) : (
+                                                                    // VIEW MODE
+                                                                    <div className="divide-y divide-border">
+                                                                        {program.training_sessions?.map((session: any) => (
+                                                                            <div key={session.id} className="p-6">
+                                                                                <div className="flex items-center gap-4 mb-4">
+                                                                                    <Badge variant="outline" className="text-lg font-bold px-3 py-1">{session.division}</Badge>
+                                                                                    <span className="font-semibold">{session.name}</span>
                                                                                 </div>
-                                                                                <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                                                                    <span>{ex.sets} × {ex.reps_min}-{ex.reps_max}</span>
-                                                                                    <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {ex.rest_time}s</span>
+                                                                                <div className="space-y-2">
+                                                                                    {session.training_exercises?.map((ex: any, eIdx: number) => (
+                                                                                        <div key={ex.id} className="flex justify-between items-center py-2 px-3 bg-muted/20 rounded-lg">
+                                                                                            <div className="flex items-center gap-3">
+                                                                                                <span className="text-xs text-muted-foreground w-6">{eIdx + 1}.</span>
+                                                                                                <span className="font-medium">{ex.name}</span>
+                                                                                            </div>
+                                                                                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                                                                                <span>{ex.sets} × {ex.reps_min}-{ex.reps_max}</span>
+                                                                                                <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {ex.rest_time}s</span>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    ))}
                                                                                 </div>
                                                                             </div>
                                                                         ))}
                                                                     </div>
-                                                                </div>
-                                                            ))}
-                                                        </div>
+                                                                )}
+                                                            </CardContent>
+                                                        </motion.div>
                                                     )}
-                                                </CardContent>
+                                                </AnimatePresence>
                                             </Card>
                                         ))}
                                     </div>
@@ -655,282 +774,335 @@ const Protocols = () => {
                             </TabsContent>
 
                             {/* NUTRITION TAB */}
-                            <TabsContent value="nutrition" className="space-y-6">
-                                {loadingMeals ? (
-                                    <div className="space-y-4">
-                                        <Skeleton className="h-32 w-full rounded-xl" />
-                                        <Skeleton className="h-32 w-full rounded-xl" />
-                                    </div>
-                                ) : mealPlans.length === 0 ? (
-                                    <Card className="border-dashed">
-                                        <CardContent className="p-12 text-center">
-                                            <Utensils className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-30" />
-                                            <h3 className="text-lg font-semibold mb-2">Nenhum protocolo de dieta</h3>
-                                            <p className="text-muted-foreground mb-6">Crie uma dieta personalizada usando o Assistente IA.</p>
-                                            <Button onClick={() => navigate('/ia-diet-assistant')}>
-                                                <Sparkles className="w-4 h-4 mr-2" /> Criar com IA
-                                            </Button>
-                                        </CardContent>
-                                    </Card>
-                                ) : (
-                                    <div className="space-y-6">
-                                        {/* DIET MACROS CHART - PREMIUM REDESIGN */}
-                                        {mealPlans.length > 0 && (
-                                            <motion.div
-                                                initial={{ opacity: 0, scale: 0.98 }}
-                                                animate={{ opacity: 1, scale: 1 }}
-                                                className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8"
-                                            >
-                                                <Card className="lg:col-span-2 border-border/40 bg-card/40 backdrop-blur-xl shadow-2xl overflow-hidden relative">
-                                                    <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
-                                                    <CardHeader className="pb-4 border-b border-border/5">
-                                                        <CardTitle className="text-sm font-black italic tracking-tighter flex items-center gap-2 uppercase">
-                                                            <Target className="w-4 h-4 text-primary" /> Equilíbrio de Macronutrientes
-                                                        </CardTitle>
-                                                        <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
-                                                            Distribuição calórica planejada
-                                                        </CardDescription>
-                                                    </CardHeader>
-                                                    <CardContent className="pt-6 flex flex-col md:flex-row items-center gap-8">
-                                                        <div className="h-[200px] w-full max-w-[200px] relative">
-                                                            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                                                                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Total</p>
-                                                                <p className="text-2xl font-black italic tracking-tighter text-primary">{mealPlans[0].total_calories}</p>
-                                                                <p className="text-[8px] font-bold uppercase tracking-widest text-muted-foreground">kcal/dia</p>
-                                                            </div>
-                                                            <ResponsiveContainer width="100%" height="100%">
-                                                                <PieChart>
-                                                                    <Pie
-                                                                        data={[
-                                                                            { name: 'Proteínas', value: Number(mealPlans[0].total_proteins) || 0 },
-                                                                            { name: 'Carbos', value: Number(mealPlans[0].total_carbs) || 0 },
-                                                                            { name: 'Gorduras', value: Number(mealPlans[0].total_fats) || 0 },
-                                                                        ]}
-                                                                        innerRadius={65}
-                                                                        outerRadius={85}
-                                                                        paddingAngle={8}
-                                                                        dataKey="value"
-                                                                        stroke="none"
-                                                                    >
-                                                                        <Cell fill="#f59e0b" /> {/* Amber/Yellow for Protein */}
-                                                                        <Cell fill="#a855f7" /> {/* Purple for Carbs */}
-                                                                        <Cell fill="#ef4444" /> {/* Red for Fats */}
-                                                                    </Pie>
-                                                                    <RechartsTooltip
-                                                                        contentStyle={{
-                                                                            backgroundColor: '#09090b',
-                                                                            border: '1px solid #27272a',
-                                                                            borderRadius: '12px',
-                                                                            fontSize: '11px',
-                                                                            fontWeight: 'bold'
-                                                                        }}
-                                                                    />
-                                                                </PieChart>
-                                                            </ResponsiveContainer>
-                                                        </div>
-
-                                                        <div className="grid grid-cols-2 gap-3 w-full max-w-sm">
-                                                            <div className="p-4 bg-muted/10 rounded-2xl border border-border/40 hover:bg-muted/20 transition-colors">
-                                                                <div className="flex items-center gap-2 mb-2">
-                                                                    <div className="w-2 h-2 rounded-full bg-amber-500" />
-                                                                    <p className="text-[9px] text-muted-foreground uppercase font-black tracking-widest">Proteína</p>
-                                                                </div>
-                                                                <div className="flex items-baseline gap-1">
-                                                                    <p className="text-xl font-black italic text-amber-500">{mealPlans[0].total_proteins || 0}g</p>
-                                                                    <p className="text-[8px] text-muted-foreground font-bold">/dia</p>
-                                                                </div>
-                                                            </div>
-                                                            <div className="p-4 bg-muted/10 rounded-2xl border border-border/40 hover:bg-muted/20 transition-colors">
-                                                                <div className="flex items-center gap-2 mb-2">
-                                                                    <div className="w-2 h-2 rounded-full bg-purple-500" />
-                                                                    <p className="text-[9px] text-muted-foreground uppercase font-black tracking-widest">Carbo</p>
-                                                                </div>
-                                                                <div className="flex items-baseline gap-1">
-                                                                    <p className="text-xl font-black italic text-purple-500">{mealPlans[0].total_carbs || 0}g</p>
-                                                                    <p className="text-[8px] text-muted-foreground font-bold">/dia</p>
-                                                                </div>
-                                                            </div>
-                                                            <div className="p-4 bg-muted/10 rounded-2xl border border-border/40 hover:bg-muted/20 transition-colors">
-                                                                <div className="flex items-center gap-2 mb-2">
-                                                                    <div className="w-2 h-2 rounded-full bg-red-500" />
-                                                                    <p className="text-[9px] text-muted-foreground uppercase font-black tracking-widest">Gordura</p>
-                                                                </div>
-                                                                <div className="flex items-baseline gap-1">
-                                                                    <p className="text-xl font-black italic text-red-500">{mealPlans[0].total_fats || 0}g</p>
-                                                                    <p className="text-[8px] text-muted-foreground font-bold">/dia</p>
-                                                                </div>
-                                                            </div>
-                                                            <div className="p-4 bg-primary/10 rounded-2xl border border-primary/20 hover:bg-primary/20 transition-colors">
-                                                                <div className="flex items-center gap-2 mb-2">
-                                                                    <Activity className="w-3 h-3 text-primary" />
-                                                                    <p className="text-[9px] text-primary uppercase font-black tracking-widest">Meta Kcal</p>
-                                                                </div>
-                                                                <div className="flex items-baseline gap-1">
-                                                                    <p className="text-xl font-black italic text-primary">{mealPlans[0].total_calories || 0}</p>
-                                                                    <p className="text-[8px] text-primary/70 font-bold">BMR+</p>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </CardContent>
-                                                </Card>
-
-                                                <Card className="border-border/40 bg-card/40 backdrop-blur-xl shadow-2xl relative overflow-hidden group">
-                                                    <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-primary/20 via-primary to-primary/20" />
-                                                    <CardHeader className="pb-2">
-                                                        <CardTitle className="text-xs font-black uppercase tracking-widest text-muted-foreground/80 flex items-center gap-2">
-                                                            <Sparkles className="w-4 h-4 text-primary" /> Diagnóstico Nutricional
-                                                        </CardTitle>
-                                                    </CardHeader>
-                                                    <CardContent className="space-y-6 pt-2">
-                                                        <div className="space-y-3">
-                                                            <div className="flex justify-between items-center bg-muted/10 p-2.5 rounded-xl border border-border/20">
-                                                                <div className="flex items-center gap-3">
-                                                                    <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                                                                        <Droplet className="w-4 h-4 text-blue-500" />
-                                                                    </div>
-                                                                    <div className="space-y-0.5">
-                                                                        <p className="text-[9px] text-muted-foreground uppercase font-black tracking-widest">Hidratação Sugerida</p>
-                                                                        <p className="text-sm font-black italic">3.2 Litros / dia</p>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-
-                                                            <div className="space-y-2">
-                                                                <div className="flex justify-between">
-                                                                    <span className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Densidade de Micronutrientes</span>
-                                                                    <span className="text-[10px] text-primary font-black">9.2 / 10</span>
-                                                                </div>
-                                                                <div className="flex gap-1.5 h-1.5 w-full">
-                                                                    {[1, 1, 1, 1, 0].map((v, i) => (
-                                                                        <div key={i} className={cn("flex-1 rounded-full bg-muted/40", i < 4 && "bg-primary")} />
-                                                                    ))}
-                                                                </div>
-                                                            </div>
-                                                        </div>
-
-                                                        <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10 relative">
-                                                            <div className="absolute top-2 right-2">
-                                                                <Sparkles className="w-3 h-3 text-primary animate-pulse" />
-                                                            </div>
-                                                            <p className="text-[11px] leading-relaxed italic text-foreground font-medium">
-                                                                "Estratégia focada em densidade nutricional. A proporção de macronutrientes suporta treinos de alta intensidade mantendo a glicemia estável."
-                                                            </p>
-                                                        </div>
-
-                                                        <Button
-                                                            onClick={handleGenerateDietPDF}
-                                                            disabled={isGeneratingPDF}
-                                                            className="w-full h-10 shadow-lg shadow-primary/10 text-[10px] font-black uppercase tracking-widest gap-2"
-                                                        >
-                                                            <Download className="w-3 h-3" /> {isGeneratingPDF ? "Gerando..." : "Gerar Plano PDF"}
-                                                        </Button>
-                                                    </CardContent>
-                                                </Card>
-                                            </motion.div>
-                                        )}
-
-                                        {mealPlans.map((plan: MealPlan) => (
-                                            <Card key={plan.id} className="overflow-hidden">
-                                                <CardHeader className="bg-muted/30 border-b">
-                                                    <div className="flex justify-between items-start">
-                                                        <div>
-                                                            <CardTitle className="text-xl">{plan.title || 'Sem título'}</CardTitle>
-                                                            <CardDescription className="flex items-center gap-4 mt-2">
-                                                                <Badge variant="secondary">{plan.goal || 'Objetivo não definido'}</Badge>
-                                                                <Badge variant={plan.status === 'active' ? 'default' : 'outline'}>{plan.status}</Badge>
+                            < TabsContent value="nutrition" className="space-y-6" >
+                                {
+                                    loadingMeals ? (
+                                        <div className="space-y-4" >
+                                            <Skeleton className="h-32 w-full rounded-xl" />
+                                            <Skeleton className="h-32 w-full rounded-xl" />
+                                        </div>
+                                    ) : mealPlans.length === 0 ? (
+                                        <Card className="border-dashed">
+                                            <CardContent className="p-12 text-center">
+                                                <Utensils className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-30" />
+                                                <h3 className="text-lg font-semibold mb-2">Nenhum protocolo de dieta</h3>
+                                                <p className="text-muted-foreground mb-6">Crie uma dieta personalizada usando o Assistente IA.</p>
+                                                <Button onClick={() => navigate('/ia-diet-assistant')}>
+                                                    <Sparkles className="w-4 h-4 mr-2" /> Criar com IA
+                                                </Button>
+                                            </CardContent>
+                                        </Card>
+                                    ) : (
+                                        <div className="space-y-6">
+                                            {/* DIET MACROS CHART - PREMIUM REDESIGN */}
+                                            {mealPlans.length > 0 && (
+                                                <motion.div
+                                                    initial={{ opacity: 0, scale: 0.98 }}
+                                                    animate={{ opacity: 1, scale: 1 }}
+                                                    className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8"
+                                                >
+                                                    <Card className="lg:col-span-2 border-border/40 bg-card/40 backdrop-blur-xl shadow-2xl overflow-hidden relative">
+                                                        <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
+                                                        <CardHeader className="pb-4 border-b border-border/5">
+                                                            <CardTitle className="text-sm font-black italic tracking-tighter flex items-center gap-2 uppercase">
+                                                                <Target className="w-4 h-4 text-primary" /> Equilíbrio de Macronutrientes
+                                                            </CardTitle>
+                                                            <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
+                                                                Distribuição calórica planejada
                                                             </CardDescription>
-                                                        </div>
-                                                        {editingDietId !== plan.id ? (
-                                                            <Button variant="outline" size="sm" onClick={() => handleEditDiet(plan)}>
-                                                                <Edit3 className="w-4 h-4 mr-2" /> Editar
-                                                            </Button>
-                                                        ) : (
-                                                            <div className="flex gap-2">
-                                                                <Button variant="ghost" size="sm" onClick={() => setEditingDietId(null)}>
-                                                                    <X className="w-4 h-4 mr-1" /> Cancelar
-                                                                </Button>
-                                                                <Button size="sm" onClick={handleSaveEditedDiet} disabled={isSaving}>
-                                                                    <Save className="w-4 h-4 mr-1" /> Salvar
-                                                                </Button>
+                                                        </CardHeader>
+                                                        <CardContent className="pt-6 flex flex-col md:flex-row items-center gap-8">
+                                                            <div className="h-[200px] w-full max-w-[200px] relative">
+                                                                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                                                                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Total</p>
+                                                                    <p className="text-2xl font-black italic tracking-tighter text-primary">
+                                                                        {(mealPlans.find((p: any) => p.status === 'active') || mealPlans[0]).total_calories}
+                                                                    </p>
+                                                                    <p className="text-[8px] font-bold uppercase tracking-widest text-muted-foreground">kcal/dia</p>
+                                                                </div>
+                                                                <ResponsiveContainer width="100%" height="100%">
+                                                                    <PieChart>
+                                                                        <Pie
+                                                                            data={[
+                                                                                { name: 'Proteínas', value: Number(activeDiet?.total_proteins) || 0 },
+                                                                                { name: 'Carbos', value: Number(activeDiet?.total_carbs) || 0 },
+                                                                                { name: 'Gorduras', value: Number(activeDiet?.total_fats) || 0 },
+                                                                            ]}
+                                                                            innerRadius={65}
+                                                                            outerRadius={85}
+                                                                            paddingAngle={8}
+                                                                            dataKey="value"
+                                                                            stroke="none"
+                                                                        >
+                                                                            <Cell fill="#f59e0b" /> {/* Amber/Yellow for Protein */}
+                                                                            <Cell fill="#a855f7" /> {/* Purple for Carbs */}
+                                                                            <Cell fill="#ef4444" /> {/* Red for Fats */}
+                                                                        </Pie>
+                                                                        <RechartsTooltip
+                                                                            contentStyle={{
+                                                                                backgroundColor: '#09090b',
+                                                                                border: '1px solid #27272a',
+                                                                                borderRadius: '12px',
+                                                                                fontSize: '11px',
+                                                                                fontWeight: 'bold'
+                                                                            }}
+                                                                        />
+                                                                    </PieChart>
+                                                                </ResponsiveContainer>
                                                             </div>
-                                                        )}
-                                                    </div>
-                                                </CardHeader>
-                                                <CardContent className="p-0">
-                                                    {editingDietId === plan.id ? (
-                                                        // EDIT MODE
-                                                        <div className="divide-y divide-border">
-                                                            {editedMeals.map((meal, mIdx) => (
-                                                                <div key={meal.id || mIdx} className="p-6">
-                                                                    <div className="flex items-center gap-4 mb-4">
-                                                                        <Badge className="bg-primary">{mIdx + 1}</Badge>
-                                                                        <span className="font-semibold">{meal.name}</span>
-                                                                        <span className="text-sm text-muted-foreground">{meal.time}</span>
+
+                                                            <div className="grid grid-cols-2 gap-3 w-full max-w-sm">
+                                                                <div className="p-4 bg-muted/10 rounded-2xl border border-border/40 hover:bg-muted/20 transition-colors">
+                                                                    <div className="flex items-center gap-2 mb-2">
+                                                                        <div className="w-2 h-2 rounded-full bg-amber-500" />
+                                                                        <p className="text-[9px] text-muted-foreground uppercase font-black tracking-widest">Proteína</p>
                                                                     </div>
-                                                                    <div className="space-y-3">
-                                                                        {meal.foods.map((food: any, fIdx: number) => (
-                                                                            <div key={food.id || fIdx} className="grid grid-cols-12 gap-3 items-center bg-muted/30 p-3 rounded-lg">
-                                                                                <div className="col-span-12 lg:col-span-5">
-                                                                                    <Input
-                                                                                        value={food.name}
-                                                                                        onChange={(e) => updateFoodField(mIdx, fIdx, 'name', e.target.value)}
-                                                                                        placeholder="Nome do alimento"
-                                                                                        className="bg-background"
-                                                                                    />
-                                                                                </div>
-                                                                                <div className="col-span-4 lg:col-span-2">
-                                                                                    <Input type="number" value={food.quantity} onChange={(e) => updateFoodField(mIdx, fIdx, 'quantity', e.target.value)} placeholder="Qtd" className="bg-background" />
-                                                                                </div>
-                                                                                <div className="col-span-4 lg:col-span-2">
-                                                                                    <Input value={food.unit} onChange={(e) => updateFoodField(mIdx, fIdx, 'unit', e.target.value)} placeholder="Unid" className="bg-background" />
-                                                                                </div>
-                                                                                <div className="col-span-2 lg:col-span-2">
-                                                                                    <Input value={food.notes} placeholder="Obs..." onChange={(e) => updateFoodField(mIdx, fIdx, 'notes', e.target.value)} className="bg-background" />
-                                                                                </div>
-                                                                                <div className="col-span-2 lg:col-span-1 flex justify-end">
-                                                                                    <Button variant="ghost" size="icon" onClick={() => removeFoodFromMeal(mIdx, fIdx)} className="text-destructive hover:text-destructive">
-                                                                                        <Trash2 className="w-4 h-4" />
-                                                                                    </Button>
-                                                                                </div>
-                                                                            </div>
+                                                                    <div className="flex items-baseline gap-1">
+                                                                        <p className="text-xl font-black italic text-amber-500">
+                                                                            {(mealPlans.find((p: any) => p.status === 'active') || mealPlans[0]).total_proteins || 0}g
+                                                                        </p>
+                                                                        <p className="text-[8px] text-muted-foreground font-bold">/dia</p>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="p-4 bg-muted/10 rounded-2xl border border-border/40 hover:bg-muted/20 transition-colors">
+                                                                    <div className="flex items-center gap-2 mb-2">
+                                                                        <div className="w-2 h-2 rounded-full bg-purple-500" />
+                                                                        <p className="text-[9px] text-muted-foreground uppercase font-black tracking-widest">Carbo</p>
+                                                                    </div>
+                                                                    <div className="flex items-baseline gap-1">
+                                                                        <p className="text-xl font-black italic text-purple-500">
+                                                                            {(mealPlans.find((p: any) => p.status === 'active') || mealPlans[0]).total_carbs || 0}g
+                                                                        </p>
+                                                                        <p className="text-[8px] text-muted-foreground font-bold">/dia</p>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="p-4 bg-muted/10 rounded-2xl border border-border/40 hover:bg-muted/20 transition-colors">
+                                                                    <div className="flex items-center gap-2 mb-2">
+                                                                        <div className="w-2 h-2 rounded-full bg-red-500" />
+                                                                        <p className="text-[9px] text-muted-foreground uppercase font-black tracking-widest">Gordura</p>
+                                                                    </div>
+                                                                    <div className="flex items-baseline gap-1">
+                                                                        <p className="text-xl font-black italic text-red-500">
+                                                                            {(mealPlans.find((p: any) => p.status === 'active') || mealPlans[0]).total_fats || 0}g
+                                                                        </p>
+                                                                        <p className="text-[8px] text-muted-foreground font-bold">/dia</p>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="p-4 bg-primary/10 rounded-2xl border border-primary/20 hover:bg-primary/20 transition-colors">
+                                                                    <div className="flex items-center gap-2 mb-2">
+                                                                        <Activity className="w-3 h-3 text-primary" />
+                                                                        <p className="text-[9px] text-primary uppercase font-black tracking-widest">Meta Kcal</p>
+                                                                    </div>
+                                                                    <div className="flex items-baseline gap-1">
+                                                                        <p className="text-xl font-black italic text-primary">{activeDiet?.total_calories || 0}</p>
+                                                                        <p className="text-[8px] text-primary/70 font-bold">BMR+</p>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </CardContent>
+                                                    </Card>
+
+                                                    <Card className="border-border/40 bg-card/40 backdrop-blur-xl shadow-2xl relative overflow-hidden group">
+                                                        <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-primary/20 via-primary to-primary/20" />
+                                                        <CardHeader className="pb-2">
+                                                            <CardTitle className="text-xs font-black uppercase tracking-widest text-muted-foreground/80 flex items-center gap-2">
+                                                                <Sparkles className="w-4 h-4 text-primary" /> Diagnóstico Nutricional
+                                                            </CardTitle>
+                                                        </CardHeader>
+                                                        <CardContent className="space-y-6 pt-2">
+                                                            <div className="space-y-3">
+                                                                <div className="flex justify-between items-center bg-muted/10 p-2.5 rounded-xl border border-border/20">
+                                                                    <div className="flex items-center gap-3">
+                                                                        <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                                                                            <Droplet className="w-4 h-4 text-blue-500" />
+                                                                        </div>
+                                                                        <div className="space-y-0.5">
+                                                                            <p className="text-[9px] text-muted-foreground uppercase font-black tracking-widest">Hidratação Sugerida</p>
+                                                                            <p className="text-sm font-black italic">3.2 Litros / dia</p>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div className="space-y-2">
+                                                                    <div className="flex justify-between">
+                                                                        <span className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Densidade de Micronutrientes</span>
+                                                                        <span className="text-[10px] text-primary font-black">9.2 / 10</span>
+                                                                    </div>
+                                                                    <div className="flex gap-1.5 h-1.5 w-full">
+                                                                        {[1, 1, 1, 1, 0].map((v, i) => (
+                                                                            <div key={i} className={cn("flex-1 rounded-full bg-muted/40", i < 4 && "bg-primary")} />
                                                                         ))}
-                                                                        <Button variant="outline" size="sm" className="w-full border-dashed" onClick={() => addFoodToMeal(mIdx)}>
-                                                                            <Plus className="w-4 h-4 mr-2" /> Adicionar Alimento
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10 relative">
+                                                                <div className="absolute top-2 right-2">
+                                                                    <Sparkles className="w-3 h-3 text-primary animate-pulse" />
+                                                                </div>
+                                                                <p className="text-[11px] leading-relaxed italic text-foreground font-medium">
+                                                                    "Estratégia focada em densidade nutricional. A proporção de macronutrientes suporta treinos de alta intensidade mantendo a glicemia estável."
+                                                                </p>
+                                                            </div>
+
+                                                            <Button
+                                                                onClick={handleGenerateDietPDF}
+                                                                disabled={isGeneratingPDF}
+                                                                className="w-full h-10 shadow-lg shadow-primary/10 text-[10px] font-black uppercase tracking-widest gap-2"
+                                                            >
+                                                                <Download className="w-3 h-3" /> {isGeneratingPDF ? "Gerando..." : "Gerar Plano PDF"}
+                                                            </Button>
+                                                        </CardContent>
+                                                    </Card>
+                                                </motion.div>
+                                            )}
+
+                                            {mealPlans.map((plan: MealPlan) => (
+                                                <Card key={plan.id} className="overflow-hidden">
+                                                    <CardHeader
+                                                        className="bg-muted/30 border-b cursor-pointer hover:bg-muted/40 transition-colors"
+                                                        onClick={() => toggleDietExpansion(plan.id)}
+                                                    >
+                                                        <div className="flex justify-between items-start">
+                                                            <div className="flex items-center gap-4">
+                                                                <div className="p-2 rounded-lg bg-primary/10">
+                                                                    <motion.div
+                                                                        animate={{ rotate: expandedDietIds.has(plan.id) ? 90 : 0 }}
+                                                                    >
+                                                                        <ChevronRight className="w-5 h-5 text-primary" />
+                                                                    </motion.div>
+                                                                </div>
+                                                                <div>
+                                                                    <div className="flex items-center gap-3">
+                                                                        <CardTitle className="text-xl">{plan.title || 'Sem título'}</CardTitle>
+                                                                        {plan.status === 'active' && mealPlans.filter((p: any) => p.status === 'active').length === 1 ? (
+                                                                            <Badge className="bg-green-500/20 text-green-500 border-green-500/20 hover:bg-green-500/30">ATIVO</Badge>
+                                                                        ) : (
+                                                                            <Button
+                                                                                size="sm"
+                                                                                variant="outline"
+                                                                                className="h-7 text-[10px] font-bold uppercase tracking-wider border-primary/30 text-primary hover:bg-primary/10"
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation();
+                                                                                    handleSetActiveDiet(plan.id);
+                                                                                }}
+                                                                                disabled={isSettingActive}
+                                                                            >
+                                                                                <Zap className="w-3 h-3 mr-1" /> {plan.status === 'active' ? 'Re-ativar (Manter Único)' : 'Tornar Ativo'}
+                                                                            </Button>
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+                                                                        <Badge variant="secondary">{plan.goal || 'Objetivo não definido'}</Badge>
+                                                                        <span className="text-[10px] uppercase font-bold text-muted-foreground/60">Criado em: {new Date(plan.created_at).toLocaleDateString()}</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                                                                {editingDietId !== plan.id ? (
+                                                                    <Button variant="outline" size="sm" onClick={() => handleEditDiet(plan)}>
+                                                                        <Edit3 className="w-4 h-4 mr-2" /> Editar
+                                                                    </Button>
+                                                                ) : (
+                                                                    <div className="flex gap-2">
+                                                                        <Button variant="ghost" size="sm" onClick={() => setEditingDietId(null)}>
+                                                                            <X className="w-4 h-4 mr-1" /> Cancelar
+                                                                        </Button>
+                                                                        <Button size="sm" onClick={handleSaveEditedDiet} disabled={isSaving}>
+                                                                            <Save className="w-4 h-4 mr-1" /> Salvar
                                                                         </Button>
                                                                     </div>
-                                                                </div>
-                                                            ))}
+                                                                )}
+                                                            </div>
                                                         </div>
-                                                    ) : (
-                                                        // VIEW MODE
-                                                        <div className="divide-y divide-border">
-                                                            {plan.meals?.map((meal: any, mIdx: number) => (
-                                                                <div key={meal.id} className="p-6">
-                                                                    <div className="flex items-center gap-4 mb-4">
-                                                                        <Badge className="bg-primary">{mIdx + 1}</Badge>
-                                                                        <span className="font-semibold">{meal.name}</span>
-                                                                        <span className="text-sm text-muted-foreground">{meal.meal_time}</span>
-                                                                    </div>
-                                                                    <div className="space-y-2">
-                                                                        {meal.meal_foods?.map((food: any, fIdx: number) => (
-                                                                            <div key={food.id} className="flex justify-between items-center py-2 px-3 bg-muted/20 rounded-lg">
-                                                                                <div className="flex items-center gap-3">
-                                                                                    <span className="text-xs text-muted-foreground w-6">{fIdx + 1}.</span>
-                                                                                    <span className="font-medium">{food.name}</span>
+                                                    </CardHeader>
+                                                    <AnimatePresence>
+                                                        {(expandedDietIds.has(plan.id) || editingDietId === plan.id) && (
+                                                            <motion.div
+                                                                initial={{ height: 0, opacity: 0 }}
+                                                                animate={{ height: "auto", opacity: 1 }}
+                                                                exit={{ height: 0, opacity: 0 }}
+                                                                transition={{ duration: 0.3, ease: "easeInOut" }}
+                                                            >
+                                                                <CardContent className="p-0 border-t">
+                                                                    {editingDietId === plan.id ? (
+                                                                        // EDIT MODE
+                                                                        <div className="divide-y divide-border">
+                                                                            {editedMeals.map((meal, mIdx) => (
+                                                                                <div key={meal.id || mIdx} className="p-6">
+                                                                                    <div className="flex items-center gap-4 mb-4">
+                                                                                        <Badge className="bg-primary">{mIdx + 1}</Badge>
+                                                                                        <span className="font-semibold">{meal.name}</span>
+                                                                                        <span className="text-sm text-muted-foreground">{meal.time}</span>
+                                                                                    </div>
+                                                                                    <div className="space-y-3">
+                                                                                        {meal.foods.map((food: any, fIdx: number) => (
+                                                                                            <div key={food.id || fIdx} className="grid grid-cols-12 gap-3 items-center bg-muted/30 p-3 rounded-lg">
+                                                                                                <div className="col-span-12 lg:col-span-5">
+                                                                                                    <Input
+                                                                                                        value={food.name}
+                                                                                                        onChange={(e) => updateFoodField(mIdx, fIdx, 'name', e.target.value)}
+                                                                                                        placeholder="Nome do alimento"
+                                                                                                        className="bg-background"
+                                                                                                    />
+                                                                                                </div>
+                                                                                                <div className="col-span-4 lg:col-span-2">
+                                                                                                    <Input type="number" value={food.quantity} onChange={(e) => updateFoodField(mIdx, fIdx, 'quantity', e.target.value)} placeholder="Qtd" className="bg-background" />
+                                                                                                </div>
+                                                                                                <div className="col-span-4 lg:col-span-2">
+                                                                                                    <Input value={food.unit} onChange={(e) => updateFoodField(mIdx, fIdx, 'unit', e.target.value)} placeholder="Unid" className="bg-background" />
+                                                                                                </div>
+                                                                                                <div className="col-span-2 lg:col-span-2">
+                                                                                                    <Input value={food.notes} placeholder="Obs..." onChange={(e) => updateFoodField(mIdx, fIdx, 'notes', e.target.value)} className="bg-background" />
+                                                                                                </div>
+                                                                                                <div className="col-span-2 lg:col-span-1 flex justify-end">
+                                                                                                    <Button variant="ghost" size="icon" onClick={() => removeFoodFromMeal(mIdx, fIdx)} className="text-destructive hover:text-destructive">
+                                                                                                        <Trash2 className="w-4 h-4" />
+                                                                                                    </Button>
+                                                                                                </div>
+                                                                                            </div>
+                                                                                        ))}
+                                                                                        <Button variant="outline" size="sm" className="w-full border-dashed" onClick={() => addFoodToMeal(mIdx)}>
+                                                                                            <Plus className="w-4 h-4 mr-2" /> Adicionar Alimento
+                                                                                        </Button>
+                                                                                    </div>
                                                                                 </div>
-                                                                                <span className="text-sm text-muted-foreground">{food.quantity} {food.unit}</span>
-                                                                            </div>
-                                                                        ))}
-                                                                    </div>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    )}
-                                                </CardContent>
-                                            </Card>
-                                        ))}
-                                    </div>
-                                )}
+                                                                            ))}
+                                                                        </div>
+                                                                    ) : (
+                                                                        // VIEW MODE
+                                                                        <div className="divide-y divide-border">
+                                                                            {plan.meals?.map((meal: any, mIdx: number) => (
+                                                                                <div key={meal.id} className="p-6">
+                                                                                    <div className="flex items-center gap-4 mb-4">
+                                                                                        <Badge className="bg-primary">{mIdx + 1}</Badge>
+                                                                                        <span className="font-semibold">{meal.name}</span>
+                                                                                        <span className="text-sm text-muted-foreground">{meal.meal_time}</span>
+                                                                                    </div>
+                                                                                    <div className="space-y-2">
+                                                                                        {meal.meal_foods?.map((food: any, fIdx: number) => (
+                                                                                            <div key={food.id} className="flex justify-between items-center py-2 px-3 bg-muted/20 rounded-lg">
+                                                                                                <div className="flex items-center gap-3">
+                                                                                                    <span className="text-xs text-muted-foreground w-6">{fIdx + 1}.</span>
+                                                                                                    <span className="font-medium">{food.name}</span>
+                                                                                                </div>
+                                                                                                <span className="text-sm text-muted-foreground">{food.quantity} {food.unit}</span>
+                                                                                            </div>
+                                                                                        ))}
+                                                                                    </div>
+                                                                                </div>
+                                                                            ))}
+                                                                        </div>
+                                                                    )}
+                                                                </CardContent>
+                                                            </motion.div>
+                                                        )}
+                                                    </AnimatePresence>
+                                                </Card>
+                                            ))}
+                                        </div>
+                                    )}
                             </TabsContent>
                         </Tabs>
                     )}

@@ -98,7 +98,12 @@ serve(async (req) => {
 
 1. SINCRONIA NUTRICIONAL (CROSS-DATA):
 - Analise os dados da dieta ativa do aluno (se fornecida).
-- REGRA DE DÉFICIT: Se o aluno estiver em déficit calórico severo (ex: objetivo de Emagrecimento/Cutting), você DEVE reduzir o volume total de séries e priorizar a manutenção da INTENSIDADE (carga) para preservar massa magra.
+- CASO NÃO HAJA DIETA ("Nenhuma dieta ativa registrada ainda"): 
+  a) Você DEVE falar apenas sobre como a nutrição DEVERÁ ser ajustada no futuro.
+  b) Use termos como "deve ser planejado", "será necessário", "espera-se".
+  c) PROIBIDO usar frases como "A dieta está alinhada", "O plano alimentar garante", "A dieta proporciona".
+  d) Exemplo correto: "Para o objetivo de emagrecimento, a dieta deverá priorizar um déficit calórico controlado para suportar este volume de treino."
+- REGRA DE DÉFICIT: Se o aluno estiver em déficit calórico ou com objetivo de Emagrecimento, reduza o volume séries e mantenha a INTENSIDADE.
 
 2. GESTÃO DE DOR E LESÃO:
 - Verifique a 'pain_scale'. Se > 3, identifique a articulação/exercício afetado.
@@ -107,13 +112,38 @@ serve(async (req) => {
 3. ESPECIFICIDADE DE ESPORTE:
 - Se 'main_sport' for de alto impacto (Futebol, Corrida), reduza o volume de membros inferiores para evitar sobrecarga excessiva.
 
-4. CAPACIDADE RECUPERATIVA (HORMONAL):
-- Ajuste Volume/Intensidade/Proteína se 'hormones' (TRT, Anticoncepcional) estiverem presentes. Hormonizados suportam volume 20-30% maior.
+4. CAPACIDADE RECUPERATIVA (HORMONAL) - PRIORIDADE MÁXIMA:
+- SE o campo 'uses_ergogenics' for 'true' (Verdadeiro), você DEVE OBRIGATORIAMENTE:
+  a) IGNORAR qualquer rótulo de 'iniciante' para volume de treino e prescrição de carga.
+  b) Tratar o usuário como INTERMEDIÁRIO/AVANÇADO na capacidade de recuperação.
+  c) Prescrever volume 20-30% maior do que para um não-hormonizado.
+  d) Mencionar explicitamente a modulação hormonal na justificativa.
+  e) Usar os detalhes fornecidos em 'ergogenics_details' para contextualizar o suporte à recuperação.
+- Hormonizados podem e devem treinar com maior volume e frequência.
 
-5. CHECK-IN SEMANAL (DELOAD AUTOMÁTICO):
+5. FREQUÊNCIA E VOLUME:
+- Você DEVE gerar EXATAMENTE a quantidade de treinos (Treino A, B, C...) correspondente à 'Frequência Semanal' informada (ex: se 5x, gere A, B, C, D e E).
+- Cada treino deve ter um foco claro e ser distribuído nos dias disponíveis.
+
+6. CHECK-IN SEMANAL (DELOAD AUTOMÁTICO):
 - Verifique os dados de Feedback Semanal.
 - REGRA DELOAD: Se 'fatigue_level' > 8 E 'sleep_quality' < 5, você DEVE gerar uma "Semana de Deload" (Volume/Intensidade reduzidos em 40%). Indique isso no título.
 - Se 'has_pain' = true e 'pain_intensity' > 5, EVITE exercícios na região indicada.
+
+7. TAXONOMIA DE GRUPOS MUSCULARES (ESTRITO):
+- Ao definir o campo 'grupo_muscular' de cada exercício, você deve usar ESTRITAMENTE um dos seguintes valores (sem acentos para evitar duplicidade):
+  * Peito
+  * Costas
+  * Ombros
+  * Pernas (engloba Quadríceps e Posteriores para simplificar o gráfico)
+  * Gluteos
+  * Biceps
+  * Triceps
+  * Core (Abdominais e Lombar)
+  * Cardio
+  * Mobilidade
+- Se o exercício for composto (ex: Agachamento), classifique pelo motor primário (Pernas). Se for isolado (ex: Rosca), use o específico (Biceps).
+- Proibido usar outros nomes como 'Posteriores', 'Isquiotibiais', 'Femoral', 'Lombar', 'Abdominais', etc. Use apenas a lista acima.
 
 ────────────────────────
 FORMATO DE RESPOSTA (JSON):
@@ -140,7 +170,19 @@ FORMATO DE RESPOSTA (JSON):
       ]
     }
   ],
-  "justificativa": { "escolha_exercicios": "string", "volume_intensidade": "string", "sincronia_nutricional": "string" }
+  "justificativa": { 
+    "escolha_exercicios": "string", 
+    "volume_intensidade": "string", 
+    "sincronia_nutricional": "string",
+    "racional_hormonal": "string (Caso use hormônios, explique o ajuste de volume/recuperação aqui. Caso contrário, deixe vazio ou null)"
+  },
+  "progressao": {
+    "tipo": "string (ex: Carga, Volume, Densidade)",
+    "descricao": "string",
+    "marcos": [
+      { "semana": number, "mudanca": "string" }
+    ]
+  }
 } (Responda APENAS o JSON)`;
 
     const userPrompt = `
@@ -150,10 +192,15 @@ FORMATO DE RESPOSTA (JSON):
 # DADOS DO ALUNO (ANAMNESE INTEGRADA)
 - Nome: ${student.full_name}
 - Sexo: ${student.sex} | Idade: ${student.birth_date ? (new Date().getFullYear() - new Date(student.birth_date).getFullYear()) : 'N/A'}
-- Esporte Principal: ${student.anamnesis?.[0]?.main_sport || "Nenhum"} (${student.anamnesis?.[0]?.sport_level})
+- Nível de Experiência em Musculação: ${student.anamnesis?.[0]?.training_level || 'Não informado'}
+- Esporte/Modalidade: ${student.anamnesis?.[0]?.sport_specialty || 'Nenhum'}
+- Nível Esportivo: ${student.anamnesis?.[0]?.sport_level || 'N/A'}
 - Escala de Dor Diária: ${student.anamnesis?.[0]?.daily_pain_scale || 0}/10
 - Lesões/Dores: ${student.anamnesis?.[0]?.injuries || "Nenhuma"}
-- Uso de Hormônios: ${student.anamnesis?.[0]?.use_hormones || "Não relatado"}
+- Frequência Semanal Desejada: ${student.anamnesis?.[0]?.initial_training_frequency || "Não informado"}x por semana
+- Dias Disponíveis e Rotina: ${student.anamnesis?.[0]?.schedule_availability || "Não informado"}
+- Uso de Ergogênicos/Hormônios: ${student.anamnesis?.[0]?.uses_ergogenics ? "Sim" : "Não"}
+- Detalhes Ergogênicos: ${student.anamnesis?.[0]?.uses_ergogenics_details || "Nenhum"}
 - Objetivo Principal: ${student.anamnesis?.[0]?.main_goal}
 
 # CONTEXTO NUTRICIONAL (Sincronia Ativa)

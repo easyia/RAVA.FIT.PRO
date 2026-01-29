@@ -58,6 +58,8 @@ export default function StudentAnamnesisForm() {
         motivation_barriers: "",
 
         // Section 3: Logistics
+        training_level: "iniciante",
+        available_days: [],
         initial_training_frequency: "3",
         training_environment: "Academia",
         training_preferences: "",
@@ -85,6 +87,7 @@ export default function StudentAnamnesisForm() {
         // Section 8: Routine
         daily_routine: "",
         stress_factors: "",
+        stress_level: "baixo",
         wake_up_time: "07:00",
         sleep_time: "23:00",
 
@@ -103,6 +106,15 @@ export default function StudentAnamnesisForm() {
 
     const updateField = (field: string, value: any) => {
         setFormData(prev => ({ ...prev, [field]: value }));
+    };
+
+    const toggleDay = (day: string) => {
+        const current = formData.available_days || [];
+        if (current.includes(day)) {
+            updateField("available_days", current.filter((d: string) => d !== day));
+        } else {
+            updateField("available_days", [...current, day]);
+        }
     };
 
     const handleNext = () => {
@@ -182,6 +194,7 @@ export default function StudentAnamnesisForm() {
                     secondary_goal: formData.secondary_goal,
                     motivation_barriers: formData.motivation_barriers,
                     initial_training_frequency: formData.initial_training_frequency,
+                    training_level: formData.training_level,
                     equipment_availability: formData.training_environment,
                     training_preferences: formData.training_preferences,
                     medical_conditions: formData.medical_conditions,
@@ -194,8 +207,8 @@ export default function StudentAnamnesisForm() {
                     physical_activity_history: formData.physical_activity_history,
                     diet_habits: formData.diet_habits,
                     initial_nutrition_notes: `Não consome: ${formData.non_consumed_foods}. Hidratação: ${formData.hydration_daily}L`,
-                    stress_level: formData.stress_factors,
-                    schedule_availability: `Acorda: ${formData.wake_up_time}, Dorme: ${formData.sleep_time}. Rotina: ${formData.daily_routine}`
+                    stress_level: formData.stress_level,
+                    schedule_availability: `Disponibilidade: ${formData.available_days.join(', ')}. Acorda: ${formData.wake_up_time}, Dorme: ${formData.sleep_time}. Rotina: ${formData.daily_routine}`
                 });
 
             if (anamnesisError) throw anamnesisError;
@@ -381,6 +394,38 @@ export default function StudentAnamnesisForm() {
                         <h2 className="text-lg font-bold border-b pb-2">Logística e Treino</h2>
                         <div className="space-y-4">
                             <div className="space-y-2">
+                                <Label>Nível de Treinamento</Label>
+                                <Select value={formData.training_level} onValueChange={v => updateField("training_level", v)}>
+                                    <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="iniciante">Iniciante (0-6 meses)</SelectItem>
+                                        <SelectItem value="intermediario">Intermediário (6m-2 anos)</SelectItem>
+                                        <SelectItem value="avancado">Avançado (+2 anos)</SelectItem>
+                                        <SelectItem value="atleta">Atleta</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-sm block mb-3">Dias Disponíveis na Semana</Label>
+                                <div className="flex flex-wrap gap-2">
+                                    {["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"].map((day) => (
+                                        <button
+                                            key={day}
+                                            type="button"
+                                            onClick={() => toggleDay(day)}
+                                            className={cn(
+                                                "w-10 h-10 rounded-lg border text-xs font-bold transition-all",
+                                                formData.available_days?.includes(day)
+                                                    ? "border-primary bg-primary/10 text-primary shadow-[0_0_10px_rgba(var(--primary-rgb),0.2)]"
+                                                    : "border-border bg-background/40 text-muted-foreground hover:border-primary/50"
+                                            )}
+                                        >
+                                            {day}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="space-y-2">
                                 <Label>Frequência Semanal Desejada</Label>
                                 <Select value={formData.initial_training_frequency} onValueChange={v => updateField("initial_training_frequency", v)}>
                                     <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
@@ -540,7 +585,7 @@ export default function StudentAnamnesisForm() {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label>Meta de Hidratação Diária (Liters)</Label>
+                                <Label>Meta de Hidratação Diária (Litros)</Label>
                                 <Input type="number" step="0.5" value={formData.hydration_daily} onChange={e => updateField("hydration_daily", e.target.value)} placeholder="Ex: 2.5" />
                             </div>
                         </div>
@@ -560,7 +605,19 @@ export default function StudentAnamnesisForm() {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label>Principais Fatores de Estresse</Label>
+                                <Label>Nível de Estresse Diário</Label>
+                                <Select value={formData.stress_level} onValueChange={v => updateField("stress_level", v)}>
+                                    <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="baixo">Baixo</SelectItem>
+                                        <SelectItem value="moderado">Moderado</SelectItem>
+                                        <SelectItem value="alto">Alto</SelectItem>
+                                        <SelectItem value="extremo">Extremo</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Fatores de Estresse (Detalhes)</Label>
                                 <Textarea
                                     value={formData.stress_factors}
                                     onChange={e => updateField("stress_factors", e.target.value)}

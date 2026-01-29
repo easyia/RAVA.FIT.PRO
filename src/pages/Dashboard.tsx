@@ -108,6 +108,7 @@ const Dashboard = () => {
       await updateStudentStatus(id, dbStatus);
       toast.success("Status atualizado!");
       queryClient.invalidateQueries({ queryKey: ["activeStudents"] });
+      queryClient.invalidateQueries({ queryKey: ["recentActivities"] });
     } catch (error) {
       toast.error("Erro ao atualizar status.");
     }
@@ -268,6 +269,7 @@ const Dashboard = () => {
         studentId={selectedStudentId}
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+        onStatusChange={handleStatusChange}
         defaultTab={defaultTab}
       />
     </div>

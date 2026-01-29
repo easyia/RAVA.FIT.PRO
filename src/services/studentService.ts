@@ -82,6 +82,24 @@ export async function uploadAvatar(file: File): Promise<string> {
   return uploadFile(file, 'avatars');
 }
 
+export async function fetchContextFiles(): Promise<{ id: string, name: string }[]> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data, error } = await supabase
+    .from('context_files')
+    .select('id, name')
+    .eq('coach_id', user.id)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error("Error fetching context files:", error.message);
+    return [];
+  }
+
+  return data || [];
+}
+
 const cleanData = (data: Record<string, any>) => {
   const cleaned: Record<string, any> = {};
   Object.keys(data).forEach(key => {
@@ -260,6 +278,12 @@ export async function saveTrainingProgram(studentId: string, program: any): Prom
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) throw new Error("Não autenticado");
 
+  // 0. Desativar treinos anteriores (Exclusividade)
+  await supabase
+    .from('training_programs')
+    .update({ status: 'inactive' })
+    .eq('student_id', studentId);
+
   // 1. Criar programa
   const { data: newProgram, error: progError } = await supabase
     .from('training_programs')
@@ -312,9 +336,63 @@ export async function saveTrainingProgram(studentId: string, program: any): Prom
   }
 }
 
+export async function setActiveTrainingProgram(studentId: string, programId: string): Promise<void> {
+  // 1. Desativar todos os programas do aluno
+  const { error: deactivateError } = await supabase
+    .from('training_programs')
+    .update({ status: 'inactive' })
+    .eq('student_id', studentId);
+
+  if (deactivateError) {
+    console.error('Erro ao desativar programas:', deactivateError);
+    throw deactivateError;
+  }
+
+  // 2. Ativar o programa selecionado
+  const { error: activateError } = await supabase
+    .from('training_programs')
+    .update({ status: 'active' })
+    .eq('id', programId);
+
+  if (activateError) {
+    console.error('Erro ao ativar programa:', activateError);
+    throw activateError;
+  }
+}
+
+export async function setActiveMealPlan(studentId: string, planId: string): Promise<void> {
+  // 1. Desativar todos os planos do aluno
+  const { error: deactivateError } = await supabase
+    .from('meal_plans')
+    .update({ status: 'inactive' })
+    .eq('student_id', studentId);
+
+  if (deactivateError) {
+    console.error('Erro ao desativar planos de dieta:', deactivateError);
+    throw deactivateError;
+  }
+
+  // 2. Ativar o plano selecionado
+  const { error: activateError } = await supabase
+    .from('meal_plans')
+    .update({ status: 'active' })
+    .eq('id', planId);
+
+  if (activateError) {
+    console.error('Erro ao ativar plano de dieta:', activateError);
+    throw activateError;
+  }
+}
+
 export async function saveMealPlan(studentId: string, plan: any): Promise<void> {
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) throw new Error("Não autenticado");
+
+  // 0. Desativar dietas anteriores (Exclusividade)
+  await supabase
+    .from('meal_plans')
+    .update({ status: 'inactive' })
+    .eq('student_id', studentId);
 
   // 1. Criar plano
   const { data: newPlan, error: planError } = await supabase
@@ -535,11 +613,46 @@ export async function getDashboardStats(): Promise<any> {
 
   const protocolsPrevMonth = (trainingPrevMonth || 0) + (mealPrevMonth || 0);
 
-  const calcTrend = (current: number, prev: number) => {
-    if (prev === 0) return current > 0 ? "+100%" : "0%";
+  const calcTrend = (current: number, prev: number | null | undefined) => {
+    if (current === 0) return null;
+    if (prev === undefined || prev === null || prev === 0) return null;
     const diff = ((current - prev) / prev) * 100;
+    if (Math.abs(diff) < 0.1) return null; // Consider non-significant changes as null
     return `${diff > 0 ? '+' : ''}${diff.toFixed(0)}%`;
   };
+
+  // Cálculos para tendências dos outros cards
+  // Total Alunos Mês Passado
+  const { count: totalStudentsPrevMonth } = await supabase
+    .from('students')
+    .select('*', { count: 'exact', head: true })
+    .eq('coach_id', coachId)
+    .lte('created_at', endOfPreviousMonth.toISOString());
+
+  // Alunos Ativos Mês Passado (aproximação baseada em data de criação)
+  const { count: activeStudentsPrevMonth } = await supabase
+    .from('students')
+    .select('*', { count: 'exact', head: true })
+    .eq('coach_id', coachId)
+    .eq('status', 'active')
+    .lte('created_at', endOfPreviousMonth.toISOString());
+
+  // Anamneses Pendentes Mês Passado
+  const { data: studentsPrevMonth } = await supabase
+    .from('students')
+    .select('id')
+    .eq('coach_id', coachId)
+    .lte('created_at', endOfPreviousMonth.toISOString());
+
+  const studentIdsPrevMonth = studentsPrevMonth?.map(s => s.id) || [];
+  const { data: anamnesisPrevMonthData } = await supabase
+    .from('anamnesis')
+    .select('student_id')
+    .in('student_id', studentIdsPrevMonth)
+    .lte('created_at', endOfPreviousMonth.toISOString());
+
+  const studentIdsWithAnamnesisPrevMonth = new Set(anamnesisPrevMonthData?.map(a => a.student_id));
+  const pendingAnamnesisPrevMonth = studentIdsPrevMonth.filter(id => !studentIdsWithAnamnesisPrevMonth.has(id)).length;
 
   return {
     totalStudents: totalStudents || 0,
@@ -547,9 +660,9 @@ export async function getDashboardStats(): Promise<any> {
     pendingAnamnesis,
     protocolsThisMonth,
     trends: {
-      totalStudents: "+5%", // Mock de alunos por enquanto ou calcular por data
-      activeStudents: "+2%",
-      pendingAnamnesis: "-10%",
+      totalStudents: calcTrend(totalStudents || 0, totalStudentsPrevMonth),
+      activeStudents: calcTrend(activeStudents || 0, activeStudentsPrevMonth),
+      pendingAnamnesis: calcTrend(pendingAnamnesis, pendingAnamnesisPrevMonth),
       protocols: calcTrend(protocolsThisMonth, protocolsPrevMonth)
     }
   };

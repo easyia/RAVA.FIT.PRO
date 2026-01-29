@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
@@ -44,8 +44,6 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { isAdmin } = useAuth();
-  const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
-
   const { data: coach } = useQuery({
     queryKey: ["coachProfile"],
     queryFn: getCoachProfile,
@@ -69,20 +67,6 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
     enabled: isAdmin,
     refetchInterval: 30000,
   });
-
-  const toggleMenu = (label: string, path?: string) => {
-    if (collapsed) {
-      onToggle();
-    }
-
-    setExpandedMenus(prev =>
-      prev.includes(label) ? [] : [label]
-    );
-
-    if (path) {
-      navigate(path);
-    }
-  };
 
   const menuItems = [
     { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
@@ -129,6 +113,38 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
       pendingBadge: pendingCoachesCount > 0 ? pendingCoachesCount : undefined
     }] : []),
   ];
+
+  const [expandedMenus, setExpandedMenus] = useState<string[]>(() => {
+    const activeMenus: string[] = [];
+    menuItems.forEach(item => {
+      if (item.subItems?.some(s => location.pathname.startsWith(s.path) && s.path !== '/')) {
+        activeMenus.push(item.label);
+      }
+    });
+    return activeMenus;
+  });
+
+  useEffect(() => {
+    menuItems.forEach(item => {
+      if (item.subItems?.some(s => location.pathname.startsWith(s.path) && s.path !== '/')) {
+        setExpandedMenus(prev => prev.includes(item.label) ? prev : [...prev, item.label]);
+      }
+    });
+  }, [location.pathname]);
+
+  const toggleMenu = (label: string, path?: string) => {
+    if (collapsed) {
+      onToggle();
+    }
+
+    setExpandedMenus(prev =>
+      prev.includes(label) ? prev.filter(l => l !== label) : [...prev, label]
+    );
+
+    if (path) {
+      navigate(path);
+    }
+  };
 
   return (
     <aside

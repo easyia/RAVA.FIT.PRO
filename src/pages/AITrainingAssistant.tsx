@@ -8,10 +8,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Sparkles, Upload, FileText, CheckCircle2, AlertCircle, Bot, X } from 'lucide-react';
+import { Loader2, Sparkles, Upload, FileText, CheckCircle2, AlertCircle, Bot, X, Activity } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { getStudents, getCoachProfile, saveTrainingProgram, uploadFile, getStudentDetails } from '@/services/studentService';
+import { getStudents, getCoachProfile, saveTrainingProgram, uploadFile, getStudentDetails, fetchContextFiles } from '@/services/studentService';
 import { supabase } from '@/lib/supabase';
 import { useNavigate } from 'react-router-dom';
 
@@ -57,16 +57,26 @@ interface Progression {
     marcos: { semana: number; mudanca: string }[];
 }
 
-interface AIResponse {
+interface WorkoutResponse {
     programa_treino: WorkoutProgram;
-    adaptacoes_lesoes: (Adaptation & { racional_dor?: string })[];
-    treinos: WorkoutSession[];
+    adaptacoes_lesoes: Adaptation[];
+    treinos: {
+        nome: string;
+        dia_semana_sugerido: string;
+        foco: string;
+        exercicios: (Exercise & { adaptacao_lesao?: boolean })[];
+    }[];
     justificativa: {
         escolha_exercicios: string;
         volume_intensidade: string;
         sincronia_nutricional: string;
+        racional_hormonal?: string;
     };
-    progressao: Progression;
+    progressao: {
+        tipo: string;
+        descricao: string;
+        marcos: { semana: number; mudanca: string }[];
+    };
 }
 
 const AITrainingAssistant = () => {
@@ -74,7 +84,7 @@ const AITrainingAssistant = () => {
     const [selectedStudentId, setSelectedStudentId] = useState<string>('');
     const [prompt, setPrompt] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
-    const [generatedWorkout, setGeneratedWorkout] = useState<AIResponse | null>(null);
+    const [generatedWorkout, setGeneratedWorkout] = useState<WorkoutResponse | null>(null);
     const [studentSearch, setStudentSearch] = useState('');
 
     const { data: students = [] } = useQuery({
@@ -106,6 +116,19 @@ const AITrainingAssistant = () => {
     const [isSaving, setIsSaving] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
 
+    // Fetch context files
+    const { data: existingFiles = [] } = useQuery({
+        queryKey: ['contextFiles'],
+        queryFn: fetchContextFiles,
+    });
+
+    // Sync context files local state with fetched data
+    useMemo(() => {
+        if (existingFiles.length > 0 && contextFiles.length === 0) {
+            setContextFiles(existingFiles);
+        }
+    }, [existingFiles]);
+
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -113,14 +136,15 @@ const AITrainingAssistant = () => {
         setIsUploading(true);
         try {
             const url = await uploadFile(file, 'context_files');
-            // Insert into context_files table
+            // Insert into context_files table (without extracted_content - will be filled by Edge Function)
             const { data: fileRecord, error } = await supabase
                 .from('context_files')
                 .insert({
+                    coach_id: coach?.id,
                     name: file.name,
                     storage_path: url,
                     type: file.name.split('.').pop(),
-                    extracted_content: `[URL]: ${url}`
+                    is_processed: false
                 })
                 .select()
                 .single();
@@ -128,7 +152,20 @@ const AITrainingAssistant = () => {
             if (error) throw error;
 
             setContextFiles(prev => [...prev, { id: fileRecord.id, name: fileRecord.name }]);
-            toast.success('Arquivo adicionado ao contexto!');
+            toast.success('Arquivo enviado! Processando conteúdo...');
+
+            // Invoke Edge Function to extract text content asynchronously
+            supabase.functions.invoke('extract-file-content', {
+                body: { file_id: fileRecord.id }
+            }).then(({ data, error: extractError }) => {
+                if (extractError) {
+                    console.error('Extract error:', extractError);
+                    toast.error('Erro ao processar arquivo. O texto pode não estar disponível.');
+                } else if (data?.success) {
+                    toast.success(`Texto extraído com sucesso! (${data.chars_extracted} caracteres)`);
+                }
+            });
+
         } catch (error) {
             console.error(error);
             toast.error('Erro ao carregar arquivo.');
@@ -594,6 +631,16 @@ const AITrainingAssistant = () => {
                                             <CardContent className="space-y-4 text-sm text-muted-foreground">
                                                 <p><strong className="text-foreground">Biomecânica:</strong> {generatedWorkout.justificativa.escolha_exercicios}</p>
                                                 <p><strong className="text-foreground">Fisiologia:</strong> {generatedWorkout.justificativa.volume_intensidade}</p>
+
+                                                {generatedWorkout.justificativa.racional_hormonal && (
+                                                    <p className="p-3 bg-amber-500/5 rounded-xl border border-amber-500/20 text-amber-600 dark:text-amber-500">
+                                                        <strong className="font-bold flex items-center gap-2">
+                                                            <Activity className="w-4 h-4" /> Modulação Hormonal:
+                                                        </strong>
+                                                        {generatedWorkout.justificativa.racional_hormonal}
+                                                    </p>
+                                                )}
+
                                                 <p className="p-3 bg-primary/5 rounded-xl border border-primary/20 text-primary">
                                                     <strong className="text-primary font-bold">Sincronia Nutricional:</strong><br />
                                                     {generatedWorkout.justificativa.sincronia_nutricional}
