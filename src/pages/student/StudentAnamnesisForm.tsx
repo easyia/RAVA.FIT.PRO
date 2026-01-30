@@ -54,7 +54,6 @@ export default function StudentAnamnesisForm() {
         // Section 3: Biometric
         height_cm: "",
         weight_kg: "",
-        weight_habitual: "",
 
         // Section 2: Goals
         main_goal: "",
@@ -250,7 +249,6 @@ export default function StudentAnamnesisForm() {
                     student_id: user.id,
                     weight_kg: parseFloat(formData.weight_kg) || null,
                     height_cm: parseFloat(formData.height_cm) || null,
-                    // weight_habitual: parseFloat(formData.weight_habitual) || null,
                     main_goal: formData.main_goal,
                     secondary_goal: formData.secondary_goal?.trim() || null,
                     goal_deadline: formData.goal_deadline,
@@ -420,10 +418,6 @@ export default function StudentAnamnesisForm() {
                                     <Label>Peso Atual (kg)</Label>
                                     <Input type="number" value={formData.weight_kg} onChange={e => updateField("weight_kg", e.target.value)} placeholder="Ex: 80" />
                                 </div>
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Peso Habitual (kg)</Label>
-                                <Input type="number" value={formData.weight_habitual} onChange={e => updateField("weight_habitual", e.target.value)} placeholder="Qual seu peso médio?" />
                             </div>
                         </div>
                     </div>

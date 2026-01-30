@@ -1,11 +1,8 @@
 -- Migration: 20260130000001_fix_anamnesis_schema_sync.sql
 -- Description: Ensures all necessary columns for the Student Anamnesis Form exist.
--- Fixes "Could not find the 'weight_habitual' column" error.
+-- UX Decision: weight_habitual was removed as redundant (weight_kg already captures this).
 
--- 1. Ensure weight_habitual exists (numeric)
-ALTER TABLE public.anamnesis ADD COLUMN IF NOT EXISTS weight_habitual numeric;
-
--- 2. Ensure surgeries exists (text)
+-- 1. Ensure surgeries exists (text)
 ALTER TABLE public.anamnesis ADD COLUMN IF NOT EXISTS surgeries text;
 
 -- 3. Ensure uses_ergogenics_details exists (text)
