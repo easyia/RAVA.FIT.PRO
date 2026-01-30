@@ -250,7 +250,7 @@ export default function StudentAnamnesisForm() {
                     student_id: user.id,
                     weight_kg: parseFloat(formData.weight_kg) || null,
                     height_cm: parseFloat(formData.height_cm) || null,
-                    weight_habitual: parseFloat(formData.weight_habitual) || null,
+                    // weight_habitual: parseFloat(formData.weight_habitual) || null,
                     main_goal: formData.main_goal,
                     secondary_goal: formData.secondary_goal?.trim() || null,
                     goal_deadline: formData.goal_deadline,
