@@ -271,6 +271,7 @@ export default function StudentAnamnesisForm() {
                     diet_habits: formData.diet_habits?.trim() || null,
                     initial_nutrition_notes: `Não consome: ${formData.non_consumed_foods || 'N/A'}. Hidratação: ${formData.hydration_daily || 'N/S'}L`,
                     stress_level: formData.stress_level,
+                    uses_ergogenics: formData.uses_ergogenics === 'true',
                     uses_ergogenics_details: formData.uses_ergogenics === 'true' ? formData.uses_ergogenics_details : null,
                     schedule_availability: `Disponibilidade: ${(formData.available_days || []).join(', ')}. Acorda: ${formData.wake_up_time}, Dorme: ${formData.sleep_time}. Rotina: ${formData.daily_routine || 'N/S'}`
                 });
