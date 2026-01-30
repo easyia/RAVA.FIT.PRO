@@ -37,6 +37,8 @@ export default function StudentAnamnesisForm() {
     const [formData, setFormData] = useState<any>({
         // Section 1: Identification
         full_name: "",
+        email: "",
+        phone: "",
         birth_date: "",
         sex: "",
         cpf: "",
@@ -57,19 +59,23 @@ export default function StudentAnamnesisForm() {
         // Section 2: Goals
         main_goal: "",
         secondary_goal: "",
+        goal_deadline: "",
         motivation_barriers: "",
 
         // Section 3: Logistics
-        training_level: "iniciante",
+        training_level: "beginner",
         available_days: [],
         initial_training_frequency: "3",
         training_environment: "Academia",
         training_preferences: "",
 
-        // Section 4: Health
+        // Section 4: Health history
         medical_conditions: "",
+        surgeries: "",
         medications: "",
         allergies: "",
+        uses_ergogenics: "false",
+        uses_ergogenics_details: "",
 
         // Section 5: Pain/Posture
         injuries: "",
@@ -123,6 +129,7 @@ export default function StudentAnamnesisForm() {
         switch (step) {
             case 0: // Identification
                 if (!formData.full_name?.trim()) return "Nome completo é obrigatório";
+                if (!formData.phone?.trim()) return "Telefone de contato é obrigatório";
                 if (!formData.birth_date) return "Data de nascimento é obrigatória";
                 if (!formData.sex) return "Sexo biológico é obrigatório";
                 if (!formData.cpf?.trim()) return "CPF é obrigatório";
@@ -133,6 +140,7 @@ export default function StudentAnamnesisForm() {
                 return null;
             case 3: // Goals
                 if (!formData.main_goal) return "Objetivo principal é obrigatório";
+                if (!formData.goal_deadline) return "Prazo para o objetivo é obrigatório";
                 return null;
             case 10: // LGPD
                 if (!formData.lgpd_accepted) return "Você precisa aceitar os termos da LGPD";
@@ -212,6 +220,8 @@ export default function StudentAnamnesisForm() {
                 .from('students')
                 .update({
                     full_name: formData.full_name?.trim(),
+                    email: formData.email?.trim(),
+                    phone: formData.phone?.trim(),
                     birth_date: formData.birth_date,
                     sex: formData.sex,
                     cpf: formData.cpf?.trim(),
@@ -224,7 +234,7 @@ export default function StudentAnamnesisForm() {
                     legal_consent_at: timestamp,
                     terms_accepted_at: timestamp,
                     updated_at: timestamp,
-                    status: 'pending_approval'
+                    status: 'active'
                 })
                 .eq('id', user.id);
 
@@ -240,14 +250,17 @@ export default function StudentAnamnesisForm() {
                     student_id: user.id,
                     weight_kg: parseFloat(formData.weight_kg) || null,
                     height_cm: parseFloat(formData.height_cm) || null,
+                    weight_habitual: parseFloat(formData.weight_habitual) || null,
                     main_goal: formData.main_goal,
                     secondary_goal: formData.secondary_goal?.trim() || null,
+                    goal_deadline: formData.goal_deadline,
                     motivation_barriers: formData.motivation_barriers?.trim() || null,
                     initial_training_frequency: formData.initial_training_frequency,
                     training_level: formData.training_level,
                     equipment_availability: formData.training_environment,
                     training_preferences: formData.training_preferences?.trim() || null,
                     medical_conditions: formData.medical_conditions?.trim() || null,
+                    surgeries: formData.surgeries?.trim() || null,
                     medications: formData.medications?.trim() || null,
                     allergies: formData.allergies?.trim() || null,
                     injuries: formData.injuries?.trim() || null,
@@ -258,6 +271,7 @@ export default function StudentAnamnesisForm() {
                     diet_habits: formData.diet_habits?.trim() || null,
                     initial_nutrition_notes: `Não consome: ${formData.non_consumed_foods || 'N/A'}. Hidratação: ${formData.hydration_daily || 'N/S'}L`,
                     stress_level: formData.stress_level,
+                    uses_ergogenics_details: formData.uses_ergogenics === 'true' ? formData.uses_ergogenics_details : null,
                     schedule_availability: `Disponibilidade: ${(formData.available_days || []).join(', ')}. Acorda: ${formData.wake_up_time}, Dorme: ${formData.sleep_time}. Rotina: ${formData.daily_routine || 'N/S'}`
                 });
 
@@ -289,9 +303,15 @@ export default function StudentAnamnesisForm() {
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div className="space-y-2">
+                                    <Label>WhatsApp / Telefone</Label>
+                                    <Input value={formData.phone} onChange={e => updateField("phone", e.target.value)} placeholder="(00) 00000-0000" />
+                                </div>
+                                <div className="space-y-2">
                                     <Label>Data de Nascimento</Label>
                                     <Input type="date" value={formData.birth_date} onChange={e => updateField("birth_date", e.target.value)} />
                                 </div>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <Label>Sexo Biológico</Label>
                                     <Select value={formData.sex} onValueChange={v => updateField("sex", v)}>
@@ -302,34 +322,32 @@ export default function StudentAnamnesisForm() {
                                         </SelectContent>
                                     </Select>
                                 </div>
-                            </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <Label>CPF</Label>
                                     <Input value={formData.cpf} onChange={e => updateField("cpf", e.target.value)} placeholder="000.000.000-00" />
                                 </div>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <Label>RG</Label>
                                     <Input value={formData.rg} onChange={e => updateField("rg", e.target.value)} placeholder="00.000.000-0" />
                                 </div>
-                            </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <Label>Profissão</Label>
                                     <Input value={formData.profession} onChange={e => updateField("profession", e.target.value)} placeholder="Sua profissão" />
                                 </div>
-                                <div className="space-y-2">
-                                    <Label>Estado Civil</Label>
-                                    <Select value={formData.marital_status} onValueChange={v => updateField("marital_status", v)}>
-                                        <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="solteiro">Solteiro(a)</SelectItem>
-                                            <SelectItem value="casado">Casado(a)</SelectItem>
-                                            <SelectItem value="divorciado">Divorciado(a)</SelectItem>
-                                            <SelectItem value="viuvo">Viúvo(a)</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Estado Civil</Label>
+                                <Select value={formData.marital_status} onValueChange={v => updateField("marital_status", v)}>
+                                    <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="solteiro">Solteiro(a)</SelectItem>
+                                        <SelectItem value="casado">Casado(a)</SelectItem>
+                                        <SelectItem value="divorciado">Divorciado(a)</SelectItem>
+                                        <SelectItem value="viuvo">Viúvo(a)</SelectItem>
+                                    </SelectContent>
+                                </Select>
                             </div>
                         </div>
                     </div>
@@ -427,9 +445,15 @@ export default function StudentAnamnesisForm() {
                                     </SelectContent>
                                 </Select>
                             </div>
-                            <div className="space-y-2">
-                                <Label>Objetivo Secundário (Opcional)</Label>
-                                <Input value={formData.secondary_goal} onChange={e => updateField("secondary_goal", e.target.value)} placeholder="Ex: Aumentar flexibilidade" />
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label>Objetivo Secundário (Opcional)</Label>
+                                    <Input value={formData.secondary_goal} onChange={e => updateField("secondary_goal", e.target.value)} placeholder="Ex: Aumentar flexibilidade" />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Prazo Desejado</Label>
+                                    <Input type="date" value={formData.goal_deadline} onChange={e => updateField("goal_deadline", e.target.value)} />
+                                </div>
                             </div>
                             <div className="space-y-2">
                                 <Label>Quais suas maiores barreiras hoje? (Motivação)</Label>
@@ -452,10 +476,10 @@ export default function StudentAnamnesisForm() {
                                 <Select value={formData.training_level} onValueChange={v => updateField("training_level", v)}>
                                     <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="iniciante">Iniciante (0-6 meses)</SelectItem>
-                                        <SelectItem value="intermediario">Intermediário (6m-2 anos)</SelectItem>
-                                        <SelectItem value="avancado">Avançado (+2 anos)</SelectItem>
-                                        <SelectItem value="atleta">Atleta</SelectItem>
+                                        <SelectItem value="beginner">Iniciante (0-6 meses)</SelectItem>
+                                        <SelectItem value="intermediate">Intermediário (6m-2 anos)</SelectItem>
+                                        <SelectItem value="advanced">Avançado (+2 anos)</SelectItem>
+                                        <SelectItem value="athlete">Atleta</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -540,20 +564,48 @@ export default function StudentAnamnesisForm() {
                                 <Label>Possui alguma alergia?</Label>
                                 <Input value={formData.allergies} onChange={e => updateField("allergies", e.target.value)} placeholder="Ex: Glúten, Lactose, Poeira..." />
                             </div>
+                            <div className="space-y-4 pt-4 border-t">
+                                <Label>Faz uso de recursos ergogênicos?</Label>
+                                <Select value={formData.uses_ergogenics} onValueChange={v => updateField("uses_ergogenics", v)}>
+                                    <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="false">Não</SelectItem>
+                                        <SelectItem value="true">Sim, faço uso</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                {formData.uses_ergogenics === "true" && (
+                                    <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                                        <Label>Detalhes (Quais, doses, tempo...)</Label>
+                                        <Textarea
+                                            value={formData.uses_ergogenics_details}
+                                            onChange={e => updateField("uses_ergogenics_details", e.target.value)}
+                                            placeholder="Detalhe o seu uso atual ou passado..."
+                                        />
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 );
             case 6: // Dores
                 return (
                     <div className="space-y-4">
-                        <h2 className="text-lg font-bold border-b pb-2">Dores e Lesões</h2>
+                        <h2 className="text-lg font-bold border-b pb-2">Dores e Histórico Cirúrgico</h2>
                         <div className="space-y-4">
                             <div className="space-y-2">
-                                <Label>Histórico de Lesões ou Cirurgias</Label>
+                                <Label>Já realizou cirurgias? Quais?</Label>
+                                <Textarea
+                                    value={formData.surgeries}
+                                    onChange={e => updateField("surgeries", e.target.value)}
+                                    placeholder="Descreva cirurgias prévias..."
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Histórico de Lesões</Label>
                                 <Textarea
                                     value={formData.injuries}
                                     onChange={e => updateField("injuries", e.target.value)}
-                                    placeholder="Ex: Cirurgia no joelho, hérnia..."
+                                    placeholder="Ex: Lesão no joelho, hérnia..."
                                 />
                             </div>
                             <div className="space-y-2">

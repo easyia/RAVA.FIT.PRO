@@ -114,7 +114,7 @@ serve(async (req) => {
 
 4. CAPACIDADE RECUPERATIVA (HORMONAL) - PRIORIDADE MÁXIMA:
 - SE o campo 'uses_ergogenics' for 'true' (Verdadeiro), você DEVE OBRIGATORIAMENTE:
-  a) IGNORAR qualquer rótulo de 'iniciante' para volume de treino e prescrição de carga.
+  a) IGNORAR qualquer rótulo de 'beginner' ou 'iniciante' para volume de treino e prescrição de carga.
   b) Tratar o usuário como INTERMEDIÁRIO/AVANÇADO na capacidade de recuperação.
   c) Prescrever volume 20-30% maior do que para um não-hormonizado.
   d) Mencionar explicitamente a modulação hormonal na justificativa.

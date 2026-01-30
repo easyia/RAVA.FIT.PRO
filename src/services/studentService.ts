@@ -388,6 +388,25 @@ export async function saveMealPlan(studentId: string, plan: any): Promise<void> 
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) throw new Error("Não autenticado");
 
+  // Helper to sanitize time string to HH:MM
+  const sanitizeTime = (timeStr: string) => {
+    if (!timeStr) return "08:00";
+    // Match first occurrence of HH:MM or HH:MM:SS
+    const match = timeStr.match(/(\d{1,2}:\d{2}(:\d{2})?)/);
+    if (match) {
+      let time = match[1];
+      if (time.length === 4) time = "0" + time; // Ensure HH:MM
+      return time;
+    }
+    // Fallback if it's just a number like "8"
+    const hourMatch = timeStr.match(/(\d{1,2})/);
+    if (hourMatch) {
+      const hour = hourMatch[1].padStart(2, '0');
+      return `${hour}:00`;
+    }
+    return "08:00";
+  };
+
   // 0. Desativar dietas anteriores (Exclusividade)
   await supabase
     .from('meal_plans')
@@ -402,10 +421,10 @@ export async function saveMealPlan(studentId: string, plan: any): Promise<void> 
       coach_id: userData.user.id,
       title: plan.title,
       goal: plan.goal,
-      total_calories: plan.total_calories,
-      total_proteins: plan.total_proteins,
-      total_carbs: plan.total_carbs,
-      total_fats: plan.total_fats,
+      total_calories: Math.round(Number(plan.total_calories || 0)),
+      total_proteins: Number(plan.total_proteins || 0),
+      total_carbs: Number(plan.total_carbs || 0),
+      total_fats: Number(plan.total_fats || 0),
       status: 'active'
     })
     .select()
@@ -420,7 +439,7 @@ export async function saveMealPlan(studentId: string, plan: any): Promise<void> 
       .insert({
         meal_plan_id: newPlan.id,
         name: meal.name,
-        meal_time: meal.time,
+        meal_time: sanitizeTime(meal.time),
         type: meal.type
       })
       .select()
@@ -428,7 +447,7 @@ export async function saveMealPlan(studentId: string, plan: any): Promise<void> 
 
     if (mealError) throw mealError;
 
-    if (meal.foods.length > 0) {
+    if (meal.foods && meal.foods.length > 0) {
       const foodsToInsert = meal.foods.map((food: any, idx: number) => ({
         meal_id: newMeal.id,
         name: food.name,
