@@ -57,6 +57,7 @@ import { getLastFeedback } from "@/services/feedbackService";
 import { ResponsiveContainer, AreaChart, Area, Tooltip, XAxis } from 'recharts';
 import { StudentDetailsModal } from '@/components/dashboard/StudentDetailsModal';
 import { StudentChatModal } from '@/components/student/StudentChatModal';
+import { CheckInCard } from "@/components/dashboard/CheckInCard";
 
 export default function StudentDashboard() {
     const { user } = useAuth();
@@ -539,29 +540,11 @@ export default function StudentDashboard() {
             </div>
 
             {/* Weekly Insights / Feedback */}
-            <Card className="bg-gradient-to-br from-violet-600 to-indigo-700 border-none shadow-2xl shadow-indigo-500/20 overflow-hidden relative group active:scale-[0.98] transition-all duration-300">
-                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-125 transition-transform duration-700">
-                    <Activity size={120} color="white" />
-                </div>
-                <CardContent className="p-6 flex items-center justify-between relative z-10">
-                    <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/20 shadow-lg">
-                            <Activity className="w-7 h-7 text-white" />
-                        </div>
-                        <div>
-                            <h3 className="font-black text-lg text-white tracking-tight leading-none">Check-in</h3>
-                            <p className="text-[10px] text-white/70 font-bold uppercase tracking-[0.2em] mt-1.5">Acompanhamento Semanal</p>
-                        </div>
-                    </div>
-                    <Button
-                        size="lg"
-                        onClick={() => setIsCheckinOpen(true)}
-                        className="bg-white text-indigo-700 hover:bg-white/90 font-black px-6 text-xs h-11 rounded-xl shadow-xl transition-transform active:scale-95"
-                    >
-                        RESPONDER
-                    </Button>
-                </CardContent>
-            </Card>
+            <CheckInCard
+                logsCount={completedTrainings}
+                targetLogs={weeklyTrainings || 3}
+                onRespond={() => setIsCheckinOpen(true)}
+            />
 
             {/* Minimalist Evolution Chart */}
             <Card className="bg-card/40 backdrop-blur-xl border-border/50 overflow-hidden premium-shadow">
