@@ -32,7 +32,7 @@ import { motion } from "framer-motion";
 // Workout execution components
 import { useWorkoutSessionStore } from "@/stores/useWorkoutSessionStore";
 import { ActiveExerciseCard, ExercisePrescription } from "@/components/training/ActiveExerciseCard";
-import { GlobalWorkoutTimer } from "@/components/training/GlobalWorkoutTimer";
+import { WorkoutSessionHeader } from "@/components/training/WorkoutSessionHeader";
 import { RestTimerOverlay } from "@/components/training/RestTimerOverlay";
 import { WorkoutLogInsert } from "@/types/supabase";
 
@@ -163,38 +163,34 @@ export default function StudentTraining() {
 
         return (
             <div className="space-y-6 pb-32">
-                {/* Workout Execution Header */}
-                <header className="space-y-4">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <Badge
-                                variant="outline"
-                                className="border-green-500/50 text-green-500 bg-green-500/5 uppercase tracking-widest text-[10px] animate-pulse"
-                            >
-                                Treino em Andamento
-                            </Badge>
-                            <GlobalWorkoutTimer />
-                        </div>
-                        <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={handleEndWorkoutClick}
-                            className="gap-2"
-                        >
-                            <Square className="w-4 h-4" />
-                            Encerrar
-                        </Button>
-                    </div>
+                {/* Session Header with Stats */}
+                <WorkoutSessionHeader
+                    sessionName={selectedSession.name}
+                    sessionDivision={selectedSession.division}
+                    onReset={() => {
+                        endWorkout();
+                        handleStartWorkout(selectedSession);
+                    }}
+                />
 
-                    <div>
-                        <h1 className="text-2xl font-black italic tracking-tighter uppercase">
-                            {selectedSession.name}
-                        </h1>
-                        <p className="text-xs text-muted-foreground mt-1">
-                            Treino {selectedSession.division} • {completedExercises}/{totalExercises} exercícios completos
-                        </p>
-                    </div>
-                </header>
+                {/* Progress Bar */}
+                <div className="flex items-center justify-between gap-4">
+                    <Badge
+                        variant="outline"
+                        className="border-primary/50 text-primary bg-primary/5 uppercase tracking-widest text-[10px]"
+                    >
+                        {completedExercises}/{totalExercises} exercícios
+                    </Badge>
+                    <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={handleEndWorkoutClick}
+                        className="gap-2"
+                    >
+                        <Square className="w-4 h-4" />
+                        Encerrar
+                    </Button>
+                </div>
 
                 {/* Exercise Cards */}
                 <div className="space-y-4">
