@@ -170,7 +170,7 @@ export function ActiveExerciseCard({ exercise, exerciseIndex }: ActiveExerciseCa
                                                     placeholder="0"
                                                     value={setLog.weight || ''}
                                                     onChange={(e) => handleWeightChange(setIndex, e.target.value)}
-                                                    disabled={setLog.completed}
+                                                    disabled={false}
                                                     className={cn(
                                                         'w-16 bg-transparent text-xl font-bold text-foreground text-center',
                                                         'border-0 outline-none focus:ring-0 placeholder:text-muted-foreground/40',
@@ -188,7 +188,7 @@ export function ActiveExerciseCard({ exercise, exerciseIndex }: ActiveExerciseCa
                                                     placeholder={`${exercise.reps_min}`}
                                                     value={setLog.reps || ''}
                                                     onChange={(e) => handleRepsChange(setIndex, e.target.value)}
-                                                    disabled={setLog.completed}
+                                                    disabled={false}
                                                     className={cn(
                                                         'w-12 bg-transparent text-xl font-bold text-foreground text-center',
                                                         'border-0 outline-none focus:ring-0 placeholder:text-muted-foreground/40',
@@ -205,7 +205,7 @@ export function ActiveExerciseCard({ exercise, exerciseIndex }: ActiveExerciseCa
                                                         variant="ghost"
                                                         size="icon"
                                                         className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                                                        disabled={setLog.completed}
+                                                        disabled={false}
                                                     >
                                                         <MoreHorizontal className="w-4 h-4" />
                                                     </Button>
@@ -264,7 +264,6 @@ export function ActiveExerciseCard({ exercise, exerciseIndex }: ActiveExerciseCa
                                             {/* Complete Button - Circle */}
                                             <button
                                                 onClick={() => handleCompleteSet(setIndex)}
-                                                disabled={setLog.completed}
                                                 className={cn(
                                                     'w-10 h-10 rounded-full flex items-center justify-center transition-all',
                                                     setLog.completed

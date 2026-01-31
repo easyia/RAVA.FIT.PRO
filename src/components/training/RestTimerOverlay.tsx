@@ -40,7 +40,7 @@ export function RestTimerOverlay() {
                     exit={{ y: 100, opacity: 0 }}
                     transition={{ type: 'spring', damping: 25, stiffness: 300 }}
                     className={cn(
-                        'fixed bottom-4 left-4 right-4 z-50',
+                        'fixed bottom-24 left-4 right-4 z-50',
                         'md:left-auto md:right-4 md:w-80'
                     )}
                 >

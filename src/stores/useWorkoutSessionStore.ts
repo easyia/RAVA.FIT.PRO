@@ -127,7 +127,7 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>((set, get) => 
     },
 
     /**
-     * Mark a set as complete and start rest timer
+     * Toggle set completion - mark as complete and start rest timer, or unmark if already complete
      */
     completeSet: (exerciseId, setIndex, restTime) => {
         const logs = get().currentExerciseLogs;
@@ -135,10 +135,13 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>((set, get) => 
 
         if (!exerciseLogs || !exerciseLogs[setIndex]) return;
 
+        const currentSet = exerciseLogs[setIndex];
+        const isCurrentlyCompleted = currentSet.completed;
+
         const updatedSet: WorkoutSetExecution = {
-            ...exerciseLogs[setIndex],
-            completed: true,
-            completedAt: new Date().toISOString(),
+            ...currentSet,
+            completed: !isCurrentlyCompleted,
+            completedAt: isCurrentlyCompleted ? null : new Date().toISOString(),
         };
 
         set({
@@ -150,8 +153,9 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>((set, get) => 
                     ...exerciseLogs.slice(setIndex + 1),
                 ],
             },
-            isResting: restTime > 0,
-            restTimeRemaining: restTime,
+            // Only start rest timer when completing (not when uncompleting)
+            isResting: !isCurrentlyCompleted && restTime > 0,
+            restTimeRemaining: !isCurrentlyCompleted ? restTime : get().restTimeRemaining,
         });
     },
 
