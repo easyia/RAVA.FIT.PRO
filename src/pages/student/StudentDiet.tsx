@@ -110,22 +110,22 @@ export default function StudentDiet() {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: groupIdx * 0.1 }}
                         >
-                            <Card className="bg-card dark:bg-zinc-900/80 backdrop-blur-xl border border-border dark:border-white/10 overflow-hidden shadow-lg">
-                                <CardHeader className="p-4 border-b border-border dark:border-white/5 pb-4">
+                            <Card className="bg-card border-0 overflow-hidden">
+                                <CardHeader className="p-4 border-b border-border/50 pb-4">
                                     <div className="flex items-center justify-between mb-4">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-xl bg-muted dark:bg-white/5 border border-border dark:border-white/5 flex items-center justify-center text-amber-600 dark:text-amber-500 shadow-inner">
+                                            <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center text-primary">
                                                 <Clock className="w-5 h-5" />
                                             </div>
                                             <div>
-                                                <h3 className="text-base font-black text-foreground dark:text-white uppercase italic tracking-tight leading-none mb-1">{currentMeal.name}</h3>
+                                                <h3 className="text-base font-bold text-foreground uppercase tracking-tight leading-none mb-1">{currentMeal.name}</h3>
                                                 <p className="text-[10px] text-muted-foreground dark:text-zinc-400 font-bold uppercase tracking-widest">{currentMeal.meal_time}</p>
                                             </div>
                                         </div>
                                     </div>
 
                                     {/* Premium Option Switcher */}
-                                    <div className="flex p-1 bg-muted dark:bg-black/40 rounded-xl border border-border dark:border-white/5">
+                                    <div className="flex p-1 bg-muted rounded-xl">
                                         {options.map((opt, optIdx) => (
                                             <button
                                                 key={opt.id}
@@ -133,14 +133,13 @@ export default function StudentDiet() {
                                                 className={cn(
                                                     "flex-1 py-2 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all relative overflow-hidden",
                                                     currentOptionIdx === optIdx
-                                                        ? "text-white dark:text-black shadow-md"
-                                                        : "text-muted-foreground dark:text-zinc-500 hover:text-foreground dark:hover:text-zinc-300 hover:bg-background dark:hover:bg-white/5"
+                                                        ? "text-primary-foreground shadow-md"
+                                                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                                                 )}
                                             >
                                                 {currentOptionIdx === optIdx && (
                                                     <motion.div
-                                                        layoutId={`active-pill-${mealKey}`}
-                                                        className="absolute inset-0 bg-amber-600 dark:bg-amber-500"
+                                                        className="absolute inset-0 bg-primary"
                                                         transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                                                     />
                                                 )}
@@ -150,16 +149,16 @@ export default function StudentDiet() {
                                     </div>
                                 </CardHeader>
                                 <CardContent className="p-0">
-                                    <div className="divide-y divide-border dark:divide-white/5">
+                                    <div className="divide-y divide-border/50">
                                         {currentMeal.meal_foods?.map((food: any) => (
-                                            <div key={food.id} className="p-4 flex items-center justify-between hover:bg-muted/50 dark:hover:bg-white/5 transition-colors group">
+                                            <div key={food.id} className="p-4 flex items-center justify-between hover:bg-muted/30 transition-colors group">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-amber-500 group-hover:scale-125 transition-transform" />
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-primary group-hover:scale-125 transition-transform" />
                                                     <span className="text-sm font-bold text-foreground/80 dark:text-zinc-200 group-hover:text-foreground dark:group-hover:text-white transition-colors">
                                                         {food.name}
                                                     </span>
                                                 </div>
-                                                <span className="text-sm font-black text-foreground/90 dark:text-white/90 tabular-nums bg-muted dark:bg-white/5 px-2 py-0.5 rounded border border-border dark:border-white/5">
+                                                <span className="text-sm font-bold text-foreground tabular-nums bg-muted px-2 py-0.5 rounded">
                                                     {food.quantity}<span className="text-[10px] text-muted-foreground dark:text-zinc-400 font-bold ml-0.5 uppercase">{food.unit}</span>
                                                 </span>
                                             </div>

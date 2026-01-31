@@ -68,57 +68,65 @@
 
   .dark {
     color-scheme: dark;
-    --background: 225 25% 4%;
-    /* Deep midnight background */
-    --foreground: 210 20% 98%;
 
-    --card: 225 25% 7%;
-    /* Elevated obsidian surface */
-    --card-foreground: 210 20% 98%;
+    /* Premium Apple-like Dark Mode Palette */
+    --background: 240 10% 4%;
+    /* #09090b - Deep charcoal, not pure black */
+    --foreground: 0 0% 98%;
+    /* #fafafa - Crisp white text */
 
-    --popover: 225 30% 8%;
-    --popover-foreground: 210 20% 98%;
+    --card: 240 6% 10%;
+    /* #18181b - Elevated surface with subtle depth */
+    --card-foreground: 0 0% 98%;
 
-    --primary: 36 100% 55%;
-    --primary-foreground: 225 25% 4%;
+    --popover: 240 6% 10%;
+    --popover-foreground: 0 0% 98%;
 
-    --secondary: 225 20% 12%;
-    --secondary-foreground: 210 20% 98%;
+    /* Premium Electric Green Accent (Apple Fitness-inspired) */
+    --primary: 142 76% 46%;
+    /* #22c55e - Electric green, sophisticated */
+    --primary-foreground: 240 10% 4%;
 
-    --muted: 225 20% 12%;
-    --muted-foreground: 215 15% 65%;
+    --secondary: 240 4% 16%;
+    /* #27272a - Subtle elevated surface */
+    --secondary-foreground: 0 0% 98%;
 
-    --accent: 225 20% 12%;
-    /* Subtle obsidian for dark mode hover */
-    --accent-foreground: 210 20% 98%;
+    --muted: 240 4% 16%;
+    --muted-foreground: 240 5% 65%;
+    /* #a1a1aa - Zinc-400 equivalent */
+
+    --accent: 240 4% 16%;
+    --accent-foreground: 0 0% 98%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 225 20% 15%;
-    --input: 225 20% 15%;
-    --ring: 36 100% 55%;
+    --border: 240 4% 16%;
+    /* Subtle borders, almost invisible */
+    --input: 240 4% 16%;
+    --ring: 142 76% 46%;
+    /* Match primary accent */
 
-    --sidebar-background: 225 25% 6%;
-    --sidebar-foreground: 215 15% 65%;
-    --sidebar-primary: 36 100% 55%;
-    --sidebar-primary-foreground: 225 25% 4%;
-    --sidebar-accent: 36 100% 12%;
-    --sidebar-accent-foreground: 36 100% 55%;
-    --sidebar-border: 225 20% 14%;
-    --sidebar-ring: 36 100% 55%;
+    --sidebar-background: 240 10% 4%;
+    --sidebar-foreground: 240 5% 65%;
+    --sidebar-primary: 142 76% 46%;
+    --sidebar-primary-foreground: 240 10% 4%;
+    --sidebar-accent: 142 76% 10%;
+    --sidebar-accent-foreground: 142 76% 46%;
+    --sidebar-border: 240 4% 12%;
+    --sidebar-ring: 142 76% 46%;
 
-    --tertiary: 225 15% 45%;
-    --surface-hover: 225 20% 10%;
-    --progress-track: 225 20% 15%;
+    --tertiary: 240 5% 45%;
+    --surface-hover: 240 4% 12%;
+    --progress-track: 240 4% 16%;
 
-    --status-success: 155 100% 60%;
-    --status-warning: 36 100% 60%;
+    --status-success: 142 76% 50%;
+    --status-warning: 38 92% 50%;
     --status-error: 0 84% 60%;
     --status-info: 217 91% 60%;
 
-    --status-success-bg: 155 100% 10%;
-    --status-warning-bg: 36 100% 10%;
+    --status-success-bg: 142 76% 10%;
+    --status-warning-bg: 38 92% 10%;
     --status-error-bg: 0 84% 10%;
   }
 }
@@ -141,8 +149,9 @@
   }
 
   body {
-    @apply bg-background text-foreground antialiased;
-    font-feature-settings: "rlig" 1, "calt" 1;
+    @apply bg-background text-foreground antialiased tracking-tight;
+    font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
+    text-rendering: optimizeLegibility;
     overflow-x: hidden;
   }
 
