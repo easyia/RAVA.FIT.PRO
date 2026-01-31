@@ -61,7 +61,7 @@ export function CheckInCard({ logsCount, targetLogs, onRespond }: CheckInCardPro
                                 className={cn(
                                     "h-full rounded-full relative",
                                     isGoalMet
-                                        ? "bg-gradient-to-r from-emerald-400 to-green-300 shadow-[0_0_20px_rgba(52,211,153,1)]"
+                                        ? "bg-gradient-to-r from-orange-400 to-amber-300 shadow-[0_0_20px_rgba(245,158,11,1)]"
                                         : "bg-gradient-to-r from-orange-500 to-amber-400"
                                 )}
                             >
