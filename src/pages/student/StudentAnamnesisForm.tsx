@@ -415,8 +415,8 @@ export default function StudentAnamnesisForm() {
                                     <Input type="number" value={formData.height_cm} onChange={e => updateField("height_cm", e.target.value)} placeholder="Ex: 175" />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label>Peso Atual (kg)</Label>
-                                    <Input type="number" value={formData.weight_kg} onChange={e => updateField("weight_kg", e.target.value)} placeholder="Ex: 80" />
+                                    <Label>Peso Atual (kg) [SYNC_CHECK]</Label>
+                                    <Input type="number" value={formData.weight_kg} onChange={e => updateField("weight_kg", e.target.value)} placeholder="SEU PESO ATUAL" />
                                 </div>
                             </div>
                         </div>
