@@ -138,17 +138,19 @@ export default function StudentDashboard() {
     const activeProgram = trainingPrograms?.[0];
     const weeklyTrainings = activeProgram?.training_sessions?.length || 0;
 
-    // Build set of days with workouts from real logs
-    const workoutDaysSet = new Set<number>();
+    // Build map of dates with workouts from real logs (using local date string)
+    const workoutDatesMap = new Map<string, boolean>();
     weeklyLogs.forEach(log => {
         const logDate = new Date(log.created_at);
-        const dayOfWeek = logDate.getDay();
-        // Convert to Monday-based index (0=Mon, 6=Sun)
-        const mondayBasedIndex = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-        workoutDaysSet.add(mondayBasedIndex);
+        const dateKey = logDate.toLocaleDateString('pt-BR');
+        workoutDatesMap.set(dateKey, true);
     });
 
-    const completedTrainings = workoutDaysSet.size;
+    // Check if today has a workout
+    const todayDateKey = today.toLocaleDateString('pt-BR');
+    const todayHasWorkout = workoutDatesMap.has(todayDateKey);
+
+    const completedTrainings = workoutDatesMap.size;
     const trainingProgress = weeklyTrainings > 0 ? (completedTrainings / weeklyTrainings) * 100 : 0;
 
     const dayOfWeekIndex = today.getDay();
@@ -419,19 +421,38 @@ export default function StudentDashboard() {
                         </div>
                         <div className="flex justify-between items-center bg-muted/20 p-2 rounded-2xl border border-border/20">
                             {weekDays?.map((day, i) => {
-                                const hasWorkout = workoutDaysSet.has(i);
+                                const dayDateKey = day.toLocaleDateString('pt-BR');
+                                const hasWorkout = workoutDatesMap.has(dayDateKey);
                                 const isDayToday = isToday(day);
+                                const isPast = day < today && !isDayToday;
+                                const isFuture = day > today;
+
+                                // Smart date styling
+                                let dayStyle = 'bg-muted/40 text-muted-foreground border border-border/30'; // default
+
+                                if (hasWorkout && isDayToday) {
+                                    // Today with workout - Neon Orange Glow
+                                    dayStyle = 'bg-gradient-to-br from-orange-400 to-amber-500 text-white shadow-[0_0_15px_rgba(251,146,60,0.6)] scale-110 ring-2 ring-orange-400/50';
+                                } else if (hasWorkout && isPast) {
+                                    // Past with workout - Solid Orange
+                                    dayStyle = 'bg-gradient-to-br from-orange-500 to-amber-600 text-white scale-105';
+                                } else if (isPast && !hasWorkout) {
+                                    // Past without workout - Dark Gray (Missed)
+                                    dayStyle = 'bg-zinc-800 text-zinc-500 border border-zinc-700';
+                                } else if (isFuture) {
+                                    // Future - Low opacity
+                                    dayStyle = 'bg-muted/20 text-muted-foreground/40 border border-border/20';
+                                } else if (isDayToday && !hasWorkout) {
+                                    // Today without workout yet
+                                    dayStyle = 'bg-muted/60 text-foreground ring-2 ring-primary/50';
+                                }
 
                                 return (
                                     <div
                                         key={i}
                                         className={cn(
                                             "w-9 h-9 rounded-2xl flex items-center justify-center text-[10px] font-black transition-all duration-300",
-                                            hasWorkout
-                                                ? 'bg-gradient-to-br from-orange-500 to-amber-600 text-white shadow-lg shadow-orange-500/30 scale-110'
-                                                : isDayToday
-                                                    ? 'bg-muted/60 text-foreground ring-2 ring-primary/50'
-                                                    : 'bg-muted/40 text-muted-foreground border border-border/30'
+                                            dayStyle
                                         )}
                                     >
                                         {hasWorkout ? (
@@ -449,26 +470,51 @@ export default function StudentDashboard() {
 
             {/* Quick Navigation Cards */}
             <div className="grid grid-cols-2 gap-4">
-                <Card
-                    className="bg-gradient-to-br from-orange-500 to-amber-600 border-none cursor-pointer group premium-shadow overflow-hidden relative active:scale-95 transition-all duration-300"
-                    onClick={() => navigate("/aluno/treino")}
-                >
-                    <div className="absolute -right-4 -top-4 opacity-10 group-hover:scale-110 transition-transform duration-500">
-                        <Dumbbell size={100} color="white" />
-                    </div>
-                    <CardHeader className="p-5 pb-2 relative z-10">
-                        <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center mb-4 border border-white/20 shadow-lg">
-                            <Dumbbell className="w-6 h-6 text-white" />
+                {todayHasWorkout ? (
+                    // Today's workout completed - Green success card
+                    <Card
+                        className="bg-gradient-to-br from-emerald-500 to-green-600 border-none cursor-pointer group premium-shadow overflow-hidden relative active:scale-95 transition-all duration-300"
+                        onClick={() => navigate("/aluno/historico")}
+                    >
+                        <div className="absolute -right-4 -top-4 opacity-10 group-hover:scale-110 transition-transform duration-500">
+                            <CheckCircle2 size={100} color="white" />
                         </div>
-                        <CardTitle className="text-lg font-black text-white">Meu Treino</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-5 pt-0 relative z-10">
-                        <p className="text-[10px] text-white/80 font-bold flex items-center gap-1 uppercase tracking-widest">
-                            {todayTraining ? todayTraining.division : "Ver tudo"}
-                            <ChevronRight className="w-3 h-3" />
-                        </p>
-                    </CardContent>
-                </Card>
+                        <CardHeader className="p-5 pb-2 relative z-10">
+                            <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center mb-4 border border-white/20 shadow-lg">
+                                <CheckCircle2 className="w-6 h-6 text-white" />
+                            </div>
+                            <CardTitle className="text-lg font-black text-white">Concluído ✅</CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-5 pt-0 relative z-10">
+                            <p className="text-[10px] text-white/80 font-bold flex items-center gap-1 uppercase tracking-widest">
+                                Ver detalhes
+                                <ChevronRight className="w-3 h-3" />
+                            </p>
+                        </CardContent>
+                    </Card>
+                ) : (
+                    // Normal training card
+                    <Card
+                        className="bg-gradient-to-br from-orange-500 to-amber-600 border-none cursor-pointer group premium-shadow overflow-hidden relative active:scale-95 transition-all duration-300"
+                        onClick={() => navigate("/aluno/treino")}
+                    >
+                        <div className="absolute -right-4 -top-4 opacity-10 group-hover:scale-110 transition-transform duration-500">
+                            <Dumbbell size={100} color="white" />
+                        </div>
+                        <CardHeader className="p-5 pb-2 relative z-10">
+                            <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center mb-4 border border-white/20 shadow-lg">
+                                <Dumbbell className="w-6 h-6 text-white" />
+                            </div>
+                            <CardTitle className="text-lg font-black text-white">Meu Treino</CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-5 pt-0 relative z-10">
+                            <p className="text-[10px] text-white/80 font-bold flex items-center gap-1 uppercase tracking-widest">
+                                {todayTraining ? todayTraining.division : "Ver tudo"}
+                                <ChevronRight className="w-3 h-3" />
+                            </p>
+                        </CardContent>
+                    </Card>
+                )}
 
                 <Card
                     className="bg-gradient-to-br from-emerald-500 to-teal-600 border-none cursor-pointer group premium-shadow overflow-hidden relative active:scale-95 transition-all duration-300"
