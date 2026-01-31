@@ -82,9 +82,8 @@
     --popover: 240 6% 10%;
     --popover-foreground: 0 0% 98%;
 
-    /* Premium Electric Green Accent (Apple Fitness-inspired) */
-    --primary: 142 76% 46%;
-    /* #22c55e - Electric green, sophisticated */
+    /* FitPro Original Orange/Amber Accent (#F59E0B) */
+    --primary: 38 92% 50%;
     --primary-foreground: 240 10% 4%;
 
     --secondary: 240 4% 16%;
@@ -104,28 +103,28 @@
     --border: 240 4% 16%;
     /* Subtle borders, almost invisible */
     --input: 240 4% 16%;
-    --ring: 142 76% 46%;
+    --ring: 38 92% 50%;
     /* Match primary accent */
 
     --sidebar-background: 240 10% 4%;
     --sidebar-foreground: 240 5% 65%;
-    --sidebar-primary: 142 76% 46%;
+    --sidebar-primary: 38 92% 50%;
     --sidebar-primary-foreground: 240 10% 4%;
-    --sidebar-accent: 142 76% 10%;
-    --sidebar-accent-foreground: 142 76% 46%;
+    --sidebar-accent: 38 92% 10%;
+    --sidebar-accent-foreground: 38 92% 50%;
     --sidebar-border: 240 4% 12%;
-    --sidebar-ring: 142 76% 46%;
+    --sidebar-ring: 38 92% 50%;
 
     --tertiary: 240 5% 45%;
     --surface-hover: 240 4% 12%;
     --progress-track: 240 4% 16%;
 
-    --status-success: 142 76% 50%;
+    --status-success: 38 92% 50%;
     --status-warning: 38 92% 50%;
     --status-error: 0 84% 60%;
     --status-info: 217 91% 60%;
 
-    --status-success-bg: 142 76% 10%;
+    --status-success-bg: 38 92% 10%;
     --status-warning-bg: 38 92% 10%;
     --status-error-bg: 0 84% 10%;
   }

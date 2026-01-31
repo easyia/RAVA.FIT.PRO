@@ -23,7 +23,7 @@ export function CheckInCard({ logsCount, targetLogs, onRespond }: CheckInCardPro
         <Card className={cn(
             "border-none overflow-hidden relative group transition-all duration-300",
             isGoalMet
-                ? "bg-gradient-to-br from-emerald-600 to-teal-700 shadow-2xl shadow-emerald-500/20"
+                ? "bg-gradient-to-br from-orange-500 to-amber-600 shadow-2xl shadow-orange-500/20"
                 : "bg-gradient-to-br from-violet-600 to-indigo-700 shadow-2xl shadow-indigo-500/20"
         )}>
             <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-125 transition-transform duration-700">
@@ -76,7 +76,7 @@ export function CheckInCard({ logsCount, targetLogs, onRespond }: CheckInCardPro
                             </p>
                         )}
                         {isGoalMet && (
-                            <p className="text-[10px] text-emerald-200 font-bold text-right px-1 animate-bounce">
+                            <p className="text-[10px] text-amber-200 font-bold text-right px-1 animate-bounce">
                                 Meta batida! Check-in liberado 🚀
                             </p>
                         )}
@@ -97,7 +97,7 @@ export function CheckInCard({ logsCount, targetLogs, onRespond }: CheckInCardPro
                         {!canRespond ? (
                             <Lock className="w-4 h-4 opacity-50" />
                         ) : isGoalMet ? (
-                            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                            <CheckCircle2 className="w-4 h-4 text-orange-600" />
                         ) : null}
                         RESPONDER CHECK-IN
                     </Button>
