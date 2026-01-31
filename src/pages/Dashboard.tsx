@@ -13,7 +13,6 @@ import { useEffect } from "react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Users, Plus, Bot } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { StudentDetailsModal } from "@/components/dashboard/StudentDetailsModal";
 import { StatsGrid } from "@/components/dashboard/StatsGrid";
 import { Button } from "@/components/ui/button";
 import { ShutterLock } from "@/components/layout/ShutterLock";
@@ -23,10 +22,7 @@ import { useQueryClient } from "@tanstack/react-query";
 const Dashboard = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [rightSidebarCollapsed, setRightSidebarCollapsed] = useState(false);
-  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
-  const [defaultTab, setDefaultTab] = useState("info");
   const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -62,9 +58,8 @@ const Dashboard = () => {
   const displayStudents = searchQuery ? filteredStudents : filteredStudents.slice(0, 4);
 
   const handleOpenDetails = (id: string, tab: string = "info") => {
-    setSelectedStudentId(id);
-    setDefaultTab(tab);
-    setIsModalOpen(true);
+    // Navigate to the new Student 360 page
+    navigate(`/alunos/${id}`);
   };
 
   const handleActivityClick = (activity: any) => {
@@ -264,14 +259,6 @@ const Dashboard = () => {
           )}
         </div>
       </div>
-
-      <StudentDetailsModal
-        studentId={selectedStudentId}
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onStatusChange={handleStatusChange}
-        defaultTab={defaultTab}
-      />
     </div>
   );
 };

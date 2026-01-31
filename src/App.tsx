@@ -40,6 +40,7 @@ import StudentDiet from "./pages/student/StudentDiet";
 import StudentHistory from "./pages/student/StudentHistory";
 
 import MessagesPage from "./pages/coach/MessagesPage";
+import StudentDetailsPage from "./pages/dashboard/StudentDetailsPage";
 
 const queryClient = new QueryClient();
 
@@ -85,6 +86,7 @@ const App = () => (
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/mensagens" element={<MessagesPage />} />
             <Route path="/alunos" element={<StudentList />} />
+            <Route path="/alunos/:id" element={<StudentDetailsPage />} />
             <Route path="/cadastro" element={<StudentRegistration />} />
             <Route path="/cadastro/:id" element={<StudentRegistration />} />
             <Route path="/protocolos" element={<Protocols />} />
