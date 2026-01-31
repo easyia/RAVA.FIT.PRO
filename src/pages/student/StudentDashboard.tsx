@@ -17,6 +17,7 @@ import {
     getTrainingPrograms,
     getMealPlans
 } from "@/services/studentService";
+import { getWeeklyLogs } from "@/services/workoutLogService";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -104,6 +105,12 @@ export default function StudentDashboard() {
         enabled: !!user?.id
     });
 
+    const { data: weeklyLogs = [] } = useQuery({
+        queryKey: ['weeklyLogs', user?.id],
+        queryFn: () => getWeeklyLogs(user?.id!),
+        enabled: !!user?.id
+    });
+
     const navigate = useNavigate();
     const loading = !profile;
     const latestAssessment = assessments?.[0];
@@ -127,14 +134,21 @@ export default function StudentDashboard() {
         end: endOfWeek(today, { weekStartsOn: 1 })
     });
 
-    // Training completion - logic from real data
+    // Training completion - Use real workout_logs data
     const activeProgram = trainingPrograms?.[0];
     const weeklyTrainings = activeProgram?.training_sessions?.length || 0;
 
-    const isFeedbackThisWeek = lastFeedback &&
-        isSameDay(startOfWeek(new Date(lastFeedback.created_at), { weekStartsOn: 1 }), weekStart);
+    // Build set of days with workouts from real logs
+    const workoutDaysSet = new Set<number>();
+    weeklyLogs.forEach(log => {
+        const logDate = new Date(log.created_at);
+        const dayOfWeek = logDate.getDay();
+        // Convert to Monday-based index (0=Mon, 6=Sun)
+        const mondayBasedIndex = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+        workoutDaysSet.add(mondayBasedIndex);
+    });
 
-    const completedTrainings = isFeedbackThisWeek ? lastFeedback.training_count : 0;
+    const completedTrainings = workoutDaysSet.size;
     const trainingProgress = weeklyTrainings > 0 ? (completedTrainings / weeklyTrainings) * 100 : 0;
 
     const dayOfWeekIndex = today.getDay();
@@ -375,7 +389,10 @@ export default function StudentDashboard() {
             </Card>
 
             {/* Weekly Training Progress */}
-            <Card className="bg-card/40 backdrop-blur-xl border-border/50 overflow-hidden premium-shadow">
+            <Card
+                className="bg-card/40 backdrop-blur-xl border-border/50 overflow-hidden premium-shadow cursor-pointer active:scale-[0.98] transition-all group"
+                onClick={() => navigate("/aluno/historico")}
+            >
                 <CardContent className="p-5">
                     <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-3">
@@ -384,10 +401,13 @@ export default function StudentDashboard() {
                             </div>
                             <div>
                                 <span className="font-bold text-sm block">Progresso Semanal</span>
-                                <span className="text-[10px] text-muted-foreground uppercase tracking-widest">Sua constância</span>
+                                <span className="text-[10px] text-muted-foreground uppercase tracking-widest">Ver histórico</span>
                             </div>
                         </div>
-                        <span className="text-xs font-black px-2 py-1 bg-orange-500/10 text-orange-600 dark:text-orange-400 rounded-lg">{completedTrainings} / {weeklyTrainings}</span>
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs font-black px-2 py-1 bg-orange-500/10 text-orange-600 dark:text-orange-400 rounded-lg">{completedTrainings} / {weeklyTrainings}</span>
+                            <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                        </div>
                     </div>
                     <div className="space-y-4">
                         <div className="h-3 bg-muted/40 rounded-full overflow-hidden border border-border/20">
@@ -399,7 +419,7 @@ export default function StudentDashboard() {
                         </div>
                         <div className="flex justify-between items-center bg-muted/20 p-2 rounded-2xl border border-border/20">
                             {weekDays?.map((day, i) => {
-                                const isDayCompleted = i < completedTrainings;
+                                const hasWorkout = workoutDaysSet.has(i);
                                 const isDayToday = isToday(day);
 
                                 return (
@@ -407,14 +427,14 @@ export default function StudentDashboard() {
                                         key={i}
                                         className={cn(
                                             "w-9 h-9 rounded-2xl flex items-center justify-center text-[10px] font-black transition-all duration-300",
-                                            isDayCompleted
-                                                ? 'bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/20 scale-110'
+                                            hasWorkout
+                                                ? 'bg-gradient-to-br from-orange-500 to-amber-600 text-white shadow-lg shadow-orange-500/30 scale-110'
                                                 : isDayToday
-                                                    ? 'bg-gradient-to-br from-orange-500 to-amber-600 text-white shadow-lg shadow-orange-500/30 ring-4 ring-orange-500/10'
+                                                    ? 'bg-muted/60 text-foreground ring-2 ring-primary/50'
                                                     : 'bg-muted/40 text-muted-foreground border border-border/30'
                                         )}
                                     >
-                                        {isDayCompleted ? (
+                                        {hasWorkout ? (
                                             <CheckCircle2 className="w-5 h-5" />
                                         ) : (
                                             format(day, 'EEEEE', { locale: ptBR }).toUpperCase()

@@ -88,3 +88,67 @@ export async function getWorkoutLogsBySession(sessionId: string): Promise<Workou
 
     return data || [];
 }
+
+/**
+ * Get workout logs for the current week (Sunday to Saturday)
+ * @param studentId - The student ID
+ * @returns Array of workout logs for current week
+ */
+export async function getWeeklyLogs(studentId: string): Promise<WorkoutLog[]> {
+    const now = new Date();
+    const dayOfWeek = now.getDay(); // 0 = Sunday
+
+    // Calculate start of week (Sunday)
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - dayOfWeek);
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    // Calculate end of week (Saturday 23:59:59)
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
+    endOfWeek.setHours(23, 59, 59, 999);
+
+    const { data, error } = await supabase
+        .from('workout_logs')
+        .select('*')
+        .eq('student_id', studentId)
+        .gte('created_at', startOfWeek.toISOString())
+        .lte('created_at', endOfWeek.toISOString())
+        .order('created_at', { ascending: true });
+
+    if (error) {
+        console.error("[workoutLogService] Error fetching weekly logs:", error);
+        return [];
+    }
+
+    return data || [];
+}
+
+/**
+ * Get workout logs for a specific date range (for calendar view)
+ * @param studentId - The student ID
+ * @param startDate - Start date ISO string
+ * @param endDate - End date ISO string
+ * @returns Array of workout logs in date range
+ */
+export async function getLogsByDateRange(
+    studentId: string,
+    startDate: string,
+    endDate: string
+): Promise<WorkoutLog[]> {
+    const { data, error } = await supabase
+        .from('workout_logs')
+        .select('*')
+        .eq('student_id', studentId)
+        .gte('created_at', startDate)
+        .lte('created_at', endDate)
+        .order('created_at', { ascending: true });
+
+    if (error) {
+        console.error("[workoutLogService] Error fetching logs by date range:", error);
+        return [];
+    }
+
+    return data || [];
+}
+
