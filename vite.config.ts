@@ -22,7 +22,7 @@ export default defineConfig(({ mode }) => ({
         name: "FIT PRO",
         short_name: "FIT PRO",
         description: "Transformando Resultados em Alta Performance",
-        theme_color: "#9b87f5",
+        theme_color: "#f59e0b",
         background_color: "#ffffff",
         display: "standalone",
         icons: [
