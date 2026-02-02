@@ -178,9 +178,14 @@ const AITrainingAssistant = () => {
         if (!generatedWorkout || !selectedStudentId) return;
         setIsSaving(true);
         try {
+            const startDate = new Date();
+            const endDate = new Date(startDate);
+            endDate.setDate(endDate.getDate() + (generatedWorkout.programa_treino.duracao_semanas * 7));
+
             const programToSave = {
                 weeks: generatedWorkout.programa_treino.duracao_semanas,
-                startDate: new Date().toISOString().split('T')[0],
+                startDate: startDate.toISOString().split('T')[0],
+                endDate: endDate.toISOString().split('T')[0],
                 title: generatedWorkout.programa_treino.titulo,
                 sessions: generatedWorkout.treinos.map(t => ({
                     name: t.nome,

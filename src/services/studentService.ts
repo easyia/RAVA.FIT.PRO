@@ -293,6 +293,7 @@ export async function saveTrainingProgram(studentId: string, program: any): Prom
       title: program.title,
       number_weeks: program.weeks,
       start_date: program.startDate,
+      end_date: program.endDate,
       status: 'active'
     })
     .select()

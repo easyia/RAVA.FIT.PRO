@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { getTrainingPrograms } from "@/services/studentService";
 import { saveMultipleWorkoutLogs } from "@/services/workoutLogService";
@@ -44,7 +44,22 @@ export default function StudentTraining() {
     const [isSaving, setIsSaving] = useState(false);
 
     // Store
-    const { activeWorkoutId, currentExerciseLogs, startWorkout, endWorkout } = useWorkoutSessionStore();
+    const { activeWorkoutId, currentExerciseLogs, startWorkout, endWorkout, tickTimer } = useWorkoutSessionStore();
+
+    // Timer Interval
+    useEffect(() => {
+        let interval: NodeJS.Timeout;
+
+        if (activeWorkoutId) {
+            interval = setInterval(() => {
+                tickTimer();
+            }, 1000);
+        }
+
+        return () => {
+            if (interval) clearInterval(interval);
+        };
+    }, [activeWorkoutId, tickTimer]);
 
     // Fetch training programs
     const { data: programs, isLoading } = useQuery({
@@ -62,7 +77,7 @@ export default function StudentTraining() {
         );
     }
 
-    const activeProgram = programs?.[0];
+    const activeProgram = programs?.find((p: any) => p.status === 'active') || programs?.[0];
 
     // No program state
     if (!activeProgram) {
@@ -285,7 +300,10 @@ export default function StudentTraining() {
                 <h1 className="text-3xl font-black italic tracking-tighter uppercase">{activeProgram.title}</h1>
                 <div className="flex items-center gap-4 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {activeProgram.number_weeks} Semanas</span>
-                    <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> Início: {new Date(activeProgram.start_date).toLocaleDateString()}</span>
+                    <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> Início: {activeProgram.start_date ? new Date(activeProgram.start_date).toLocaleDateString() : 'N/A'}</span>
+                    {activeProgram.end_date && (
+                        <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> Fim: {new Date(activeProgram.end_date).toLocaleDateString()}</span>
+                    )}
                 </div>
             </header>
 

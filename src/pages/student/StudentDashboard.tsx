@@ -136,7 +136,7 @@ export default function StudentDashboard() {
     });
 
     // Training completion - Use real workout_logs data
-    const activeProgram = trainingPrograms?.[0];
+    const activeProgram = trainingPrograms?.find((p: any) => p.status === 'active') || trainingPrograms?.[0];
     const weeklyTrainings = activeProgram?.training_sessions?.length || 0;
 
     // Build map of dates with workouts from real logs (using local date string)
@@ -543,6 +543,8 @@ export default function StudentDashboard() {
             <CheckInCard
                 logsCount={completedTrainings}
                 targetLogs={weeklyTrainings || 3}
+                lastCheckInDate={lastFeedback?.created_at}
+                registrationDate={profile?.created_at}
                 onRespond={() => setIsCheckinOpen(true)}
             />
 

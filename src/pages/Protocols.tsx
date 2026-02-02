@@ -75,7 +75,8 @@ interface TrainingProgram {
     id: string;
     title: string;
     number_weeks: number;
-    start_date: string;
+    start_date?: string;
+    end_date?: string;
     status: string;
     created_at: string;
     training_sessions: any[];
@@ -102,6 +103,7 @@ const Protocols = () => {
 
     // Edit States
     const [editingTrainingId, setEditingTrainingId] = useState<string | null>(null);
+    const [editedProgram, setEditedProgram] = useState<Partial<TrainingProgram>>({});
     const [editingDietId, setEditingDietId] = useState<string | null>(null);
     const [editedSessions, setEditedSessions] = useState<Session[]>([]);
     const [editedMeals, setEditedMeals] = useState<any[]>([]);
@@ -239,6 +241,12 @@ const Protocols = () => {
     // Start editing a training program
     const handleEditTraining = (program: TrainingProgram) => {
         setEditingTrainingId(program.id);
+        setEditedProgram({
+            title: program.title,
+            start_date: program.start_date,
+            end_date: program.end_date,
+            number_weeks: program.number_weeks
+        });
         setEditedSessions(program.training_sessions.map((s: any) => ({
             id: s.id,
             division: s.division,
@@ -291,6 +299,19 @@ const Protocols = () => {
         setIsSaving(true);
 
         try {
+            // Update Program Details
+            await supabase
+                .from('training_programs')
+                .update({
+                    title: editedProgram.title,
+                    start_date: editedProgram.start_date,
+                    end_date: editedProgram.end_date,
+                    number_weeks: editedProgram.number_weeks,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', editingTrainingId);
+
+            // Update Sessions and Exercises
             for (const session of editedSessions) {
                 if (session.id) {
                     await supabase.from('training_exercises').delete().eq('training_session_id', session.id);
@@ -678,6 +699,50 @@ const Protocols = () => {
                                                                 {editingTrainingId === program.id ? (
                                                                     // EDIT MODE
                                                                     <div className="divide-y divide-border">
+                                                                        {/* Program Settings (Title and Dates) */}
+                                                                        <div className="p-6 bg-muted/20 border-b border-border">
+                                                                            <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-4 flex items-center gap-2">
+                                                                                <Edit3 className="w-4 h-4" /> Configurações do Programa
+                                                                            </h3>
+                                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                                                <div className="space-y-1">
+                                                                                    <Label className="text-xs">Título do Programa</Label>
+                                                                                    <Input
+                                                                                        value={editedProgram.title || ''}
+                                                                                        onChange={(e) => setEditedProgram(prev => ({ ...prev, title: e.target.value }))}
+                                                                                        className="bg-background"
+                                                                                    />
+                                                                                </div>
+                                                                                <div className="space-y-1">
+                                                                                    <Label className="text-xs">Duração (Semanas)</Label>
+                                                                                    <Input
+                                                                                        type="number"
+                                                                                        value={editedProgram.number_weeks || 0}
+                                                                                        onChange={(e) => setEditedProgram(prev => ({ ...prev, number_weeks: parseInt(e.target.value) }))}
+                                                                                        className="bg-background"
+                                                                                    />
+                                                                                </div>
+                                                                                <div className="space-y-1">
+                                                                                    <Label className="text-xs">Data de Início</Label>
+                                                                                    <Input
+                                                                                        type="date"
+                                                                                        value={editedProgram.start_date || ''}
+                                                                                        onChange={(e) => setEditedProgram(prev => ({ ...prev, start_date: e.target.value }))}
+                                                                                        className="bg-background"
+                                                                                    />
+                                                                                </div>
+                                                                                <div className="space-y-1">
+                                                                                    <Label className="text-xs">Data de Fim</Label>
+                                                                                    <Input
+                                                                                        type="date"
+                                                                                        value={editedProgram.end_date || ''}
+                                                                                        onChange={(e) => setEditedProgram(prev => ({ ...prev, end_date: e.target.value }))}
+                                                                                        className="bg-background"
+                                                                                    />
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+
                                                                         {editedSessions.map((session, sIdx) => (
                                                                             <div key={session.id || sIdx} className="p-6">
                                                                                 <div className="flex items-center gap-4 mb-4">

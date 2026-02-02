@@ -10,7 +10,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getStudents, deleteStudent, updateStudentStatus } from "@/services/studentService";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
-import { StudentDetailsModal } from "@/components/dashboard/StudentDetailsModal";
+// import { StudentDetailsModal } from "@/components/dashboard/StudentDetailsModal";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
@@ -42,7 +42,7 @@ const StudentList = () => {
   const [activeFilter, setActiveFilter] = useState<FilterStatus>('todos');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  // const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Activation Flow States
   const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
@@ -60,8 +60,7 @@ const StudentList = () => {
   });
 
   const handleOpenDetails = (id: string) => {
-    setSelectedStudentId(id);
-    setIsModalOpen(true);
+    navigate(`/alunos/${id}`);
   };
 
   const handleDelete = async (id: string) => {
@@ -250,12 +249,12 @@ const StudentList = () => {
             />
           )}
 
-          <StudentDetailsModal
+          {/* <StudentDetailsModal
             studentId={selectedStudentId}
             isOpen={isModalOpen}
             onClose={() => setIsModalOpen(false)}
             onStatusChange={handleStatusChange}
-          />
+          /> */}
 
           <Dialog open={isPlanModalOpen} onOpenChange={setIsPlanModalOpen}>
             <DialogContent>

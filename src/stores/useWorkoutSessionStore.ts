@@ -170,7 +170,7 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>((set, get) => 
         set((state) => ({
             elapsedTime: state.elapsedTime + 1,
             restTimeRemaining: isResting ? Math.max(0, restTimeRemaining - 1) : 0,
-            isResting: isResting && restTimeRemaining > 1,
+            isResting: isResting && restTimeRemaining > 0,
         }));
     },
 

@@ -30,6 +30,12 @@ export default defineConfig(({ mode }) => ({
             src: "/Logomarca.png",
             sizes: "512x512",
             type: "image/png",
+          },
+          {
+            src: "/Logomarca.png",
+            sizes: "192x192",
+            type: "image/png",
+            purpose: "any maskable"
           }
         ],
       },
@@ -37,6 +43,8 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
   ].filter(Boolean),
   build: {
+    target: "es2015",
+    cssTarget: "chrome80",
     rollupOptions: {
       output: {
         manualChunks: {

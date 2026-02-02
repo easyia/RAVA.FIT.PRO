@@ -46,7 +46,7 @@ export default function StudentSignup() {
                         full_name: formData.full_name,
                         role: 'student',
                         coach_id: coachId,
-                        status: 'active' // Mudando para active conforme pedido de "cair direto no app"
+                        status: 'pending_approval' // Alterado para pending_approval para exigir aprovação do coach
                     }
                 }
             });

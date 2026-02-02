@@ -38,6 +38,7 @@ import StudentPreview from "./pages/student/StudentPreview";
 import StudentTraining from "./pages/student/StudentTraining";
 import StudentDiet from "./pages/student/StudentDiet";
 import StudentHistory from "./pages/student/StudentHistory";
+import StudentProfile from "./pages/student/StudentProfile";
 
 import MessagesPage from "./pages/coach/MessagesPage";
 import StudentDetailsPage from "./pages/dashboard/StudentDetailsPage";
@@ -76,7 +77,7 @@ const App = () => (
               <Route path="/aluno/dieta" element={<StudentDiet />} />
               <Route path="/aluno/historico" element={<StudentHistory />} />
               <Route path="/aluno/agenda" element={<div className="p-4">Agenda do Aluno</div>} />
-              <Route path="/aluno/perfil" element={<div className="p-4">Perfil do Aluno</div>} />
+              <Route path="/aluno/perfil" element={<StudentProfile />} />
             </Route>
           </Route>
 

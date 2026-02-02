@@ -68,7 +68,7 @@ export function StudentDetailsModal({ studentId, isOpen, onClose, onStatusChange
         enabled: !!studentId && isOpen,
     });
 
-    const isLoading = loadingStudent || loadingPrograms || loadingMeals || loadingAssessments || loadingFeedbacks;
+    const isLoading = loadingStudent;
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
@@ -233,293 +233,311 @@ export function StudentDetailsModal({ studentId, isOpen, onClose, onStatusChange
                                     </TabsContent>
 
                                     <TabsContent value="evaluation" className="mt-0">
-                                        <div className="space-y-6">
-                                            <div className="flex justify-between items-center">
-                                                <h4 className="font-semibold text-lg">Histórico de Avaliações</h4>
-                                                <Button
-                                                    onClick={() => {
-                                                        onClose();
-                                                        navigate(`/analise-comparativa?studentId=${studentId}`);
-                                                    }}
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className="gap-2"
-                                                >
-                                                    Análise Completa <ChevronRight className="w-4 h-4" />
-                                                </Button>
-                                            </div>
-
-                                            {assessments && assessments.length > 0 ? (
-                                                <div className="grid grid-cols-1 gap-4">
-                                                    {assessments.slice(0, 3).map((assessment: any) => (
-                                                        <div key={assessment.id} className="card-elevated p-4 flex justify-between items-center bg-sidebar/20 border-border/10">
-                                                            <div>
-                                                                <p className="font-bold text-foreground text-sm uppercase tracking-tight mb-2">{new Date(assessment.assessment_date).toLocaleDateString()}</p>
-                                                                <div className="flex gap-4">
-                                                                    <div className="flex flex-col gap-0.5">
-                                                                        <span className="text-[9px] uppercase font-bold text-muted-foreground tracking-wider">Peso</span>
-                                                                        <span className="text-sm font-bold text-primary">{assessment.weight}kg</span>
-                                                                    </div>
-                                                                    <div className="flex flex-col gap-0.5">
-                                                                        <span className="text-[9px] uppercase font-bold text-muted-foreground tracking-wider">Gordura</span>
-                                                                        <span className="text-sm font-bold text-foreground">{assessment.body_fat}%</span>
-                                                                    </div>
-                                                                    <div className="flex flex-col gap-0.5">
-                                                                        <span className="text-[9px] uppercase font-bold text-muted-foreground tracking-wider">Massa Magra</span>
-                                                                        <span className="text-sm font-bold text-foreground">{assessment.muscle_mass}kg</span>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                            <div className="flex flex-col items-end gap-1">
-                                                                <Badge variant="outline" className="border-primary/20 text-primary text-[10px] uppercase font-bold">Concluída</Badge>
-                                                                <span className="text-[9px] text-white/20 uppercase font-medium">via app</span>
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                    {assessments.length > 3 && (
-                                                        <p className="text-center text-xs text-muted-foreground">Mais {assessments.length - 3} avaliações no histórico completo.</p>
-                                                    )}
-                                                </div>
-                                            ) : (
-                                                <div className="text-center py-12 bg-sidebar/10 rounded-xl border border-dashed border-border">
-                                                    <TrendingUp className="w-12 h-12 mx-auto mb-4 opacity-20" />
-                                                    <p className="text-muted-foreground">Nenhuma avaliação registrada.</p>
+                                        {loadingAssessments ? (
+                                            <div className="flex justify-center p-8"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
+                                        ) : (
+                                            <div className="space-y-6">
+                                                <div className="flex justify-between items-center">
+                                                    <h4 className="font-semibold text-lg">Histórico de Avaliações</h4>
                                                     <Button
                                                         onClick={() => {
                                                             onClose();
-                                                            navigate(`/analise-comparativa?studentId=${studentId}&new=true`);
+                                                            navigate(`/analise-comparativa?studentId=${studentId}`);
                                                         }}
-                                                        variant="link"
-                                                        className="text-primary mt-2"
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="gap-2"
                                                     >
-                                                        Iniciar Primeira Avaliação
+                                                        Análise Completa <ChevronRight className="w-4 h-4" />
                                                     </Button>
                                                 </div>
-                                            )}
-                                        </div>
+
+                                                {assessments && assessments.length > 0 ? (
+                                                    <div className="grid grid-cols-1 gap-4">
+                                                        {assessments.slice(0, 3).map((assessment: any) => (
+                                                            <div key={assessment.id} className="card-elevated p-4 flex justify-between items-center bg-sidebar/20 border-border/10">
+                                                                <div>
+                                                                    <p className="font-bold text-foreground text-sm uppercase tracking-tight mb-2">{new Date(assessment.assessment_date).toLocaleDateString()}</p>
+                                                                    <div className="flex gap-4">
+                                                                        <div className="flex flex-col gap-0.5">
+                                                                            <span className="text-[9px] uppercase font-bold text-muted-foreground tracking-wider">Peso</span>
+                                                                            <span className="text-sm font-bold text-primary">{assessment.weight}kg</span>
+                                                                        </div>
+                                                                        <div className="flex flex-col gap-0.5">
+                                                                            <span className="text-[9px] uppercase font-bold text-muted-foreground tracking-wider">Gordura</span>
+                                                                            <span className="text-sm font-bold text-foreground">{assessment.body_fat}%</span>
+                                                                        </div>
+                                                                        <div className="flex flex-col gap-0.5">
+                                                                            <span className="text-[9px] uppercase font-bold text-muted-foreground tracking-wider">Massa Magra</span>
+                                                                            <span className="text-sm font-bold text-foreground">{assessment.muscle_mass}kg</span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex flex-col items-end gap-1">
+                                                                    <Badge variant="outline" className="border-primary/20 text-primary text-[10px] uppercase font-bold">Concluída</Badge>
+                                                                    <span className="text-[9px] text-white/20 uppercase font-medium">via app</span>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                        {assessments.length > 3 && (
+                                                            <p className="text-center text-xs text-muted-foreground">Mais {assessments.length - 3} avaliações no histórico completo.</p>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <div className="text-center py-12 bg-sidebar/10 rounded-xl border border-dashed border-border">
+                                                        <TrendingUp className="w-12 h-12 mx-auto mb-4 opacity-20" />
+                                                        <p className="text-muted-foreground">Nenhuma avaliação registrada.</p>
+                                                        <Button
+                                                            onClick={() => {
+                                                                onClose();
+                                                                navigate(`/analise-comparativa?studentId=${studentId}&new=true`);
+                                                            }}
+                                                            variant="link"
+                                                            className="text-primary mt-2"
+                                                        >
+                                                            Iniciar Primeira Avaliação
+                                                        </Button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
                                     </TabsContent>
 
                                     <TabsContent value="training" className="mt-0">
-                                        <div className="space-y-4 pb-4">
-                                            {programs && programs.length > 0 ? programs.map((program: any) => (
-                                                <div key={program.id} className="rounded-xl border border-border/50 bg-card/50 dark:bg-zinc-900/50 p-6 shadow-sm">
-                                                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-                                                        <div>
-                                                            <h4 className="text-xl font-black italic uppercase tracking-tighter text-foreground">{program.title || 'Programa de Treino'}</h4>
-                                                            <div className="flex items-center gap-3 mt-2">
-                                                                <Badge variant="outline" className="border-primary/20 bg-primary/5 text-primary uppercase text-[10px] tracking-wider">
-                                                                    {program.number_weeks} Semanas
-                                                                </Badge>
-                                                                <span className="text-xs text-zinc-300 flex items-center gap-1 font-medium">
-                                                                    <Calendar className="w-3 h-3 text-amber-500" /> Início: {new Date(program.start_date).toLocaleDateString()}
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    <Accordion type="single" collapsible className="w-full space-y-3">
-                                                        {program.training_sessions?.map((session: any) => (
-                                                            <AccordionItem key={session.id} value={session.id} className="border border-border/40 dark:border-border/10 rounded-xl bg-background dark:bg-zinc-900 overflow-hidden px-0">
-                                                                <AccordionTrigger className="hover:no-underline px-5 py-4 data-[state=open]:bg-muted/30">
-                                                                    <div className="flex flex-col items-start gap-2 text-left w-full">
-                                                                        <div className="flex items-center gap-2">
-                                                                            <Badge className="bg-amber-500 hover:bg-amber-600 text-black font-black uppercase tracking-widest text-[9px] px-2 h-5">
-                                                                                Treino {session.division}
-                                                                            </Badge>
-                                                                            <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider">
-                                                                                {session.training_exercises?.length || 0} Exercícios
-                                                                            </span>
-                                                                        </div>
-                                                                        <p className="font-bold text-foreground text-sm uppercase italic tracking-tight">{session.name}</p>
-                                                                    </div>
-                                                                </AccordionTrigger>
-                                                                <AccordionContent className="pb-0">
-                                                                    <div className="divide-y divide-border/40 dark:divide-white/10 border-t border-border/40 dark:border-white/10">
-                                                                        {session.training_exercises?.map((exercise: any, exIdx: number) => (
-                                                                            <div key={exercise.id} className="p-4 flex items-center justify-between group hover:bg-muted/20 transition-colors">
-                                                                                <div className="flex items-center gap-4">
-                                                                                    <span className="text-xl font-black text-amber-500 dark:text-amber-400 tabular-nums w-8 text-center leading-none">
-                                                                                        {String(exIdx + 1).padStart(2, '0')}
-                                                                                    </span>
-                                                                                    <div>
-                                                                                        <p className="text-xs font-bold text-foreground dark:text-zinc-100 uppercase tracking-tight">{exercise.name}</p>
-                                                                                        <div className="flex flex-wrap gap-2 mt-1">
-                                                                                            <Badge variant="secondary" className="h-4 px-1.5 text-[8px] font-bold text-zinc-100 bg-zinc-800 border-zinc-700">
-                                                                                                {exercise.sets} Séries
-                                                                                            </Badge>
-                                                                                            <Badge variant="secondary" className="h-4 px-1.5 text-[8px] font-bold text-zinc-100 bg-zinc-800 border-zinc-700">
-                                                                                                {exercise.reps_min}-{exercise.reps_max} Reps
-                                                                                            </Badge>
-                                                                                            {exercise.rest_time && (
-                                                                                                <span className="flex items-center gap-1 text-[9px] text-zinc-400 font-medium">
-                                                                                                    <Clock className="w-2.5 h-2.5 text-amber-500" /> {exercise.rest_time}s
-                                                                                                </span>
-                                                                                            )}
-                                                                                        </div>
-                                                                                    </div>
-                                                                                </div>
-                                                                            </div>
-                                                                        ))}
-                                                                    </div>
-                                                                </AccordionContent>
-                                                            </AccordionItem>
-                                                        ))}
-                                                    </Accordion>
-                                                </div>
-                                            )) : (
-                                                <div className="text-center py-12 text-muted-foreground">Nenhum treino prescrito.</div>
-                                            )}
-                                        </div>
-                                    </TabsContent>
-                                    <TabsContent value="nutrition" className="mt-0">
-                                        <div className="space-y-4 pb-4">
-                                            {mealPlans && mealPlans.length > 0 ? mealPlans.map((plan: any) => {
-                                                const groupedMeals: Record<string, any[]> = {};
-                                                plan.meals?.forEach((meal: any) => {
-                                                    const key = `${meal.name}-${meal.meal_time}`;
-                                                    if (!groupedMeals[key]) groupedMeals[key] = [];
-                                                    groupedMeals[key].push(meal);
-                                                });
-
-                                                return (
-                                                    <div key={plan.id} className="rounded-xl border border-border/50 bg-card/50 dark:bg-zinc-900/50 p-6 shadow-sm">
+                                        {loadingPrograms ? (
+                                            <div className="flex justify-center p-8"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
+                                        ) : (
+                                            <div className="space-y-4 pb-4">
+                                                {programs && programs.length > 0 ? programs.map((program: any) => (
+                                                    <div key={program.id} className="rounded-xl border border-border/50 bg-card/50 dark:bg-zinc-900/50 p-6 shadow-sm">
                                                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
                                                             <div>
-                                                                <div className="flex items-center gap-2 mb-2">
-                                                                    <Badge variant="outline" className="border-amber-500/40 bg-amber-500/5 text-amber-500 uppercase text-[9px] tracking-widest font-black">
-                                                                        Estratégia Ativa
+                                                                <h4 className="text-xl font-black italic uppercase tracking-tighter text-foreground">{program.title || 'Programa de Treino'}</h4>
+                                                                <div className="flex items-center gap-3 mt-2">
+                                                                    <Badge variant="outline" className="border-primary/20 bg-primary/5 text-primary uppercase text-[10px] tracking-wider">
+                                                                        {program.number_weeks} Semanas
                                                                     </Badge>
-                                                                    <Badge variant="secondary" className="text-[9px] font-bold text-zinc-300 bg-zinc-800 border-zinc-700">{plan.goal}</Badge>
-                                                                </div>
-                                                                <h4 className="text-xl font-black italic uppercase tracking-tighter text-foreground">{plan.title}</h4>
-                                                            </div>
-                                                            <div className="flex gap-3 bg-muted/30 p-2 rounded-lg border border-border/30">
-                                                                <div className="text-center px-3 border-r border-border/30 last:border-0">
-                                                                    <p className="text-sm font-black text-foreground tabular-nums leading-none">{plan.total_calories}</p>
-                                                                    <p className="text-[9px] text-zinc-400 uppercase font-black tracking-wider mt-1">Kcal</p>
-                                                                </div>
-                                                                <div className="text-center px-3 border-r border-border/30 last:border-0">
-                                                                    <p className="text-sm font-black text-foreground tabular-nums leading-none">{Math.round(plan.total_proteins)}g</p>
-                                                                    <p className="text-[9px] text-zinc-400 uppercase font-black tracking-wider mt-1">Prot</p>
-                                                                </div>
-                                                                <div className="text-center px-3 last:border-0">
-                                                                    <p className="text-sm font-black text-foreground tabular-nums leading-none">{Math.round(plan.total_carbs)}g</p>
-                                                                    <p className="text-[9px] text-zinc-400 uppercase font-black tracking-wider mt-1">Carb</p>
+                                                                    <span className="text-xs text-zinc-300 flex items-center gap-1 font-medium">
+                                                                        <Calendar className="w-3 h-3 text-amber-500" /> Início: {new Date(program.start_date).toLocaleDateString()}
+                                                                    </span>
                                                                 </div>
                                                             </div>
                                                         </div>
 
                                                         <Accordion type="single" collapsible className="w-full space-y-3">
-                                                            {Object.values(groupedMeals).map((options, mealIdx) => {
-                                                                const firstOption = options[0];
-                                                                return (
-                                                                    <AccordionItem key={mealIdx} value={`meal-${mealIdx}`} className="border border-border/40 dark:border-border/10 rounded-xl bg-background dark:bg-zinc-900 overflow-hidden px-0">
-                                                                        <AccordionTrigger className="hover:no-underline px-5 py-4 data-[state=open]:bg-muted/30">
-                                                                            <div className="flex items-center justify-between w-full pr-4">
-                                                                                <div className="flex items-center gap-3 text-left">
-                                                                                    <div className="w-9 h-9 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-500 border border-amber-500/20 shrink-0 shadow-inner">
-                                                                                        <Clock className="w-4 h-4" />
-                                                                                    </div>
-                                                                                    <div>
-                                                                                        <p className="font-bold text-white text-sm uppercase italic tracking-tight">{firstOption.name}</p>
-                                                                                        <p className="text-[10px] text-zinc-400 font-black uppercase tracking-widest">{firstOption.meal_time}</p>
-                                                                                    </div>
-                                                                                </div>
-                                                                                <div className="flex items-center gap-2">
-                                                                                    {options.length > 1 &&
-                                                                                        <Badge variant="secondary" className="text-[9px] uppercase font-bold bg-zinc-800 text-zinc-300 border-zinc-700">
-                                                                                            {options.length} Opções
-                                                                                        </Badge>
-                                                                                    }
-                                                                                </div>
+                                                            {program.training_sessions?.map((session: any) => (
+                                                                <AccordionItem key={session.id} value={session.id} className="border border-border/40 dark:border-border/10 rounded-xl bg-background dark:bg-zinc-900 overflow-hidden px-0">
+                                                                    <AccordionTrigger className="hover:no-underline px-5 py-4 data-[state=open]:bg-muted/30">
+                                                                        <div className="flex flex-col items-start gap-2 text-left w-full">
+                                                                            <div className="flex items-center gap-2">
+                                                                                <Badge className="bg-amber-500 hover:bg-amber-600 text-black font-black uppercase tracking-widest text-[9px] px-2 h-5">
+                                                                                    Treino {session.division}
+                                                                                </Badge>
+                                                                                <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider">
+                                                                                    {session.training_exercises?.length || 0} Exercícios
+                                                                                </span>
                                                                             </div>
-                                                                        </AccordionTrigger>
-                                                                        <AccordionContent className="pb-0">
-                                                                            <div className="flex flex-col">
-                                                                                {options.map((opt, optIdx) => (
-                                                                                    <div key={opt.id} className="border-t border-border/40 dark:border-border/10 first:border-0">
-                                                                                        <div className="bg-muted/20 px-5 py-2 border-b border-border/40 dark:border-border/10">
-                                                                                            <span className="text-[9px] font-black uppercase tracking-widest text-amber-500 dark:text-amber-400">
-                                                                                                Opção {optIdx + 1}
-                                                                                            </span>
-                                                                                        </div>
-                                                                                        <div className="p-4 space-y-2">
-                                                                                            {opt.meal_foods?.map((food: any) => (
-                                                                                                <div key={food.id} className="flex justify-between items-center text-xs">
-                                                                                                    <div className="flex items-center gap-3">
-                                                                                                        <div className="w-1 h-1 rounded-full bg-amber-500" />
-                                                                                                        <span className="text-zinc-100 font-medium">{food.name}</span>
-                                                                                                    </div>
-                                                                                                    <span className="font-bold text-white tabular-nums bg-zinc-800 px-1.5 py-0.5 rounded text-[10px] border border-zinc-700">
-                                                                                                        {food.quantity}<span className="text-[8px] uppercase text-zinc-400 ml-0.5">{food.unit}</span>
+                                                                            <p className="font-bold text-foreground text-sm uppercase italic tracking-tight">{session.name}</p>
+                                                                        </div>
+                                                                    </AccordionTrigger>
+                                                                    <AccordionContent className="pb-0">
+                                                                        <div className="divide-y divide-border/40 dark:divide-white/10 border-t border-border/40 dark:border-white/10">
+                                                                            {session.training_exercises?.map((exercise: any, exIdx: number) => (
+                                                                                <div key={exercise.id} className="p-4 flex items-center justify-between group hover:bg-muted/20 transition-colors">
+                                                                                    <div className="flex items-center gap-4">
+                                                                                        <span className="text-xl font-black text-amber-500 dark:text-amber-400 tabular-nums w-8 text-center leading-none">
+                                                                                            {String(exIdx + 1).padStart(2, '0')}
+                                                                                        </span>
+                                                                                        <div>
+                                                                                            <p className="text-xs font-bold text-foreground dark:text-zinc-100 uppercase tracking-tight">{exercise.name}</p>
+                                                                                            <div className="flex flex-wrap gap-2 mt-1">
+                                                                                                <Badge variant="secondary" className="h-4 px-1.5 text-[8px] font-bold text-zinc-100 bg-zinc-800 border-zinc-700">
+                                                                                                    {exercise.sets} Séries
+                                                                                                </Badge>
+                                                                                                <Badge variant="secondary" className="h-4 px-1.5 text-[8px] font-bold text-zinc-100 bg-zinc-800 border-zinc-700">
+                                                                                                    {exercise.reps_min}-{exercise.reps_max} Reps
+                                                                                                </Badge>
+                                                                                                {exercise.rest_time && (
+                                                                                                    <span className="flex items-center gap-1 text-[9px] text-zinc-400 font-medium">
+                                                                                                        <Clock className="w-2.5 h-2.5 text-amber-500" /> {exercise.rest_time}s
                                                                                                     </span>
-                                                                                                </div>
-                                                                                            ))}
+                                                                                                )}
+                                                                                            </div>
                                                                                         </div>
                                                                                     </div>
-                                                                                ))}
-                                                                            </div>
-                                                                        </AccordionContent>
-                                                                    </AccordionItem>
-                                                                );
-                                                            })}
+                                                                                </div>
+                                                                            ))}
+                                                                        </div>
+                                                                    </AccordionContent>
+                                                                </AccordionItem>
+                                                            ))}
                                                         </Accordion>
                                                     </div>
-                                                );
-                                            }) : (
-                                                <div className="text-center py-12 text-muted-foreground">Nenhum plano alimentar prescrito.</div>
-                                            )}
-                                        </div>
+                                                )) : (
+                                                    <div className="text-center py-12 text-muted-foreground">Nenhum treino prescrito.</div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </TabsContent>
+                                    <TabsContent value="nutrition" className="mt-0">
+                                        {loadingMeals ? (
+                                            <div className="flex justify-center p-8"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
+                                        ) : (
+                                            <div className="space-y-4 pb-4">
+                                                {mealPlans && mealPlans.length > 0 ? mealPlans.map((plan: any) => {
+                                                    const groupedMeals: Record<string, any[]> = {};
+                                                    plan.meals?.forEach((meal: any) => {
+                                                        const key = `${meal.name}-${meal.meal_time}`;
+                                                        if (!groupedMeals[key]) groupedMeals[key] = [];
+                                                        groupedMeals[key].push(meal);
+                                                    });
+
+                                                    return (
+                                                        <div key={plan.id} className="rounded-xl border border-border/50 bg-card/50 dark:bg-zinc-900/50 p-6 shadow-sm">
+                                                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                                                                <div>
+                                                                    <div className="flex items-center gap-2 mb-2">
+                                                                        <Badge variant="outline" className="border-amber-500/40 bg-amber-500/5 text-amber-500 uppercase text-[9px] tracking-widest font-black">
+                                                                            Estratégia Ativa
+                                                                        </Badge>
+                                                                        <Badge variant="secondary" className="text-[9px] font-bold text-zinc-300 bg-zinc-800 border-zinc-700">{plan.goal}</Badge>
+                                                                    </div>
+                                                                    <h4 className="text-xl font-black italic uppercase tracking-tighter text-foreground">{plan.title}</h4>
+                                                                </div>
+                                                                <div className="flex gap-3 bg-muted/30 p-2 rounded-lg border border-border/30">
+                                                                    <div className="text-center px-3 border-r border-border/30 last:border-0">
+                                                                        <p className="text-sm font-black text-foreground tabular-nums leading-none">{plan.total_calories}</p>
+                                                                        <p className="text-[9px] text-zinc-400 uppercase font-black tracking-wider mt-1">Kcal</p>
+                                                                    </div>
+                                                                    <div className="text-center px-3 border-r border-border/30 last:border-0">
+                                                                        <p className="text-sm font-black text-foreground tabular-nums leading-none">{Math.round(plan.total_proteins)}g</p>
+                                                                        <p className="text-[9px] text-zinc-400 uppercase font-black tracking-wider mt-1">Prot</p>
+                                                                    </div>
+                                                                    <div className="text-center px-3 last:border-0">
+                                                                        <p className="text-sm font-black text-foreground tabular-nums leading-none">{Math.round(plan.total_carbs)}g</p>
+                                                                        <p className="text-[9px] text-zinc-400 uppercase font-black tracking-wider mt-1">Carb</p>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            <Accordion type="single" collapsible className="w-full space-y-3">
+                                                                {Object.values(groupedMeals).map((options, mealIdx) => {
+                                                                    const firstOption = options[0];
+                                                                    return (
+                                                                        <AccordionItem key={mealIdx} value={`meal-${mealIdx}`} className="border border-border/40 dark:border-border/10 rounded-xl bg-background dark:bg-zinc-900 overflow-hidden px-0">
+                                                                            <AccordionTrigger className="hover:no-underline px-5 py-4 data-[state=open]:bg-muted/30">
+                                                                                <div className="flex items-center justify-between w-full pr-4">
+                                                                                    <div className="flex items-center gap-3 text-left">
+                                                                                        <div className="w-9 h-9 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-500 border border-amber-500/20 shrink-0 shadow-inner">
+                                                                                            <Clock className="w-4 h-4" />
+                                                                                        </div>
+                                                                                        <div>
+                                                                                            <p className="font-bold text-white text-sm uppercase italic tracking-tight">{firstOption.name}</p>
+                                                                                            <p className="text-[10px] text-zinc-400 font-black uppercase tracking-widest">{firstOption.meal_time}</p>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                    <div className="flex items-center gap-2">
+                                                                                        {options.length > 1 &&
+                                                                                            <Badge variant="secondary" className="text-[9px] uppercase font-bold bg-zinc-800 text-zinc-300 border-zinc-700">
+                                                                                                {options.length} Opções
+                                                                                            </Badge>
+                                                                                        }
+                                                                                    </div>
+                                                                                </div>
+                                                                            </AccordionTrigger>
+                                                                            <AccordionContent className="pb-0">
+                                                                                <div className="flex flex-col">
+                                                                                    {options.map((opt, optIdx) => (
+                                                                                        <div key={opt.id} className="border-t border-border/40 dark:border-border/10 first:border-0">
+                                                                                            <div className="bg-muted/20 px-5 py-2 border-b border-border/40 dark:border-border/10">
+                                                                                                <span className="text-[9px] font-black uppercase tracking-widest text-amber-500 dark:text-amber-400">
+                                                                                                    Opção {optIdx + 1}
+                                                                                                </span>
+                                                                                            </div>
+                                                                                            <div className="p-4 space-y-2">
+                                                                                                {opt.meal_foods?.map((food: any) => (
+                                                                                                    <div key={food.id} className="flex justify-between items-center text-xs">
+                                                                                                        <div className="flex items-center gap-3">
+                                                                                                            <div className="w-1 h-1 rounded-full bg-amber-500" />
+                                                                                                            <span className="text-zinc-100 font-medium">{food.name}</span>
+                                                                                                        </div>
+                                                                                                        <span className="font-bold text-white tabular-nums bg-zinc-800 px-1.5 py-0.5 rounded text-[10px] border border-zinc-700">
+                                                                                                            {food.quantity}<span className="text-[8px] uppercase text-zinc-400 ml-0.5">{food.unit}</span>
+                                                                                                        </span>
+                                                                                                    </div>
+                                                                                                ))}
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    ))}
+                                                                                </div>
+                                                                            </AccordionContent>
+                                                                        </AccordionItem>
+                                                                    );
+                                                                })}
+                                                            </Accordion>
+                                                        </div>
+                                                    );
+                                                }) : (
+                                                    <div className="text-center py-12 text-muted-foreground">Nenhum plano alimentar prescrito.</div>
+                                                )}
+                                            </div>
+                                        )}
                                     </TabsContent>
 
                                     <TabsContent value="feedbacks" className="mt-0">
-                                        <h4 className="font-semibold text-lg mb-4">Evolução Semanal</h4>
-                                        <div className="space-y-4">
-                                            {feedbacks?.map((fb: any) => {
-                                                const isAlert = fb.fatigue_level > 8 || fb.sleep_quality < 4 || (fb.has_pain && fb.pain_intensity > 5);
-                                                return (
-                                                    <div key={fb.id} className={cn("p-4 rounded-lg border bg-sidebar/20 relative transition-all hover:bg-sidebar/30", isAlert ? "border-red-500/50 bg-red-500/5" : "border-border")}>
-                                                        {isAlert && <Badge variant="destructive" className="absolute top-2 right-2 animate-pulse">Alerta</Badge>}
-                                                        <div className="flex justify-between items-center mb-4">
-                                                            <span className="font-bold text-foreground flex items-center gap-2">Check-in <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">{new Date(fb.created_at).toLocaleDateString()}</span></span>
-                                                            {fb.load_perception && <Badge variant="outline" className="text-[10px] uppercase font-bold border-border/10 text-muted-foreground">{fb.load_perception}</Badge>}
-                                                        </div>
-                                                        <div className="grid grid-cols-2 gap-4 text-sm mt-2">
-                                                            <div className="space-y-3">
-                                                                <div className="flex justify-between items-center border-b border-border/10 pb-1">
-                                                                    <span className="text-xs text-muted-foreground uppercase font-bold tracking-tighter">Cansaço</span>
-                                                                    <span className={cn("font-bold text-sm", fb.fatigue_level > 7 ? "text-red-400" : "text-foreground")}>{fb.fatigue_level}/10</span>
+                                        {loadingFeedbacks ? (
+                                            <div className="flex justify-center p-8"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
+                                        ) : (
+                                            <>
+                                                <h4 className="font-semibold text-lg mb-4">Evolução Semanal</h4>
+                                                <div className="space-y-4">
+                                                    {feedbacks?.map((fb: any) => {
+                                                        const isAlert = fb.fatigue_level > 8 || fb.sleep_quality < 4 || (fb.has_pain && fb.pain_intensity > 5);
+                                                        return (
+                                                            <div key={fb.id} className={cn("p-4 rounded-lg border bg-sidebar/20 relative transition-all hover:bg-sidebar/30", isAlert ? "border-red-500/50 bg-red-500/5" : "border-border")}>
+                                                                {isAlert && <Badge variant="destructive" className="absolute top-2 right-2 animate-pulse">Alerta</Badge>}
+                                                                <div className="flex justify-between items-center mb-4">
+                                                                    <span className="font-bold text-foreground flex items-center gap-2">Check-in <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">{new Date(fb.created_at).toLocaleDateString()}</span></span>
+                                                                    {fb.load_perception && <Badge variant="outline" className="text-[10px] uppercase font-bold border-border/10 text-muted-foreground">{fb.load_perception}</Badge>}
                                                                 </div>
-                                                                <div className="flex justify-between items-center border-b border-border/10 pb-1">
-                                                                    <span className="text-xs text-muted-foreground uppercase font-bold tracking-tighter">Sono</span>
-                                                                    <span className={cn("font-bold text-sm", fb.sleep_quality < 5 ? "text-red-400" : "text-foreground")}>{fb.sleep_quality}/10</span>
-                                                                </div>
-                                                                <div className="flex justify-between items-center border-b border-border/10 pb-1">
-                                                                    <span className="text-xs text-muted-foreground uppercase font-bold tracking-tighter">Treinos</span>
-                                                                    <span className="font-bold text-sm text-primary">{fb.training_count}</span>
+                                                                <div className="grid grid-cols-2 gap-4 text-sm mt-2">
+                                                                    <div className="space-y-3">
+                                                                        <div className="flex justify-between items-center border-b border-border/10 pb-1">
+                                                                            <span className="text-xs text-muted-foreground uppercase font-bold tracking-tighter">Cansaço</span>
+                                                                            <span className={cn("font-bold text-sm", fb.fatigue_level > 7 ? "text-red-400" : "text-foreground")}>{fb.fatigue_level}/10</span>
+                                                                        </div>
+                                                                        <div className="flex justify-between items-center border-b border-border/10 pb-1">
+                                                                            <span className="text-xs text-muted-foreground uppercase font-bold tracking-tighter">Sono</span>
+                                                                            <span className={cn("font-bold text-sm", fb.sleep_quality < 5 ? "text-red-400" : "text-foreground")}>{fb.sleep_quality}/10</span>
+                                                                        </div>
+                                                                        <div className="flex justify-between items-center border-b border-border/10 pb-1">
+                                                                            <span className="text-xs text-muted-foreground uppercase font-bold tracking-tighter">Treinos</span>
+                                                                            <span className="font-bold text-sm text-primary">{fb.training_count}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="flex flex-col gap-2">
+                                                                        {fb.has_pain ? (
+                                                                            <div className="p-2 bg-red-500/10 rounded-lg border border-red-500/20">
+                                                                                <p className="text-[10px] uppercase font-black text-red-400 tracking-widest mb-1">Registro de Dor</p>
+                                                                                <p className="text-xs font-bold text-red-200">{fb.pain_location} <span className="font-black">({fb.pain_intensity}/10)</span></p>
+                                                                            </div>
+                                                                        ) : (
+                                                                            <div className="p-2 bg-green-500/5 rounded-lg border border-green-500/10">
+                                                                                <p className="text-[10px] uppercase font-black text-green-400 tracking-widest">Sem Dores</p>
+                                                                            </div>
+                                                                        )}
+                                                                        {fb.comments && (
+                                                                            <p className="text-muted-foreground italic text-xs mt-1 border-l-2 border-primary/20 pl-2 line-clamp-2">"{fb.comments}"</p>
+                                                                        )}
+                                                                    </div>
                                                                 </div>
                                                             </div>
-                                                            <div className="flex flex-col gap-2">
-                                                                {fb.has_pain ? (
-                                                                    <div className="p-2 bg-red-500/10 rounded-lg border border-red-500/20">
-                                                                        <p className="text-[10px] uppercase font-black text-red-400 tracking-widest mb-1">Registro de Dor</p>
-                                                                        <p className="text-xs font-bold text-red-200">{fb.pain_location} <span className="font-black">({fb.pain_intensity}/10)</span></p>
-                                                                    </div>
-                                                                ) : (
-                                                                    <div className="p-2 bg-green-500/5 rounded-lg border border-green-500/10">
-                                                                        <p className="text-[10px] uppercase font-black text-green-400 tracking-widest">Sem Dores</p>
-                                                                    </div>
-                                                                )}
-                                                                {fb.comments && (
-                                                                    <p className="text-muted-foreground italic text-xs mt-1 border-l-2 border-primary/20 pl-2 line-clamp-2">"{fb.comments}"</p>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })}
-                                            {(!feedbacks || feedbacks.length === 0) && <p className="text-muted-foreground text-center py-8 opacity-50">Nenhum feedback registrado.</p>}
-                                        </div>
+                                                        );
+                                                    })}
+                                                    {(!feedbacks || feedbacks.length === 0) && <p className="text-muted-foreground text-center py-8 opacity-50">Nenhum feedback registrado.</p>}
+                                                </div>
+                                            </>
+                                        )}
                                     </TabsContent>
                                 </div>
                             </ScrollArea>

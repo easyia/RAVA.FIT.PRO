@@ -5,19 +5,29 @@ import { Activity, Lock, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 
+import { differenceInDays } from "date-fns";
+
 interface CheckInCardProps {
     logsCount: number;
     targetLogs: number;
+    lastCheckInDate?: string | null;
+    registrationDate?: string;
     onRespond: () => void;
 }
 
-export function CheckInCard({ logsCount, targetLogs, onRespond }: CheckInCardProps) {
+export function CheckInCard({ logsCount, targetLogs, lastCheckInDate, registrationDate, onRespond }: CheckInCardProps) {
     const progress = Math.min((logsCount / targetLogs) * 100, 100);
     const isGoalMet = logsCount >= targetLogs;
     const today = new Date();
-    // 0 = Sunday, 6 = Saturday
-    const isWeekend = today.getDay() === 0 || today.getDay() === 6;
-    const canRespond = isGoalMet || isWeekend;
+
+    // Logic: Enable if goal is met OR 7 days passed since last event (check-in or registration)
+    const referenceDateStr = lastCheckInDate || registrationDate;
+    const referenceDate = referenceDateStr ? new Date(referenceDateStr) : new Date();
+    const daysSinceLast = differenceInDays(today, referenceDate);
+
+    // Safety check: if no dates available (shouldn't happen), default to false unless goal met
+    const timeCondition = referenceDateStr ? daysSinceLast >= 7 : false;
+    const canRespond = isGoalMet || timeCondition;
 
     return (
         <Card className={cn(
@@ -72,7 +82,7 @@ export function CheckInCard({ logsCount, targetLogs, onRespond }: CheckInCardPro
                         </div>
                         {!canRespond && (
                             <p className="text-[10px] text-white/60 font-medium italic text-right px-1">
-                                Complete sua meta ou aguarde o fim de semana para liberar
+                                Complete sua meta ou aguarde o intervalo de 7 dias para liberar
                             </p>
                         )}
                         {isGoalMet && (

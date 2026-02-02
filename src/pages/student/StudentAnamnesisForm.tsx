@@ -233,7 +233,7 @@ export default function StudentAnamnesisForm() {
                     legal_consent_at: timestamp,
                     terms_accepted_at: timestamp,
                     updated_at: timestamp,
-                    status: 'active'
+                    status: 'pending_approval'
                 })
                 .eq('id', user.id);
 
@@ -415,8 +415,8 @@ export default function StudentAnamnesisForm() {
                                     <Input type="number" value={formData.height_cm} onChange={e => updateField("height_cm", e.target.value)} placeholder="Ex: 175" />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label>Peso Atual (kg) [SYNC_CHECK]</Label>
-                                    <Input type="number" value={formData.weight_kg} onChange={e => updateField("weight_kg", e.target.value)} placeholder="SEU PESO ATUAL" />
+                                    <Label>Peso Atual (kg)</Label>
+                                    <Input type="number" value={formData.weight_kg} onChange={e => updateField("weight_kg", e.target.value)} placeholder="Ex: 75" />
                                 </div>
                             </div>
                         </div>
