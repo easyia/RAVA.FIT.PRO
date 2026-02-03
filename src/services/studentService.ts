@@ -179,7 +179,10 @@ export async function createStudent(rawFormData: any): Promise<any> {
       initial_training_frequency: formData.training_frequency,
       training_level: formData.training_level,
       uses_ergogenics: formData.uses_ergogenics === 'true',
-      uses_ergogenics_details: formData.uses_ergogenics_details
+      uses_ergogenics_details: formData.uses_ergogenics_details,
+      daily_routine: formData.daily_routine,
+      wake_up_time: formData.wake_up_time,
+      sleep_time: formData.sleep_time
     });
 
   if (anamnesisError) {
@@ -547,7 +550,10 @@ export async function updateStudent(studentId: string, rawData: any): Promise<vo
       initial_training_frequency: data.training_frequency,
       training_level: data.training_level,
       uses_ergogenics: data.uses_ergogenics === 'true',
-      uses_ergogenics_details: data.uses_ergogenics_details
+      uses_ergogenics_details: data.uses_ergogenics_details,
+      daily_routine: data.daily_routine,
+      wake_up_time: data.wake_up_time,
+      sleep_time: data.sleep_time
     })
     .eq('student_id', studentId);
 

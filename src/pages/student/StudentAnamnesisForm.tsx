@@ -62,7 +62,7 @@ export default function StudentAnamnesisForm() {
         motivation_barriers: "",
 
         // Section 3: Logistics
-        training_level: "beginner",
+        training_level: "iniciante",
         available_days: [],
         initial_training_frequency: "3",
         training_environment: "Academia",
@@ -132,14 +132,55 @@ export default function StudentAnamnesisForm() {
                 if (!formData.birth_date) return "Data de nascimento é obrigatória";
                 if (!formData.sex) return "Sexo biológico é obrigatório";
                 if (!formData.cpf?.trim()) return "CPF é obrigatório";
+                if (!formData.profession?.trim()) return "Profissão é obrigatória";
+                if (!formData.marital_status) return "Estado civil é obrigatório";
                 return null;
-            case 2: // Biometry
+            case 1: // Emergência & Foto
+                if (!formData.emergency_contact?.trim()) return "Nome do contato de emergência é obrigatório";
+                if (!formData.emergency_phone?.trim()) return "Telefone de emergência é obrigatório";
+                return null;
+            case 2: // Biometria
                 if (!formData.height_cm) return "Altura é obrigatória";
                 if (!formData.weight_kg) return "Peso atual é obrigatório";
                 return null;
-            case 3: // Goals
+            case 3: // Objetivos
                 if (!formData.main_goal) return "Objetivo principal é obrigatório";
                 if (!formData.goal_deadline) return "Prazo para o objetivo é obrigatório";
+                if (!formData.motivation_barriers?.trim()) return "Por favor, descreva suas barreiras/motivação";
+                return null;
+            case 4: // Logística
+                if (!formData.training_level) return "Nível de treinamento é obrigatório";
+                if (!formData.available_days || formData.available_days.length === 0) return "Selecione pelo menos um dia disponível";
+                if (!formData.initial_training_frequency) return "Frequência semanal é obrigatória";
+                if (!formData.training_environment) return "Ambiente de treino é obrigatório";
+                return null;
+            case 5: // Saúde
+                if (!formData.medical_conditions?.trim()) return "Informe suas condições médicas (ou escreva 'Nenhuma')";
+                if (!formData.medications?.trim()) return "Informe seus medicamentos (ou escreva 'Nenhum')";
+                if (!formData.allergies?.trim()) return "Informe suas alergias (ou escreva 'Nenhuma')";
+                if (formData.uses_ergogenics === "true" && !formData.uses_ergogenics_details?.trim()) return "Descreva os detalhes do uso de ergogênicos";
+                return null;
+            case 6: // Dores
+                if (!formData.surgeries?.trim()) return "Informe suas cirurgias (ou escreva 'Nenhuma')";
+                if (!formData.injuries?.trim()) return "Informe suas lesões (ou escreva 'Nenhuma')";
+                if (!formData.exercises_pain?.trim()) return "Informe se sente dor em exercícios (ou escreva 'Nenhuma')";
+                return null;
+            case 7: // Hábitos
+                if (!formData.sleep_quality) return "Qualidade do sono é obrigatória";
+                if (!formData.alcohol_frequency) return "Frequência de álcool é obrigatória";
+                if (!formData.physical_activity_history?.trim()) return "Histórico de atividade física é obrigatório";
+                return null;
+            case 8: // Nutrição
+                if (!formData.diet_habits?.trim()) return "Hábito alimentar é obrigatório";
+                if (!formData.non_consumed_foods?.trim()) return "Alimentos não consumidos são obrigatórios (ou escreva 'Nenhum')";
+                if (!formData.hydration_daily) return "Meta de hidratação é obrigatória";
+                return null;
+            case 9: // Rotina
+                if (!formData.daily_routine?.trim()) return "Descrição da rotina é obrigatória";
+                if (!formData.stress_level) return "Nível de estresse é obrigatório";
+                if (!formData.stress_factors?.trim()) return "Fatores de estresse são obrigatórios (ou escreva 'Nenhum')";
+                if (!formData.wake_up_time) return "Hora que acorda é obrigatória";
+                if (!formData.sleep_time) return "Hora que dorme é obrigatória";
                 return null;
             case 10: // LGPD
                 if (!formData.lgpd_accepted) return "Você precisa aceitar os termos da LGPD";
@@ -271,7 +312,10 @@ export default function StudentAnamnesisForm() {
                     stress_level: formData.stress_level,
                     uses_ergogenics: formData.uses_ergogenics === 'true',
                     uses_ergogenics_details: formData.uses_ergogenics === 'true' ? formData.uses_ergogenics_details : null,
-                    schedule_availability: `Disponibilidade: ${(formData.available_days || []).join(', ')}. Acorda: ${formData.wake_up_time}, Dorme: ${formData.sleep_time}. Rotina: ${formData.daily_routine || 'N/S'}`
+                    schedule_availability: (formData.available_days || []).join(', '),
+                    daily_routine: formData.daily_routine,
+                    wake_up_time: formData.wake_up_time,
+                    sleep_time: formData.sleep_time
                 });
 
             if (anamnesisError) {
@@ -437,6 +481,7 @@ export default function StudentAnamnesisForm() {
                                         <SelectItem value="performance">Performance Esportiva</SelectItem>
                                         <SelectItem value="saude">Saúde e Bem-estar</SelectItem>
                                         <SelectItem value="condicionamento">Condicionamento Físico</SelectItem>
+                                        <SelectItem value="reabilitacao">Reabilitação</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -471,10 +516,10 @@ export default function StudentAnamnesisForm() {
                                 <Select value={formData.training_level} onValueChange={v => updateField("training_level", v)}>
                                     <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="beginner">Iniciante (0-6 meses)</SelectItem>
-                                        <SelectItem value="intermediate">Intermediário (6m-2 anos)</SelectItem>
-                                        <SelectItem value="advanced">Avançado (+2 anos)</SelectItem>
-                                        <SelectItem value="athlete">Atleta</SelectItem>
+                                        <SelectItem value="iniciante">Iniciante (0-6 meses)</SelectItem>
+                                        <SelectItem value="intermediario">Intermediário (6m-2 anos)</SelectItem>
+                                        <SelectItem value="avancado">Avançado (+2 anos)</SelectItem>
+                                        <SelectItem value="atleta">Atleta</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>

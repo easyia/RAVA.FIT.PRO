@@ -75,6 +75,9 @@ interface FormData {
   uses_ergogenics_details: string;
   classification: string;
   service_type: string;
+  daily_routine: string;
+  wake_up_time: string;
+  sleep_time: string;
 }
 
 
@@ -84,14 +87,17 @@ const goals = [
   { value: "condicionamento", label: "Condicionamento" },
   { value: "reabilitacao", label: "Reabilitação" },
   { value: "performance", label: "Performance" },
+  { value: "saude", label: "Saúde e Bem-estar" },
 ];
 
 const frequencies = [
+  { value: "1", label: "1x por semana" },
   { value: "2", label: "2x por semana" },
   { value: "3", label: "3x por semana" },
   { value: "4", label: "4x por semana" },
   { value: "5", label: "5x por semana" },
   { value: "6", label: "6x por semana" },
+  { value: "7", label: "Todos os dias" },
 ];
 
 const weekDays = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
@@ -148,6 +154,9 @@ const StudentRegistration = () => {
     uses_ergogenics_details: "",
     classification: "bronze",
     service_type: "online",
+    daily_routine: "",
+    wake_up_time: "",
+    sleep_time: "",
   });
   const [isUploading, setIsUploading] = useState(false);
 
@@ -205,6 +214,9 @@ const StudentRegistration = () => {
         training_level: studentToEdit.anamnesis?.[0]?.training_level || "",
         uses_ergogenics: studentToEdit.anamnesis?.[0]?.uses_ergogenics?.toString() || "false",
         uses_ergogenics_details: studentToEdit.anamnesis?.[0]?.uses_ergogenics_details || "",
+        daily_routine: studentToEdit.anamnesis?.[0]?.daily_routine || "",
+        wake_up_time: studentToEdit.anamnesis?.[0]?.wake_up_time || "",
+        sleep_time: studentToEdit.anamnesis?.[0]?.sleep_time || "",
         avatar_url: studentToEdit.avatar_url || "",
         classification: studentToEdit.classification || "bronze",
         service_type: studentToEdit.service_type || "online",
@@ -589,6 +601,18 @@ const StudentRegistration = () => {
                         />
                       </div>
                     )}
+                    <div className="space-y-2 md:col-span-2 border-t border-border/10 pt-4 mt-2">
+                      <Label>Descrição da Rotina (Trabalho/Estudo)</Label>
+                      <Textarea value={formData.daily_routine} onChange={(e) => updateFormData("daily_routine", e.target.value)} placeholder="Como é o seu dia a dia?" className="bg-background/50 min-h-[80px]" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Hora que Acorda</Label>
+                      <Input type="time" value={formData.wake_up_time} onChange={(e) => updateFormData("wake_up_time", e.target.value)} className="bg-background/50" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Hora que Dorme</Label>
+                      <Input type="time" value={formData.sleep_time} onChange={(e) => updateFormData("sleep_time", e.target.value)} className="bg-background/50" />
+                    </div>
                   </div>
                 </AccordionContent>
               </AccordionItem>

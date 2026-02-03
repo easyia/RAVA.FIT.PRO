@@ -79,6 +79,17 @@ interface WorkoutResponse {
     };
 }
 
+const trainingLevelLabels: { [key: string]: string } = {
+    beginner: "Iniciante",
+    intermediate: "Intermediário",
+    advanced: "Avançado",
+    athlete: "Atleta",
+    iniciante: "Iniciante",
+    intermediario: "Intermediário",
+    avancado: "Avançado",
+    atleta: "Atleta"
+};
+
 const AITrainingAssistant = () => {
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [selectedStudentId, setSelectedStudentId] = useState<string>('');
@@ -383,7 +394,7 @@ const AITrainingAssistant = () => {
                                             <div className="grid grid-cols-2 gap-2 text-[10px]">
                                                 <div className="bg-background/50 p-2 rounded">
                                                     <p className="text-muted-foreground uppercase font-bold">Nível</p>
-                                                    <p>{studentFullDetails.anamnesis?.[0]?.training_level || 'N/A'}</p>
+                                                    <p>{trainingLevelLabels[studentFullDetails.anamnesis?.[0]?.training_level as keyof typeof trainingLevelLabels] || studentFullDetails.anamnesis?.[0]?.training_level || 'N/A'}</p>
                                                 </div>
                                                 <div className="bg-background/50 p-2 rounded">
                                                     <p className="text-muted-foreground uppercase font-bold">Lesões</p>

@@ -25,6 +25,17 @@ import { getChatMessages, sendMessageFromCoach } from "@/services/aiService";
 import { StudentChatTab } from "./StudentChatTab";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
+const trainingLevelLabels: { [key: string]: string } = {
+    beginner: "Iniciante",
+    intermediate: "Intermediário",
+    advanced: "Avançado",
+    athlete: "Atleta",
+    iniciante: "Iniciante",
+    intermediario: "Intermediário",
+    avancado: "Avançado",
+    atleta: "Atleta"
+};
+
 interface StudentDetailsModalProps {
     studentId: string | null;
     isOpen: boolean;
@@ -186,8 +197,16 @@ export function StudentDetailsModal({ studentId, isOpen, onClose, onStatusChange
                                                             <span className="font-bold">{student.anamnesis[0].stress_level || 'N/A'}</span>
                                                         </div>
                                                         <div className="flex justify-between items-center border-b border-border/10 pb-2 last:border-0">
+                                                            <span className="text-muted-foreground">Rotina Diária</span>
+                                                            <span className="font-bold">{student.anamnesis[0].daily_routine || 'N/A'}</span>
+                                                        </div>
+                                                        <div className="flex justify-between items-center border-b border-border/10 pb-2 last:border-0">
+                                                            <span className="text-muted-foreground">Horários</span>
+                                                            <span className="font-bold whitespace-nowrap">Acorda: {student.anamnesis[0].wake_up_time || '-'} | Dorme: {student.anamnesis[0].sleep_time || '-'}</span>
+                                                        </div>
+                                                        <div className="flex justify-between items-center border-b border-border/10 pb-2 last:border-0">
                                                             <span className="text-muted-foreground">Nível de Treino</span>
-                                                            <span className="font-bold">{student.anamnesis[0].training_level || 'N/A'}</span>
+                                                            <span className="font-bold">{trainingLevelLabels[student.anamnesis[0].training_level as keyof typeof trainingLevelLabels] || student.anamnesis[0].training_level || 'N/A'}</span>
                                                         </div>
                                                         <div className="flex justify-between items-center border-b border-border/10 pb-2 last:border-0">
                                                             <span className="text-muted-foreground">Uso de Ergogênicos</span>
@@ -223,6 +242,14 @@ export function StudentDetailsModal({ studentId, isOpen, onClose, onStatusChange
                                                         <div className="flex justify-between items-center border-b border-border/10 pb-2 last:border-0">
                                                             <span className="text-muted-foreground">Altura</span>
                                                             <span className="font-bold">{student.anamnesis[0].height_cm} cm</span>
+                                                        </div>
+                                                        <div className="flex justify-between items-center border-b border-border/10 pb-2 last:border-0">
+                                                            <span className="text-muted-foreground">Freq. Semanal</span>
+                                                            <span className="font-bold text-accent">{student.anamnesis[0].initial_training_frequency || 'N/A'}x</span>
+                                                        </div>
+                                                        <div className="flex justify-between items-center border-b border-border/10 pb-2 last:border-0">
+                                                            <span className="text-muted-foreground">Disponibilidade</span>
+                                                            <span className="font-bold text-accent">{student.anamnesis[0].schedule_availability || 'N/A'}</span>
                                                         </div>
                                                     </AccordionContent>
                                                 </AccordionItem>
